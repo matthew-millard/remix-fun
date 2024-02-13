@@ -1,0 +1,6 @@
+@font-face {
+  font-family: 'soehne-buch';
+  src: url(../../public/fonts/soehne-buch.woff2) format('woff2');
+  font-weight: 400; /* Normal weight */
+  font-style: normal;
+}
