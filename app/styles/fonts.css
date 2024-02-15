@@ -4,3 +4,10 @@
   font-weight: 400; /* Normal weight */
   font-style: normal;
 }
+
+@font-face {
+  font-family: 'soehne-halbfett';
+  src: url(../../public/fonts/soehne-halbfett.woff2) format('woff2');
+  font-weight: 700; /* Bold weight */
+  font-style: normal;
+}

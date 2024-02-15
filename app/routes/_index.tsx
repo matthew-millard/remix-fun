@@ -7,7 +7,7 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   return (
     <>
-      <h1>Hello World!</h1>
+      <h1>Main</h1>
     </>
   );
 }
