@@ -6,6 +6,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['soehne-buch', 'ui-sans-serif', 'system-ui'],
+        heading: ['soehne-halbfett', 'ui-sans-serif', 'system-ui'],
       },
     },
   },
