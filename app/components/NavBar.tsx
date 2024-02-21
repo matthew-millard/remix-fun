@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { LoginButton, Logo } from '../components';
+import { LoginButton, Logo, ThemeSwitcher } from '../components';
 
 const navigation = [
   { name: 'Discovery', href: '/discovery' },
@@ -13,7 +13,7 @@ export default function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white">
+    <header className="bg-white dark:bg-slate-900">
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-x-6 p-6 lg:px-8" aria-label="Global">
         <div className="flex lg:flex-1">
           <Logo />
@@ -33,6 +33,7 @@ export default function NavBar() {
             Sign up
           </a>
           <LoginButton />
+          <ThemeSwitcher />
         </div>
         <div className="flex lg:hidden">
           <button
@@ -48,18 +49,21 @@ export default function NavBar() {
       <Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={setMobileMenuOpen}>
         <div className="fixed inset-0 z-10" />
         <Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
-          <div className="flex justify-between gap-x-6">
+          <div className="flex justify-between gap-x-6 items-center">
             <div className="sm:invisible my-3">
               <Logo />
             </div>
-            <button
-              type="button"
-              className="-m-2.5 rounded-md p-2.5 text-gray-700"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <span className="sr-only">Close menu</span>
-              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-            </button>
+            <div className="flex gap-4">
+              <ThemeSwitcher />
+              <button
+                type="button"
+                className="-m-2.5 rounded-md p-2.5 text-gray-700"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="sr-only">Close menu</span>
+                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <div className="mt-6 flow-root">
             <div className="-my-6 divide-y divide-gray-500/10">
