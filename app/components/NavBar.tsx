@@ -4,9 +4,9 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { LoginButton, Logo } from '../components';
 
 const navigation = [
-  { name: 'Discover Bars', href: '/discover-bars' },
-  { name: 'Bar Directory', href: '/bar-directory' },
-  { name: 'About', href: '/about' },
+  { name: 'Discovery', href: '/discovery' },
+  { name: 'Directory', href: '/directory' },
+  { name: 'Bar Of The Month', href: '/bar-of-the-month' },
 ];
 
 export default function NavBar() {
