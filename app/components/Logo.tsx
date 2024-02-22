@@ -1,8 +1,8 @@
 export default function Logo() {
   return (
     <a href="/" className="py-3">
-      <span className="text-black font-heading text-xl lg:text-2xl block text-left break-words tracking-widest">
-        BARFLY
+      <span className="text-text-primary underlined block whitespace-nowrap text-2xl lg:text-3xl font-bold  transition focus:outline-none">
+        Barfly
       </span>
     </a>
   );
