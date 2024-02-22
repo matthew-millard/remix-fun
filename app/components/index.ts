@@ -1,7 +1,6 @@
 import NavBar from './NavBar';
-import LoginButton from './LoginButton';
-import SignUpButton from './SignUpButton';
 import Logo from './Logo';
 import ThemeSwitcher from './ThemeSwitcher';
+import Avatar from './Avatar';
 
-export { NavBar, LoginButton, SignUpButton, Logo, ThemeSwitcher };
+export { Avatar, NavBar, Logo, ThemeSwitcher };
