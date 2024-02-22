@@ -8,15 +8,18 @@ export default function ThemeSwitcher() {
     setTheme(prevTheme => (prevTheme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT));
   }
   return (
-    <button onClick={toggleTheme}>
+    <button
+      onClick={toggleTheme}
+      className="border-2 p-2 rounded-full border-border-secondary hover:border-border-primary transition duration-500"
+    >
       {theme === Theme.LIGHT ? (
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="black"
-          className="w-6 h-6"
+          strokeWidth={2}
+          stroke="currentColor"
+          className="w-6 h-6 text-text-primary"
         >
           <path
             strokeLinecap="round"
@@ -29,9 +32,9 @@ export default function ThemeSwitcher() {
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
-          strokeWidth={1.5}
+          strokeWidth={2}
           stroke="currentColor"
-          className="w-6 h-6"
+          className="w-6 h-6 text-text-primary"
         >
           <path
             strokeLinecap="round"
