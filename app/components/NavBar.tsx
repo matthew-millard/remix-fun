@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { LoginButton, Logo, ThemeSwitcher } from '../components';
+import { Avatar, Logo, ThemeSwitcher } from '../components';
 
 const navigation = [
   { name: 'Discovery', href: '/discovery' },
   { name: 'Directory', href: '/directory' },
   { name: 'Bar Of The Month', href: '/bar-of-the-month' },
 ];
+
+const mobileNavigation = [{ name: 'Dashboard', href: '/dashboard' }, ...navigation];
 
 export default function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,13 +32,7 @@ export default function NavBar() {
           ))}
         </div>
         <div className="hidden lg:flex flex-1 items-center justify-end gap-x-6">
-          <a
-            href="/sign-up"
-            className="flex-shrink-0 rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-          >
-            Sign up
-          </a>
-          <LoginButton />
+          <Avatar />
           <ThemeSwitcher />
         </div>
         <div className="flex lg:hidden">
@@ -72,18 +68,15 @@ export default function NavBar() {
           <div className="mt-6 flow-root">
             <div className="-my-6 divide-y divide-gray-500/10">
               <div className="space-y-2 py-6">
-                {navigation.map(item => (
+                {mobileNavigation.map(item => (
                   <a
                     key={item.name}
                     href={item.href}
-                    className="-mx-3 block rounded-md px-3 py-2 text-base font-semibold leading-7 text-text-primary hover:bg-bg-secondary"
+                    className="-mx-3 block rounded-md px-3 py-2 text-base font-medium leading-7 text-text-primary hover:bg-bg-secondary"
                   >
                     {item.name}
                   </a>
                 ))}
-              </div>
-              <div className="py-6">
-                <LoginButton />
               </div>
             </div>
           </div>
