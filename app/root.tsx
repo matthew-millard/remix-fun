@@ -40,7 +40,7 @@ function App() {
         <Links />
         <NonFlashOfWrongThemeEls ssrTheme={Boolean(data.theme)} />
       </head>
-      <body>
+      <body className="h-full">
         {/* Navigation Bar */}
         <NavBar />
         <main>

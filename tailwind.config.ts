@@ -16,6 +16,7 @@ export default {
         'border-secondary': 'var(--border-secondary)',
         'text-primary': 'var(--text-primary)',
         'text-secondary': 'var(--text-secondary)',
+        'text-notify': 'var(--color-blue-500)',
       },
     },
   },
