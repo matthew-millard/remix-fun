@@ -2,7 +2,8 @@ import { Theme, useTheme } from '~/utils/theme-provider';
 
 export default function ThemeSwitcher() {
   const [theme, setTheme] = useTheme();
-  console.log(theme);
+
+  console.log('ThemeSwitcher', theme);
 
   function toggleTheme() {
     setTheme(prevTheme => (prevTheme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT));

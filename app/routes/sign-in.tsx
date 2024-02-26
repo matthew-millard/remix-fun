@@ -1,7 +1,10 @@
-import { Form } from '@remix-run/react';
-import type { ActionFunctionArgs } from '@remix-run/node';
-import { createUserSession } from '~/utils/session.server';
-import isValidEmail from '~/utils/isValidEmail';
+import { Form, useActionData } from '@remix-run/react';
+import { ActionFunctionArgs, json } from '@remix-run/node';
+// import { createUserSession } from '~/utils/session.server';
+import validateEmail from '~/utils/validateEmail';
+import validatePassword from '~/utils/validatePassword';
+import { ErrorList } from '~/components';
+import { useEffect, useId, useState } from 'react';
 
 // import { verifyLogin } from '~/models/user.server';
 
@@ -10,31 +13,82 @@ export async function action({ request }: ActionFunctionArgs) {
   const email = formData.get('email');
   const password = formData.get('password');
 
-  console.log(email, password);
-
-  // Check the email is a valid email
-  if (!email) {
-    return new Error('Please enter a valid email address');
-  }
-  isValidEmail(email.toString());
-  // Return the errors if there are any
-
-  // const user = await verifyLogin(email, password);
-
-  // If no user is returned, return the error
-
-  console.log('HI');
-  // return createUserSession({
-  //   request,
-  //   userId: user.id,
-  // });
-  return {
-    email,
-    password,
+  // Errors Object
+  const errors = {
+    formErrors: [] as Array<string>,
+    fieldErrors: {
+      email: [] as Array<string>,
+      password: [] as Array<string>,
+    },
   };
+
+  // Email validation
+  let isValidEmail = false;
+  if (email !== null && typeof email === 'string') {
+    isValidEmail = validateEmail(email);
+  }
+
+  if (!isValidEmail) {
+    errors.fieldErrors.email.push('Invalid email address');
+  }
+
+  // Password validation
+  let isValidPassword = false;
+  if (password === null && typeof password === 'string') {
+    isValidPassword = validatePassword(password);
+  }
+
+  if (!isValidPassword) {
+    errors.fieldErrors.password.push(
+      'Your password isn’t quite right. Here’s what it needs:' +
+        '\n- At least 8 characters' +
+        '\n- One uppercase letter' +
+        '\n- One number' +
+        '\n- One special character (like !@#$%^&*)'
+    );
+  }
+
+  // Check for any errors
+  const hasErrors =
+    errors.formErrors.length || Object.values(errors.fieldErrors).some(fieldErrors => fieldErrors.length > 0);
+
+  if (hasErrors) {
+    return json(
+      {
+        status: 'error',
+        errors,
+      } as const,
+      { status: 400 }
+    );
+  }
+}
+
+// useHydrated Hook
+function useHydrated() {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  return hydrated;
 }
 
 export default function SignIn() {
+  const actionData = useActionData<typeof action>();
+  const formErrors = actionData?.status === 'error' ? actionData.errors.formErrors : null;
+  const fieldErrors = actionData?.status === 'error' ? actionData.errors.fieldErrors : null;
+  const isHydrated = useHydrated();
+
+  // Unique IDs
+  const formId = useId();
+  const emailId = useId();
+  const passwordId = useId();
+
+  // Useful variables
+  const formHasErrors = Boolean(formErrors?.length);
+  const formErrorId = useId();
+  const emailHasErrors = Boolean(fieldErrors?.email.length);
+  const emailErrorId = useId();
+  const passwordHasErrors = Boolean(fieldErrors?.password.length);
+  const passwordErrorId = useId();
+
   return (
     <>
       <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8 ">
@@ -44,36 +98,54 @@ export default function SignIn() {
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
           <div className="bg-bg-alt px-6 py-12  sm:rounded-lg sm:px-12 shadow-lg">
-            <Form className="space-y-6" action="#" method="POST">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium leading-6 text-text-primary">
+            <Form
+              id={formId}
+              className="space-y-6"
+              action="#"
+              method="POST"
+              noValidate={isHydrated}
+              aria-invalid={formHasErrors || undefined}
+              aria-describedby={formHasErrors ? formErrorId : undefined}
+            >
+              <div className="relative pb-4">
+                <label htmlFor={emailId} className="block text-sm font-medium leading-6 text-text-primary">
                   Email address
                 </label>
                 <div className="mt-2">
                   <input
-                    id="email"
+                    id={emailId}
                     name="email"
                     type="email"
                     autoComplete="email"
                     required
-                    className="block w-full rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white"
+                    className="block w-full rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-2 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white aria-[invalid]:ring-red-600 "
+                    aria-invalid={emailHasErrors || undefined}
+                    aria-describedby={emailHasErrors ? emailErrorId : undefined}
                   />
+                  <div className=" px-2 absolute bottom-0">
+                    <ErrorList errors={fieldErrors?.email} id={emailErrorId} />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium leading-6 text-text-primary">
+              <div className="relative pb-12">
+                <label htmlFor={passwordId} className="block text-sm font-medium leading-6 text-text-primary">
                   Password
                 </label>
                 <div className="mt-2">
                   <input
-                    id="password"
+                    id={passwordId}
                     name="password"
                     type="password"
                     autoComplete="current-password"
                     required
-                    className="block w-full rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white"
+                    className="block w-full rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-2 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white  aria-[invalid]:ring-red-600 "
+                    aria-invalid={passwordHasErrors || undefined}
+                    aria-describedby={passwordHasErrors ? passwordErrorId : undefined}
                   />
+                  <div className="px-2 absolute bottom-0">
+                    <ErrorList errors={fieldErrors?.password} id={passwordErrorId} />
+                  </div>
                 </div>
               </div>
 
@@ -99,6 +171,7 @@ export default function SignIn() {
 
               <div>
                 <button
+                  form={formId}
                   type="submit"
                   className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >

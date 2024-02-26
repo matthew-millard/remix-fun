@@ -16,6 +16,10 @@ const getPreferredTheme = () => (window.matchMedia(prefersDarkMQ).matches ? Them
 
 function ThemeProvider({ children, specifiedTheme }: { children: ReactNode; specifiedTheme: Theme | null }) {
   const [theme, setTheme] = useState<Theme | null>(() => {
+    // On the server, if we don't have a specified theme then we should
+    // return null and the clientThemeCode will set the theme for us
+    // before hydration. Then (during hydration), this code will get the same
+    // value that clientThemeCode got so hydration is happy.
     if (specifiedTheme) {
       if (themes.includes(specifiedTheme)) {
         return specifiedTheme;
@@ -24,14 +28,16 @@ function ThemeProvider({ children, specifiedTheme }: { children: ReactNode; spec
       }
     }
 
-    if (typeof window !== 'object') {
+    // there's no way for us to know what the theme should be in this context
+    // the client will have to figure it out before hydration.
+    if (typeof document === 'undefined') {
       return null;
     }
+
     return getPreferredTheme();
   });
 
   const persistTheme = useFetcher();
-
   // TODO: remove this when persistTheme is memoized properly
   const persistThemeRef = useRef(persistTheme);
   useEffect(() => {
@@ -57,7 +63,6 @@ function ThemeProvider({ children, specifiedTheme }: { children: ReactNode; spec
     const handleChange = () => {
       setTheme(mediaQuery.matches ? Theme.DARK : Theme.LIGHT);
     };
-
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
@@ -73,51 +78,10 @@ function useTheme() {
   return context;
 }
 
-const clientThemeCode = `
-;(() => {
-  const theme = window.matchMedia(${JSON.stringify(prefersDarkMQ)}).matches
-    ? 'dark'
-    : 'light';
-  const cl = document.documentElement.classList;
-  const themeAlreadyApplied = cl.contains('light') || cl.contains('dark');
-  if (themeAlreadyApplied) {
-    // this script shouldn't exist if the theme is already applied!
-    console.warn(
-      "Hi there, could you let Matt know you're seeing this message? Thanks!",
-    );
-  } else {
-    cl.add(theme);
-  }
-
-  const meta = document.querySelector('meta[name=color-scheme]');
-  if (meta) {
-    if (theme === 'dark') {
-      meta.content = 'dark light';
-    } else if (theme === 'light') {
-      meta.content = 'light dark';
-    }
-  } else {
-    console.warn(
-      "Hey, could you let Matt know you're seeing this message? Thanks!",
-    );
-  }
-})();
-`;
-
-function NonFlashOfWrongThemeEls({ ssrTheme }: { ssrTheme: boolean }) {
-  const [theme] = useTheme();
-  return (
-    <>
-      <meta name="color-scheme" content={theme === 'light' ? 'light dark' : 'dark light'} />
-      {ssrTheme ? null : <script dangerouslySetInnerHTML={{ __html: clientThemeCode }} />}
-    </>
-  );
-}
-
 const themes: Array<Theme> = Object.values(Theme);
 
 function isTheme(value: unknown): value is Theme {
   return typeof value === 'string' && themes.includes(value as Theme);
 }
 
-export { isTheme, NonFlashOfWrongThemeEls, Theme, ThemeProvider, useTheme };
+export { isTheme, Theme, ThemeProvider, useTheme };

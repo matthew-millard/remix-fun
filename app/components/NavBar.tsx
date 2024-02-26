@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Avatar, Logo, ThemeSwitcher } from '../components';
+import { NavLink } from '@remix-run/react';
 
 const navigation = [
   { name: 'Discovery', href: '/discovery' },
@@ -22,13 +23,13 @@ export default function NavBar() {
         </div>
         <div className="hidden lg:flex lg:gap-x-12">
           {navigation.map(item => (
-            <a
+            <NavLink
               key={item.name}
-              href={item.href}
+              to={item.href}
               className="block whitespace-nowrap text-lg font-medium hover:text-text-primary focus:text-text-primary focus:outline-none text-text-secondary"
             >
               {item.name}
-            </a>
+            </NavLink>
           ))}
         </div>
         <div className="hidden lg:flex flex-1 items-center justify-end gap-x-6">
