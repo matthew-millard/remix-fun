@@ -1,10 +1,11 @@
+import type { LoaderFunction, MetaFunction } from '@remix-run/node';
 import { cssBundleHref } from '@remix-run/css-bundle';
-import type { LinksFunction, LoaderFunction, MetaFunction } from '@remix-run/node';
+import { LinksFunction } from '@remix-run/node';
+import tailwindStylesheet from '~/tailwind.css';
+import globalStylesheet from '~/styles/global.css';
 import { ThemeProvider, Theme } from '~/utils/theme-provider';
 import { getThemeSession } from './utils/theme.server';
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
-import tailwindStylesheet from '~/tailwind.css';
-import globalStylesheet from '~/styles/global.css';
 import { NavBar } from './components';
 import clsx from 'clsx';
 
@@ -22,15 +23,15 @@ export const loader: LoaderFunction = async ({ request }) => {
   return data;
 };
 
+export const meta: MetaFunction = () => {
+  return [{ title: 'BarFly' }, { name: 'description', content: 'Welcome to BarFly!' }];
+};
+
 export const links: LinksFunction = () => [
   ...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : []),
   { rel: 'stylesheet', href: tailwindStylesheet },
   { rel: 'stylesheet', href: globalStylesheet },
 ];
-
-export const meta: MetaFunction = () => {
-  return [{ title: 'BarFly' }, { name: 'description', content: 'Welcome to BarFly!' }];
-};
 
 function App() {
   const data = useLoaderData<LoaderData>();
@@ -48,7 +49,6 @@ function App() {
         <main>
           <Outlet />
         </main>
-
         <ScrollRestoration />
         <Scripts />
         <LiveReload />
