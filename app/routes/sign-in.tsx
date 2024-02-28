@@ -4,7 +4,8 @@ import { ActionFunctionArgs, json } from '@remix-run/node';
 import validateEmail from '~/utils/validateEmail';
 import validatePassword from '~/utils/validatePassword';
 import { ErrorList } from '~/components';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import useFocusInvalid from '~/hooks/useFocusInvalid';
 
 // import { verifyLogin } from '~/models/user.server';
 
@@ -75,6 +76,11 @@ export default function SignIn() {
   const formErrors = actionData?.status === 'error' ? actionData.errors.formErrors : null;
   const fieldErrors = actionData?.status === 'error' ? actionData.errors.fieldErrors : null;
   const isHydrated = useHydrated();
+  const formRef = useRef<HTMLFormElement>(null);
+  const hasErrors = actionData?.status === 'error';
+
+  // Focus Invalid Hook
+  useFocusInvalid(formRef.current, hasErrors);
 
   // Unique IDs
   const formId = useId();
@@ -106,6 +112,8 @@ export default function SignIn() {
               noValidate={isHydrated}
               aria-invalid={formHasErrors || undefined}
               aria-describedby={formHasErrors ? formErrorId : undefined}
+              ref={formRef}
+              tabIndex={-1}
             >
               <div className="relative pb-4">
                 <label htmlFor={emailId} className="block text-sm font-medium leading-6 text-text-primary">
@@ -121,6 +129,8 @@ export default function SignIn() {
                     className="block w-full rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-2 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white aria-[invalid]:ring-red-600 "
                     aria-invalid={emailHasErrors || undefined}
                     aria-describedby={emailHasErrors ? emailErrorId : undefined}
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    autoFocus
                   />
                   <div className=" px-2 absolute bottom-0">
                     <ErrorList errors={fieldErrors?.email} id={emailErrorId} />
