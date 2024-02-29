@@ -1,74 +1,42 @@
 import { Form, useActionData } from '@remix-run/react';
-import { ActionFunctionArgs, json } from '@remix-run/node';
-// import { createUserSession } from '~/utils/session.server';
-import validateEmail from '~/utils/validateEmail';
-import validatePassword from '~/utils/validatePassword';
+import { ActionFunctionArgs, json, redirect } from '@remix-run/node';
 import { ErrorList } from '~/components';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef } from 'react';
 import useFocusInvalid from '~/hooks/useFocusInvalid';
-
-// import { verifyLogin } from '~/models/user.server';
+import useHydrated from '~/hooks/useHydrated';
+import { z } from 'zod';
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const email = formData.get('email');
   const password = formData.get('password');
 
-  // Errors Object
-  const errors = {
-    formErrors: [] as Array<string>,
-    fieldErrors: {
-      email: [] as Array<string>,
-      password: [] as Array<string>,
-    },
-  };
+  const SignInFormSchema = z.object({
+    email: z.string().email(),
+    password: z
+      .string()
+      .min(8, { message: 'Password must be at least 8 characters long' })
+      .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
+      .regex(/[\W_]/, { message: 'Password must contain at least one special character' })
+      .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+  });
 
-  // Email validation
-  let isValidEmail = false;
-  if (email !== null && typeof email === 'string') {
-    isValidEmail = validateEmail(email);
+  const result = SignInFormSchema.safeParse({ email, password });
+
+  if (!result.success) {
+    return json({ status: 'error', errors: result.error.flatten() } as const, {
+      status: 400,
+    });
   }
 
-  if (!isValidEmail) {
-    errors.fieldErrors.email.push('Invalid email address');
-  }
+  console.log('Passed validation', result.data);
+  // TODO:
+  // Check if the email and password are correct in the database
+  // If they are, create a session and redirect to the dashboard
+  // If they are not, return an error message
 
-  // Password validation
-  let isValidPassword = false;
-  if (password === null && typeof password === 'string') {
-    isValidPassword = validatePassword(password);
-  }
-
-  if (!isValidPassword) {
-    errors.fieldErrors.password.push(
-      'Your password isn’t quite right. Here’s what it needs:' +
-        '\n- At least 8 characters' +
-        '\n- One uppercase letter' +
-        '\n- One number' +
-        '\n- One special character (like !@#$%^&*)'
-    );
-  }
-
-  // Check for any errors
-  const hasErrors =
-    errors.formErrors.length || Object.values(errors.fieldErrors).some(fieldErrors => fieldErrors.length > 0);
-
-  if (hasErrors) {
-    return json(
-      {
-        status: 'error',
-        errors,
-      } as const,
-      { status: 400 }
-    );
-  }
-}
-
-// useHydrated Hook
-function useHydrated() {
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
-  return hydrated;
+  // redirect to the dashboard
+  return redirect('/dashboard');
 }
 
 export default function SignIn() {
@@ -78,6 +46,8 @@ export default function SignIn() {
   const isHydrated = useHydrated();
   const formRef = useRef<HTMLFormElement>(null);
   const hasErrors = actionData?.status === 'error';
+
+  console.log(actionData);
 
   // Focus Invalid Hook
   useFocusInvalid(formRef.current, hasErrors);
@@ -90,9 +60,9 @@ export default function SignIn() {
   // Useful variables
   const formHasErrors = Boolean(formErrors?.length);
   const formErrorId = useId();
-  const emailHasErrors = Boolean(fieldErrors?.email.length);
+  const emailHasErrors = Boolean(fieldErrors?.email?.length);
   const emailErrorId = useId();
-  const passwordHasErrors = Boolean(fieldErrors?.password.length);
+  const passwordHasErrors = Boolean(fieldErrors?.password?.length);
   const passwordErrorId = useId();
 
   return (
