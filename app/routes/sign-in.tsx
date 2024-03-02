@@ -1,35 +1,34 @@
+import { parseWithZod } from '@conform-to/zod';
 import { Form, useActionData } from '@remix-run/react';
-import { ActionFunctionArgs, json, redirect } from '@remix-run/node';
+import { getFormProps, getInputProps, useForm } from '@conform-to/react';
+import { ActionFunctionArgs, redirect } from '@remix-run/node';
+// import {  json } from '@remix-run/node';
 import { ErrorList } from '~/components';
-import { useId, useRef } from 'react';
-import useFocusInvalid from '~/hooks/useFocusInvalid';
-import useHydrated from '~/hooks/useHydrated';
+import { useId } from 'react';
+// import {  useRef } from 'react';
+// import useFocusInvalid from '~/hooks/useFocusInvalid';
+// import useHydrated from '~/hooks/useHydrated';
 import { z } from 'zod';
+
+const SignInSchema = z.object({
+  email: z.string().email(),
+  password: z
+    .string()
+    .min(8, { message: 'Password must be at least 8 characters long' })
+    .max(124, { message: 'Password must be at most 124 characters long' })
+    .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
+    .regex(/[\W_]/, { message: 'Password must contain at least one special character' })
+    .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+});
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const email = formData.get('email');
-  const password = formData.get('password');
+  const submission = parseWithZod(formData, { schema: SignInSchema });
 
-  const SignInFormSchema = z.object({
-    email: z.string().email(),
-    password: z
-      .string()
-      .min(8, { message: 'Password must be at least 8 characters long' })
-      .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
-      .regex(/[\W_]/, { message: 'Password must contain at least one special character' })
-      .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
-  });
-
-  const result = SignInFormSchema.safeParse({ email, password });
-
-  if (!result.success) {
-    return json({ status: 'error', errors: result.error.flatten() } as const, {
-      status: 400,
-    });
+  if (submission.status !== 'success') {
+    return submission.reply();
   }
 
-  console.log('Passed validation', result.data);
   // TODO:
   // Check if the email and password are correct in the database
   // If they are, create a session and redirect to the dashboard
@@ -40,30 +39,16 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function SignIn() {
-  const actionData = useActionData<typeof action>();
-  const formErrors = actionData?.status === 'error' ? actionData.errors.formErrors : null;
-  const fieldErrors = actionData?.status === 'error' ? actionData.errors.fieldErrors : null;
-  const isHydrated = useHydrated();
-  const formRef = useRef<HTMLFormElement>(null);
-  const hasErrors = actionData?.status === 'error';
-
-  console.log(actionData);
-
-  // Focus Invalid Hook
-  useFocusInvalid(formRef.current, hasErrors);
-
-  // Unique IDs
-  const formId = useId();
-  const emailId = useId();
-  const passwordId = useId();
-
-  // Useful variables
-  const formHasErrors = Boolean(formErrors?.length);
-  const formErrorId = useId();
-  const emailHasErrors = Boolean(fieldErrors?.email?.length);
-  const emailErrorId = useId();
-  const passwordHasErrors = Boolean(fieldErrors?.password?.length);
-  const passwordErrorId = useId();
+  const lastResult = useActionData<typeof action>();
+  const [form, fields] = useForm({
+    id: useId(),
+    lastResult,
+    shouldValidate: 'onBlur',
+    shouldRevalidate: 'onInput',
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: SignInSchema });
+    },
+  });
 
   return (
     <>
@@ -74,65 +59,41 @@ export default function SignIn() {
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
           <div className="bg-bg-alt px-6 py-12  sm:rounded-lg sm:px-12 shadow-lg">
-            <Form
-              id={formId}
-              className="space-y-6"
-              action="#"
-              method="POST"
-              noValidate={isHydrated}
-              aria-invalid={formHasErrors || undefined}
-              aria-describedby={formHasErrors ? formErrorId : undefined}
-              ref={formRef}
-              tabIndex={-1}
-            >
+            <Form {...getFormProps(form)} className="space-y-6" action="#" method="POST">
               <div className="relative pb-4">
-                <label htmlFor={emailId} className="block text-sm font-medium leading-6 text-text-primary">
+                <label htmlFor={fields.email.id} className="block text-sm font-medium leading-6 text-text-primary">
                   Email address
                 </label>
                 <div className="mt-2">
                   <input
-                    id={emailId}
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
+                    {...getInputProps(fields.email, { type: 'email' })}
                     className="block w-full rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-2 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white aria-[invalid]:ring-red-600 "
-                    aria-invalid={emailHasErrors || undefined}
-                    aria-describedby={emailHasErrors ? emailErrorId : undefined}
-                    // eslint-disable-next-line jsx-a11y/no-autofocus
-                    autoFocus
                   />
                   <div
                     className={`py-1 px-2 transition-height duration-500 ease-in-out overflow-hidden ${
-                      emailHasErrors ? 'max-h-56' : 'max-h-0'
+                      fields.email.errors ? 'max-h-56' : 'max-h-0'
                     }`}
                   >
-                    <ErrorList errors={fieldErrors?.email} id={emailErrorId} />
+                    <ErrorList errors={fields.email.errors} id={fields.email.errorId} />
                   </div>
                 </div>
               </div>
 
               <div className="relative pb-4">
-                <label htmlFor={passwordId} className="block text-sm font-medium leading-6 text-text-primary">
+                <label htmlFor={fields.password.id} className="block text-sm font-medium leading-6 text-text-primary">
                   Password
                 </label>
                 <div className="mt-2">
                   <input
-                    id={passwordId}
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
+                    {...getInputProps(fields.password, { type: 'password' })}
                     className="block w-full rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-2 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white  aria-[invalid]:ring-red-600 "
-                    aria-invalid={passwordHasErrors || undefined}
-                    aria-describedby={passwordHasErrors ? passwordErrorId : undefined}
                   />
                   <div
                     className={`py-1 px-2 transition-height duration-500 ease-in-out overflow-hidden ${
-                      emailHasErrors ? 'max-h-56' : 'max-h-0'
+                      fields.password.errors ? 'max-h-56' : 'max-h-0'
                     }`}
                   >
-                    <ErrorList errors={fieldErrors?.password} id={passwordErrorId} />
+                    <ErrorList errors={fields.password.errors} id={fields.password.errorId} />
                   </div>
                 </div>
               </div>
@@ -159,7 +120,7 @@ export default function SignIn() {
 
               <div>
                 <button
-                  form={formId}
+                  form={form.id}
                   type="submit"
                   className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >
