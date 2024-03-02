@@ -102,13 +102,17 @@ export default function SignIn() {
                     // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                   />
-                  <div className=" px-2 absolute bottom-0">
+                  <div
+                    className={`py-1 px-2 transition-height duration-500 ease-in-out overflow-hidden ${
+                      emailHasErrors ? 'max-h-56' : 'max-h-0'
+                    }`}
+                  >
                     <ErrorList errors={fieldErrors?.email} id={emailErrorId} />
                   </div>
                 </div>
               </div>
 
-              <div className="relative pb-12">
+              <div className="relative pb-4">
                 <label htmlFor={passwordId} className="block text-sm font-medium leading-6 text-text-primary">
                   Password
                 </label>
@@ -123,7 +127,11 @@ export default function SignIn() {
                     aria-invalid={passwordHasErrors || undefined}
                     aria-describedby={passwordHasErrors ? passwordErrorId : undefined}
                   />
-                  <div className="px-2 absolute bottom-0">
+                  <div
+                    className={`py-1 px-2 transition-height duration-500 ease-in-out overflow-hidden ${
+                      emailHasErrors ? 'max-h-56' : 'max-h-0'
+                    }`}
+                  >
                     <ErrorList errors={fieldErrors?.password} id={passwordErrorId} />
                   </div>
                 </div>
