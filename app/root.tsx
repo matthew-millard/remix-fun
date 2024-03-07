@@ -46,6 +46,7 @@ function App() {
       </head>
       <body className="h-full">
         <NavBar />
+        {/* <main style={{ height: 'calc(100vh - 108px);' }}> */}
         <main>
           <Outlet />
         </main>
