@@ -14,7 +14,7 @@ import {
 	ScrollRestoration,
 	useLoaderData,
 } from '@remix-run/react'
-import { NavBar } from './components'
+import { NavBar, Footer } from './components'
 import clsx from 'clsx'
 import { GeneralErrorBoundary } from './components/ErrorBoundary'
 import React from 'react'
@@ -73,6 +73,7 @@ export default function AppWithProviders() {
 				<main>
 					<Outlet />
 				</main>
+				<Footer />
 			</App>
 		</ThemeProvider>
 	)
