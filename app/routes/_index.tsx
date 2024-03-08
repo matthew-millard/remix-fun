@@ -1,13 +1,5 @@
-import { LoaderFunction } from '@remix-run/node';
-import { Link, isRouteErrorResponse, useRouteError } from '@remix-run/react';
-
-export const loader: LoaderFunction = async ({ request }) => {
-  throw new Response("Sorry, we couldn't find the page you're looking for.", {
-    status: 404,
-    statusText: 'Page Not Found',
-  });
-  return request;
-};
+import { isRouteErrorResponse, useRouteError } from '@remix-run/react';
+import { Link } from 'react-router-dom';
 
 export default function Index() {
   return (

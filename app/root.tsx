@@ -8,6 +8,8 @@ import { getThemeSession } from './utils/theme.server';
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
 import { NavBar } from './components';
 import clsx from 'clsx';
+import { GeneralErrorBoundary } from './components/ErrorBoundary';
+import React from 'react';
 
 export type LoaderData = {
   theme: Theme | null;
@@ -23,21 +25,15 @@ export const loader: LoaderFunction = async ({ request }) => {
   return data;
 };
 
-export const meta: MetaFunction = () => {
-  return [{ title: 'BarFly' }, { name: 'description', content: 'Welcome to BarFly!' }];
-};
-
 export const links: LinksFunction = () => [
   ...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : []),
   { rel: 'stylesheet', href: tailwindStylesheet },
   { rel: 'stylesheet', href: globalStylesheet },
 ];
 
-function App() {
-  const data = useLoaderData<LoaderData>();
-
+function App({ children, theme }: { children: React.ReactNode; theme: Theme | null }) {
   return (
-    <html lang="en" className={clsx(data.theme, 'h-full bg-bg-primary')}>
+    <html lang="en" className={clsx(theme, 'h-full bg-bg-primary')}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -45,11 +41,7 @@ function App() {
         <Links />
       </head>
       <body className="h-full">
-        <NavBar />
-        {/* <main style={{ height: 'calc(100vh - 108px);' }}> */}
-        <main>
-          <Outlet />
-        </main>
+        {children}
         <ScrollRestoration />
         <Scripts />
         <LiveReload />
@@ -62,7 +54,24 @@ export default function AppWithProviders() {
   const data = useLoaderData<LoaderData>();
   return (
     <ThemeProvider specifiedTheme={data.theme}>
-      <App />
+      <App theme={data.theme}>
+        <NavBar />
+        <main>
+          <Outlet />
+        </main>
+      </App>
     </ThemeProvider>
+  );
+}
+
+export const meta: MetaFunction = () => {
+  return [{ title: 'BarFly' }, { name: 'description', content: 'Welcome to BarFly!' }];
+};
+
+export function ErrorBoundary() {
+  return (
+    <App theme={null}>
+      <GeneralErrorBoundary />
+    </App>
   );
 }
