@@ -1,29 +1,23 @@
-import { useState } from 'react'
-import { Dialog } from '@headlessui/react'
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
-import { Avatar, Logo, ThemeSwitcher } from '../components'
-import { Link, NavLink } from '@remix-run/react'
+import { useState } from 'react';
+import { Dialog } from '@headlessui/react';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Avatar, Logo, ThemeSwitcher } from '../components';
+import { Link, NavLink } from '@remix-run/react';
 
 const navigation = [
 	{ name: 'Discovery', href: '/discovery' },
 	{ name: 'Directory', href: '/directory' },
 	{ name: 'Bar Of The Month', href: '/bar-of-the-month' },
-]
+];
 
-const mobileNavigation = [
-	{ name: 'Dashboard', href: '/dashboard' },
-	...navigation,
-]
+const mobileNavigation = [{ name: 'Dashboard', href: '/dashboard' }, ...navigation];
 
 export default function NavBar() {
-	const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 	return (
 		<header className="">
-			<nav
-				className="mx-auto flex max-w-7xl items-center justify-between gap-x-6 p-6 lg:px-8"
-				aria-label="Global"
-			>
+			<nav className="mx-auto flex max-w-7xl items-center justify-between gap-x-6 p-6 lg:px-8" aria-label="Global">
 				<div className="flex lg:flex-1">
 					<Logo />
 				</div>
@@ -54,12 +48,7 @@ export default function NavBar() {
 					</button>
 				</div>
 			</nav>
-			<Dialog
-				as="div"
-				className="lg:hidden"
-				open={mobileMenuOpen}
-				onClose={setMobileMenuOpen}
-			>
+			<Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={setMobileMenuOpen}>
 				<div className="fixed inset-0 z-10" />
 				<Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-bg-primary px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
 					<div className="flex items-center justify-between gap-x-6">
@@ -97,5 +86,5 @@ export default function NavBar() {
 				</Dialog.Panel>
 			</Dialog>
 		</header>
-	)
+	);
 }

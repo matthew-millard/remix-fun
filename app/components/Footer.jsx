@@ -1,4 +1,4 @@
-import { Link } from '@remix-run/react'
+import { Link } from '@remix-run/react';
 
 const navigation = {
 	main: [
@@ -69,22 +69,16 @@ const navigation = {
 			),
 		},
 	],
-}
+};
 
 export default function Footer() {
 	return (
 		<footer className="bg-bg-primary">
 			<div className="mx-auto max-w-7xl overflow-hidden p-6">
-				<nav
-					className="-mb-6 columns-2 sm:flex sm:justify-center sm:space-x-12"
-					aria-label="Footer"
-				>
+				<nav className="-mb-6 columns-2 sm:flex sm:justify-center sm:space-x-12" aria-label="Footer">
 					{navigation.main.map(item => (
 						<div key={item.name} className="pb-6">
-							<Link
-								to={item.href}
-								className="text-sm leading-6 text-text-secondary hover:text-text-primary"
-							>
+							<Link to={item.href} className="text-sm leading-6 text-text-secondary hover:text-text-primary">
 								{item.name}
 							</Link>
 						</div>
@@ -92,11 +86,7 @@ export default function Footer() {
 				</nav>
 				<div className="mt-10 flex justify-center space-x-10">
 					{navigation.social.map(item => (
-						<a
-							key={item.name}
-							href={item.href}
-							className="text-text-secondary hover:text-text-primary"
-						>
+						<a key={item.name} href={item.href} className="text-text-secondary hover:text-text-primary">
 							<span className="sr-only">{item.name}</span>
 							<item.icon className="h-6 w-6" aria-hidden="true" />
 						</a>
@@ -107,5 +97,5 @@ export default function Footer() {
 				</p>
 			</div>
 		</footer>
-	)
+	);
 }
