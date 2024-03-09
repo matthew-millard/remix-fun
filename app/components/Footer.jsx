@@ -1,3 +1,5 @@
+import { Link } from '@remix-run/react'
+
 const navigation = {
 	main: [
 		{ name: 'Discovery', href: '/discovery' },
@@ -69,22 +71,22 @@ const navigation = {
 	],
 }
 
-export default function Example() {
+export default function Footer() {
 	return (
 		<footer className="bg-bg-primary">
-			<div className="mx-auto max-w-7xl overflow-hidden px-6 py-20 sm:py-24 lg:px-8">
+			<div className="mx-auto max-w-7xl overflow-hidden p-6">
 				<nav
 					className="-mb-6 columns-2 sm:flex sm:justify-center sm:space-x-12"
 					aria-label="Footer"
 				>
 					{navigation.main.map(item => (
 						<div key={item.name} className="pb-6">
-							<a
-								href={item.href}
+							<Link
+								to={item.href}
 								className="text-sm leading-6 text-text-secondary hover:text-text-primary"
 							>
 								{item.name}
-							</a>
+							</Link>
 						</div>
 					))}
 				</nav>
