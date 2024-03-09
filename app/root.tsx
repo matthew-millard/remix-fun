@@ -54,7 +54,7 @@ function App({
 				<Meta />
 				<Links />
 			</head>
-			<body className="h-full">
+			<body className="flex min-h-screen flex-col">
 				{children}
 				<ScrollRestoration />
 				<Scripts />
@@ -70,7 +70,7 @@ export default function AppWithProviders() {
 		<ThemeProvider specifiedTheme={data.theme}>
 			<App theme={data.theme}>
 				<NavBar />
-				<main>
+				<main className="flex-grow">
 					<Outlet />
 				</main>
 				<Footer />
