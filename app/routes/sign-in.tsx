@@ -5,6 +5,9 @@ import { ActionFunctionArgs, redirect } from '@remix-run/node';
 import { ErrorList } from '~/components';
 import { useId } from 'react';
 import { z } from 'zod';
+import { honeypot } from '~/utils/honeypot.server';
+import { SpamError } from 'remix-utils/honeypot/server';
+import { HoneypotInputs } from 'remix-utils/honeypot/react';
 
 const SignInSchema = z.object({
 	email: z.string().email(),
@@ -19,6 +22,16 @@ const SignInSchema = z.object({
 
 export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
+
+	try {
+		honeypot.check(formData);
+	} catch (error) {
+		if (error instanceof SpamError) {
+			throw new Response('Form not submitted properly', { status: 400 });
+		}
+		throw error;
+	}
+
 	const submission = parseWithZod(formData, { schema: SignInSchema });
 
 	if (submission.status !== 'success') {
@@ -72,7 +85,6 @@ export default function SignIn() {
 									</div>
 								</div>
 							</div>
-
 							<div className="relative pb-4">
 								<label htmlFor={fields.password.id} className="block text-sm font-medium leading-6 text-text-primary">
 									Password
@@ -89,7 +101,7 @@ export default function SignIn() {
 									</div>
 								</div>
 							</div>
-
+							<HoneypotInputs />
 							<div className="flex items-center justify-between">
 								<div className="flex items-center">
 									<input
@@ -109,7 +121,6 @@ export default function SignIn() {
 									</a>
 								</div>
 							</div>
-
 							<div>
 								<button
 									form={form.id}

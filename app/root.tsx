@@ -1,6 +1,6 @@
 import type { LoaderFunction, MetaFunction } from '@remix-run/node';
 import { cssBundleHref } from '@remix-run/css-bundle';
-import { LinksFunction } from '@remix-run/node';
+import { LinksFunction, json } from '@remix-run/node';
 import tailwindStylesheet from '~/tailwind.css';
 import globalStylesheet from '~/styles/global.css';
 import { ThemeProvider, Theme } from '~/utils/theme-provider';
@@ -10,9 +10,12 @@ import { NavBar, Footer } from './components';
 import clsx from 'clsx';
 import { GeneralErrorBoundary } from './components/ErrorBoundary';
 import React from 'react';
+import { honeypot } from './utils/honeypot.server';
+import { HoneypotProvider } from 'remix-utils/honeypot/react';
 
 export type LoaderData = {
 	theme: Theme | null;
+	honeypotProps: ReturnType<typeof honeypot.getInputProps>;
 };
 
 export const loader: LoaderFunction = async ({ request }) => {
@@ -20,9 +23,10 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 	const data: LoaderData = {
 		theme: themeSession.getTheme(),
+		honeypotProps: honeypot.getInputProps(),
 	};
 
-	return data;
+	return json(data);
 };
 
 export const links: LinksFunction = () => [
@@ -51,16 +55,18 @@ function App({ children, theme }: { children: React.ReactNode; theme: Theme | nu
 }
 
 export default function AppWithProviders() {
-	const data = useLoaderData<LoaderData>();
+	const { theme, honeypotProps } = useLoaderData<LoaderData>();
 	return (
-		<ThemeProvider specifiedTheme={data.theme}>
-			<App theme={data.theme}>
-				<NavBar />
-				<main className="flex-grow">
-					<Outlet />
-				</main>
-				<Footer />
-			</App>
+		<ThemeProvider specifiedTheme={theme}>
+			<HoneypotProvider {...honeypotProps}>
+				<App theme={theme}>
+					<NavBar />
+					<main className="flex-grow">
+						<Outlet />
+					</main>
+					<Footer />
+				</App>
+			</HoneypotProvider>
 		</ThemeProvider>
 	);
 }
