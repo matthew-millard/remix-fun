@@ -8,7 +8,7 @@ if (!sessionSecret) {
 
 const themeStorage = createCookieSessionStorage({
 	cookie: {
-		name: 'barfly_preferred_theme',
+		name: 'BARFLY_theme',
 		secure: process.env.NODE_ENV === 'production',
 		secrets: [sessionSecret],
 		sameSite: 'lax',

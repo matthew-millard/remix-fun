@@ -14,7 +14,7 @@ export function GeneralErrorBoundary() {
 
 function ErrorLayout({ status, title, message }: { status?: number; title: string; message: string | null }) {
 	return (
-		<main className="flex h-full items-center justify-center">
+		<main className="flex h-dvh items-center justify-center">
 			<div className="grid place-items-center bg-bg-primary px-6 py-24 text-center sm:py-32 lg:px-8 lg:py-60">
 				{/* Conditionally render the status if it exists */}
 				{status && <p className="text-2xl font-semibold text-text-notify sm:text-3xl">{status}</p>}

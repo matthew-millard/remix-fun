@@ -12,21 +12,26 @@ import { GeneralErrorBoundary } from './components/ErrorBoundary';
 import React from 'react';
 import { honeypot } from './utils/honeypot.server';
 import { HoneypotProvider } from 'remix-utils/honeypot/react';
+import { csrf } from '~/utils/csrf.server';
+import { AuthenticityTokenProvider } from 'remix-utils/csrf/react';
 
 export type LoaderData = {
 	theme: Theme | null;
 	honeypotProps: ReturnType<typeof honeypot.getInputProps>;
+	csrfToken: string;
 };
 
 export const loader: LoaderFunction = async ({ request }) => {
 	const themeSession = await getThemeSession(request);
+	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request);
 
 	const data: LoaderData = {
 		theme: themeSession.getTheme(),
 		honeypotProps: honeypot.getInputProps(),
+		csrfToken,
 	};
 
-	return json(data);
+	return json(data, { headers: csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : {} });
 };
 
 export const links: LinksFunction = () => [
@@ -55,18 +60,20 @@ function App({ children, theme }: { children: React.ReactNode; theme: Theme | nu
 }
 
 export default function AppWithProviders() {
-	const { theme, honeypotProps } = useLoaderData<LoaderData>();
+	const { theme, honeypotProps, csrfToken } = useLoaderData<LoaderData>();
 	return (
 		<ThemeProvider specifiedTheme={theme}>
-			<HoneypotProvider {...honeypotProps}>
-				<App theme={theme}>
-					<NavBar />
-					<main className="flex-grow">
-						<Outlet />
-					</main>
-					<Footer />
-				</App>
-			</HoneypotProvider>
+			<AuthenticityTokenProvider token={csrfToken}>
+				<HoneypotProvider {...honeypotProps}>
+					<App theme={theme}>
+						<NavBar />
+						<main className="flex-grow">
+							<Outlet />
+						</main>
+						<Footer />
+					</App>
+				</HoneypotProvider>
+			</AuthenticityTokenProvider>
 		</ThemeProvider>
 	);
 }
