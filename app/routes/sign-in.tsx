@@ -5,9 +5,10 @@ import { ActionFunctionArgs, redirect } from '@remix-run/node';
 import { ErrorList } from '~/components';
 import { useId } from 'react';
 import { z } from 'zod';
-import { honeypot } from '~/utils/honeypot.server';
-import { SpamError } from 'remix-utils/honeypot/server';
+import { checkHoneypot } from '~/utils/honeypot.server';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
+import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
+import { checkCSRF } from '~/utils/csrf.server';
 
 const SignInSchema = z.object({
 	email: z.string().email(),
@@ -22,15 +23,8 @@ const SignInSchema = z.object({
 
 export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
-
-	try {
-		honeypot.check(formData);
-	} catch (error) {
-		if (error instanceof SpamError) {
-			throw new Response('Form not submitted properly', { status: 400 });
-		}
-		throw error;
-	}
+	checkHoneypot(formData);
+	await checkCSRF(formData, request.headers);
 
 	const submission = parseWithZod(formData, { schema: SignInSchema });
 
@@ -102,6 +96,7 @@ export default function SignIn() {
 								</div>
 							</div>
 							<HoneypotInputs />
+							<AuthenticityTokenInput />
 							<div className="flex items-center justify-between">
 								<div className="flex items-center">
 									<input
