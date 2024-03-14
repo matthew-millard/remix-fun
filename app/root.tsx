@@ -15,7 +15,7 @@ import { HoneypotProvider } from 'remix-utils/honeypot/react';
 import { csrf } from '~/utils/csrf.server';
 import { AuthenticityTokenProvider } from 'remix-utils/csrf/react';
 
-export type LoaderData = {
+type LoaderData = {
 	theme: Theme | null;
 	honeypotProps: ReturnType<typeof honeypot.getInputProps>;
 	csrfToken: string;
@@ -49,7 +49,7 @@ function App({ children, theme }: { children: React.ReactNode; theme: Theme | nu
 				<Meta />
 				<Links />
 			</head>
-			<body className="flex min-h-screen flex-col">
+			<body className="flex h-screen flex-col">
 				{children}
 				<ScrollRestoration />
 				<Scripts />

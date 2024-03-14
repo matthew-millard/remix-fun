@@ -73,7 +73,7 @@ const navigation = {
 
 export default function Footer() {
 	return (
-		<footer className="bg-bg-primary">
+		<footer className="flex flex-none bg-bg-primary">
 			<div className="mx-auto max-w-7xl overflow-hidden p-6">
 				<nav className="-mb-6 columns-2 sm:flex sm:justify-center sm:space-x-12" aria-label="Footer">
 					{navigation.main.map(item => (
