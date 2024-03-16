@@ -66,7 +66,7 @@ export async function action({ request }: ActionFunctionArgs) {
 	const { email, firstName, lastName, password } = submission.value;
 
 	// Upload users data to db
-	const user = await prisma.user.create({
+	await prisma.user.create({
 		data: {
 			email,
 			firstName,
@@ -84,10 +84,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function Signup() {
 	const { image } = useLoaderData<LoaderData>();
-	const lastResult = useActionData<typeof action>();
+	const actionData = useActionData<typeof action>();
+
 	const [form, fields] = useForm({
 		id: useId(),
-		lastResult,
 		shouldValidate: 'onBlur',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
@@ -138,7 +138,7 @@ export default function Signup() {
 										<div className="mt-2">
 											<input
 												{...getInputProps(fields.firstName, { type: 'text' })}
-												className="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+												className="block w-full rounded-md border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
 											/>
 											<div
 												className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
@@ -158,7 +158,7 @@ export default function Signup() {
 										<div className="mt-2">
 											<input
 												{...getInputProps(fields.lastName, { type: 'text' })}
-												className="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+												className="block w-full rounded-md border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
 											/>
 											<div
 												className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
@@ -169,13 +169,16 @@ export default function Signup() {
 									</div>
 
 									<div>
-										<label htmlFor={fields.password.id} className="block text-sm font-medium leading-6 text-gray-900">
+										<label
+											htmlFor={fields.password.id}
+											className="block text-sm font-medium leading-6 text-text-primary"
+										>
 											Password
 										</label>
 										<div className="mt-2">
 											<input
 												{...getInputProps(fields.password, { type: 'password' })}
-												className="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+												className="block w-full rounded-md border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
 											/>
 											<div
 												className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.password.errors ? 'max-h-56' : 'max-h-0'}`}
@@ -188,14 +191,14 @@ export default function Signup() {
 									<div>
 										<label
 											htmlFor={fields.passwordConfirm.id}
-											className="block text-sm font-medium leading-6 text-gray-900"
+											className="block text-sm font-medium leading-6 text-text-primary"
 										>
 											Password Confirm
 										</label>
 										<div className="mt-2">
 											<input
 												{...getInputProps(fields.passwordConfirm, { type: 'password' })}
-												className="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+												className="block w-full rounded-md border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
 											/>
 											<div
 												className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.passwordConfirm.errors ? 'max-h-56' : 'max-h-0'}`}
@@ -216,7 +219,7 @@ export default function Signup() {
 												type="checkbox"
 												className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
 											/>
-											<label htmlFor="remember-me" className="ml-3 block text-sm leading-6 text-gray-700">
+											<label htmlFor="remember-me" className="ml-3 block text-sm leading-6 text-text-primary">
 												Remember me
 											</label>
 										</div>
