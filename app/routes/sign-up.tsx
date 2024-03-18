@@ -11,6 +11,7 @@ import imageUrl from '~/assets/images/20220518_Stolen_Goods_25.jpg';
 import { ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
+import { bcrypt } from '~/utils/auth.server';
 
 type LoaderData = {
 	image: string;
@@ -65,7 +66,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const { email, firstName, lastName, password } = submission.value;
 
-	// Upload users data to db
+	// Upload users data to db and hash password before storing
 	await prisma.user.create({
 		data: {
 			email,
@@ -73,7 +74,7 @@ export async function action({ request }: ActionFunctionArgs) {
 			lastName,
 			password: {
 				create: {
-					hash: password,
+					hash: await bcrypt.hash(password, 10),
 				},
 			},
 		},
