@@ -12,6 +12,7 @@ import { ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { bcrypt } from '~/utils/auth.server';
+import { EmailSchema, FirstNameSchema, LastNameSchema, PasswordSchema } from '~/utils/user-validation';
 
 type LoaderData = {
 	image: string;
@@ -26,25 +27,10 @@ export const loader = () => {
 
 const SignUpSchema = z
 	.object({
-		email: z.string().email(),
-		firstName: z
-			.string()
-			.trim()
-			.min(1, { message: 'First name cannot be empty.' })
-			.max(30, { message: 'First name must be 30 characters or less.' }),
-		lastName: z
-			.string()
-			.trim()
-			.min(1, { message: 'Last name cannot be empty.' })
-			.max(30, { message: 'Last name must be 30 characters or less.' }),
-		password: z
-			.string()
-			.trim()
-			.min(8, { message: 'Password must be at least 8 characters long' })
-			.max(124, { message: 'Password must be at most 124 characters long' })
-			.regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
-			.regex(/[\W_]/, { message: 'Password must contain at least one special character' })
-			.regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+		email: EmailSchema,
+		firstName: FirstNameSchema,
+		lastName: LastNameSchema,
+		password: PasswordSchema,
 		passwordConfirm: z.string(),
 	})
 	.refine(data => data.password === data.passwordConfirm, {
@@ -55,8 +41,8 @@ const SignUpSchema = z
 export async function action({ request }: ActionFunctionArgs) {
 	const prisma = new PrismaClient();
 	const formData = await request.formData();
-	checkHoneypot(formData);
 	await checkCSRF(formData, request.headers);
+	checkHoneypot(formData);
 
 	const submission = parseWithZod(formData, { schema: SignUpSchema });
 

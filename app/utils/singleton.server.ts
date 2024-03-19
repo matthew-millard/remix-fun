@@ -8,4 +8,3 @@ export function singleton<Value>(name: string, value: () => Value): Value {
 	yolo.__singletons[name] ??= value();
 	return yolo.__singletons[name];
 }
-s;
