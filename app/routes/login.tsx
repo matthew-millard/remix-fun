@@ -1,55 +1,98 @@
 import { parseWithZod } from '@conform-to/zod';
 import { Form, useActionData } from '@remix-run/react';
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
-import { ActionFunctionArgs, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, json, redirect } from '@remix-run/node';
 import { ErrorList } from '~/components';
-import { useId } from 'react';
 import { z } from 'zod';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { checkCSRF } from '~/utils/csrf.server';
+import { prisma } from '~/utils/db.server';
+import { bcrypt } from '~/utils/auth.server';
+import { EmailSchema, PasswordSchema } from '~/utils/user-validation';
 
-const SignInSchema = z.object({
-	email: z.string().email(),
-	password: z
-		.string()
-		.min(8, { message: 'Password must be at least 8 characters long' })
-		.max(124, { message: 'Password must be at most 124 characters long' })
-		.regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
-		.regex(/[\W_]/, { message: 'Password must contain at least one special character' })
-		.regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+const LoginFormSchema = z.object({
+	email: EmailSchema,
+	password: PasswordSchema,
 });
 
 export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
-	checkHoneypot(formData);
 	await checkCSRF(formData, request.headers);
+	checkHoneypot(formData);
 
-	const submission = parseWithZod(formData, { schema: SignInSchema });
+	const submission = await parseWithZod(formData, {
+		schema: LoginFormSchema.transform(async (data, ctx) => {
+			console.log('hi there!!!');
+			// Included the password hash in this select
+			const userAndPassword = await prisma.user.findUnique({
+				select: { id: true, password: { select: { hash: true } } },
+				where: { email: data.email },
+			});
+
+			console.log(userAndPassword);
+
+			if (!userAndPassword || !userAndPassword.password) {
+				ctx.addIssue({
+					code: 'custom',
+					message: 'Invalid username or password',
+				});
+
+				return z.NEVER;
+			}
+
+			const isValidPassword = await bcrypt.compare(data.password, userAndPassword.password.hash);
+			console.log(isValidPassword);
+
+			if (!isValidPassword) {
+				ctx.addIssue({
+					code: 'custom',
+					message: 'Invalid username or password',
+				});
+				return z.NEVER;
+			}
+
+			// Don't return password hash
+			return { ...data, user: { id: userAndPassword.id } };
+		}),
+		async: true,
+	});
+
+	delete submission.payload.password;
 
 	if (submission.status !== 'success') {
-		return submission.reply();
+		// @ts-expect-error - conform should probably have support for doing this
+		delete submission.value?.password;
+		return json({ status: 'idle', submission } as const);
+	}
+	if (!submission.value?.user) {
+		return json({ status: 'error', submission } as const, { status: 400 });
 	}
 
-	// TODO:
-	// Check if the email and password are correct in the database
-	// If they are, create a session and redirect to the dashboard
-	// If they are not, return an error message
+	const { user } = submission.value;
 
-	// redirect to the dashboard
-	return redirect('/dashboard');
+	const cookieSession = await sessionStorage.getSession(request.headers.get('cookie'));
+	cookieSession.set('userId', user.id);
+
+	return redirect('/', {
+		headers: {
+			'set-cookie': await sessionStorage.commitSession(cookieSession),
+		},
+	});
 }
 
 export default function SignIn() {
-	const lastResult = useActionData<typeof action>();
+	const actionData = useActionData<typeof action>();
+
 	const [form, fields] = useForm({
-		id: useId(),
-		lastResult,
+		id: 'login-form',
+		lastResult: actionData?.submission,
+		// constraint: getFieldsetConstraint(LoginFormSchema),
 		shouldValidate: 'onBlur',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
-			return parseWithZod(formData, { schema: SignInSchema });
+			return parseWithZod(formData, { schema: LoginFormSchema });
 		},
 	});
 
@@ -71,7 +114,8 @@ export default function SignIn() {
 									<input
 										{...getInputProps(fields.email, { type: 'email' })}
 										className="block w-full rounded-md border-0 bg-white px-2 py-1.5 text-gray-900 shadow-sm ring-2 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-inset focus:ring-indigo-600  aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6 "
-										autoFocus
+										// eslint-disable-next-line jsx-a11y/no-autofocus
+										autoFocus={true}
 									/>
 									<div
 										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.email.errors ? 'max-h-56' : 'max-h-0'}`}
@@ -183,7 +227,7 @@ export default function SignIn() {
 
 					<p className="mt-10 text-center text-sm text-gray-500">
 						Not a member?{' '}
-						<a href="/sign-up" className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
+						<a href="/signup" className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
 							Sign up for an account
 						</a>
 					</p>
