@@ -19,7 +19,7 @@ if (!sessionSecret) {
 	throw new Error('SESSION_SECRET must be set');
 }
 
-const sessionStorage = createCookieSessionStorage({
+export const sessionStorage = createCookieSessionStorage({
 	cookie: {
 		name: '__session',
 		httpOnly: true,
