@@ -11,6 +11,7 @@ import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { bcrypt } from '~/utils/auth.server';
 import { EmailSchema, PasswordSchema } from '~/utils/user-validation';
+import { sessionStorage } from '~/utils/session.server';
 
 const LoginFormSchema = z.object({
 	email: EmailSchema,
@@ -24,18 +25,15 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const submission = await parseWithZod(formData, {
 		schema: LoginFormSchema.transform(async (data, ctx) => {
-			console.log('hi there!!!');
 			// Included the password hash in this select
 			const userAndPassword = await prisma.user.findUnique({
 				select: { id: true, password: { select: { hash: true } } },
 				where: { email: data.email },
 			});
 
-			console.log(userAndPassword);
-
 			if (!userAndPassword || !userAndPassword.password) {
 				ctx.addIssue({
-					code: 'custom',
+					code: z.ZodIssueCode.custom,
 					message: 'Invalid username or password',
 				});
 
@@ -43,11 +41,10 @@ export async function action({ request }: ActionFunctionArgs) {
 			}
 
 			const isValidPassword = await bcrypt.compare(data.password, userAndPassword.password.hash);
-			console.log(isValidPassword);
 
 			if (!isValidPassword) {
 				ctx.addIssue({
-					code: 'custom',
+					code: z.ZodIssueCode.custom,
 					message: 'Invalid username or password',
 				});
 				return z.NEVER;
@@ -59,14 +56,13 @@ export async function action({ request }: ActionFunctionArgs) {
 		async: true,
 	});
 
+	console.log('BEFORE', submission);
 	delete submission.payload.password;
+	console.log('AFTER', submission);
 
-	if (submission.status !== 'success') {
-		// @ts-expect-error - conform should probably have support for doing this
-		delete submission.value?.password;
-		return json({ status: 'idle', submission } as const);
-	}
-	if (!submission.value?.user) {
+	if (submission.status === 'error' || !submission.value?.user) {
+		//@ts-expect-error - conform should probably have support for doing this
+		delete submission.value.password;
 		return json({ status: 'error', submission } as const, { status: 400 });
 	}
 
@@ -84,11 +80,11 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function SignIn() {
 	const actionData = useActionData<typeof action>();
+	console.log('actionData', actionData);
 
 	const [form, fields] = useForm({
 		id: 'login-form',
 		lastResult: actionData?.submission,
-		// constraint: getFieldsetConstraint(LoginFormSchema),
 		shouldValidate: 'onBlur',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
