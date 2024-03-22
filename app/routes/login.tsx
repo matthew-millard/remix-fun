@@ -2,7 +2,7 @@ import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { Form, useActionData } from '@remix-run/react';
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
 import { ActionFunctionArgs, json, redirect } from '@remix-run/node';
-import { ErrorList } from '~/components';
+import { AlertToast, ErrorList } from '~/components';
 import { z } from 'zod';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
@@ -82,6 +82,7 @@ export default function SignIn() {
 		id: 'login-form',
 		shouldRevalidate: 'onInput',
 		constraint: getZodConstraint(LoginFormSchema),
+		// @ts-expect-error - ignore lastResult ts error
 		lastResult,
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: LoginFormSchema });
@@ -92,7 +93,7 @@ export default function SignIn() {
 
 	return (
 		<>
-			<div className="flex flex-1 flex-col justify-center overflow-auto py-12 sm:px-6 lg:px-8 ">
+			<div className="flex flex-1 flex-col justify-center overflow-auto sm:px-6 lg:px-8 lg:py-12 ">
 				<div className="sm:mx-auto sm:w-full sm:max-w-md">
 					<h2 className="mt-3 text-center text-2xl font-bold leading-9 text-text-primary">Sign in to your account</h2>
 				</div>
@@ -165,9 +166,10 @@ export default function SignIn() {
 								</button>
 							</div>
 							<div
-								className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'} flex justify-center`}
+								className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'}`}
 							>
-								<ErrorList errors={form.errors} id={form.errorId} fontSize="16px" />
+								{/* <ErrorList errors={form.errors} id={form.errorId} fontSize="16px" /> */}
+								<AlertToast errors={form.errors} id={form.errorId} />
 							</div>
 						</Form>
 
