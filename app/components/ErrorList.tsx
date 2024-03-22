@@ -1,8 +1,16 @@
-export default function ErrorList({ errors, id }: { errors?: Array<string> | null; id: string }) {
+export default function ErrorList({
+	errors,
+	id,
+	fontSize = '10px',
+}: {
+	errors?: Array<string> | null;
+	id: string;
+	fontSize?: string;
+}) {
 	return errors?.length ? (
 		<ul className="flex flex-col gap-1" id={id}>
 			{errors.map((error, i) => (
-				<li key={i} className="text-foreground-destructive text-[10px] text-red-500">
+				<li key={i} style={{ fontSize }} className="text-foreground-destructive  text-red-500">
 					{error}
 				</li>
 			))}

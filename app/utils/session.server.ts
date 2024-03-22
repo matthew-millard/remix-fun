@@ -21,7 +21,7 @@ if (!sessionSecret) {
 
 export const sessionStorage = createCookieSessionStorage({
 	cookie: {
-		name: '__session',
+		name: 'BARFLY_user_session_id',
 		httpOnly: true,
 		path: '/',
 		sameSite: 'lax',

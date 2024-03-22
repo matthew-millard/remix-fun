@@ -14,21 +14,38 @@ import { honeypot } from './utils/honeypot.server';
 import { HoneypotProvider } from 'remix-utils/honeypot/react';
 import { csrf } from '~/utils/csrf.server';
 import { AuthenticityTokenProvider } from 'remix-utils/csrf/react';
+import { sessionStorage } from './utils/session.server';
+import { prisma } from './utils/db.server';
 
 type LoaderData = {
 	theme: Theme | null;
 	honeypotProps: ReturnType<typeof honeypot.getInputProps>;
 	csrfToken: string;
+	user: { id: string; firstName: string; lastName: string };
 };
 
 export const loader: LoaderFunction = async ({ request }) => {
 	const themeSession = await getThemeSession(request);
 	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request);
+	// Get userId from session_userId cookie
+	const cookieSession = await sessionStorage.getSession(request.headers.get('cookie'));
+	const userId = cookieSession.get('userId');
+
+	// Query the database getting the users information
+	const user = userId
+		? await prisma.user.findUnique({
+				where: { id: userId },
+				select: { id: true, firstName: true, lastName: true },
+			})
+		: null;
+
+	console.log(user);
 
 	const data: LoaderData = {
 		theme: themeSession.getTheme(),
 		honeypotProps: honeypot.getInputProps(),
 		csrfToken,
+		user,
 	};
 
 	return json(data, { headers: csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : {} });
@@ -78,8 +95,13 @@ export default function AppWithProviders() {
 	);
 }
 
-export const meta: MetaFunction = () => {
-	return [{ title: 'BarFly' }, { name: 'description', content: 'Welcome to BarFly!' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+	const { user } = data;
+	const firstName = user ? user.firstName : null;
+	return [
+		{ title: 'BarFly' },
+		{ name: 'description', content: firstName ? `Welcome back to BarFly ${firstName}!` : 'Welcome to BarFly!' },
+	];
 };
 
 export function ErrorBoundary() {

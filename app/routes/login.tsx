@@ -1,4 +1,4 @@
-import { parseWithZod } from '@conform-to/zod';
+import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { Form, useActionData } from '@remix-run/react';
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
 import { ActionFunctionArgs, json, redirect } from '@remix-run/node';
@@ -56,14 +56,11 @@ export async function action({ request }: ActionFunctionArgs) {
 		async: true,
 	});
 
-	console.log('BEFORE', submission);
-	delete submission.payload.password;
-	console.log('AFTER', submission);
-
-	if (submission.status === 'error' || !submission.value?.user) {
-		//@ts-expect-error - conform should probably have support for doing this
-		delete submission.value.password;
-		return json({ status: 'error', submission } as const, { status: 400 });
+	// delete submission.payload.password;
+	if (submission.status !== 'success') {
+		return json(submission.reply({ formErrors: ['Incorrect username or password'], hideFields: ['password'] }), {
+			status: submission.status === 'error' ? 400 : 200,
+		});
 	}
 
 	const { user } = submission.value;
@@ -79,18 +76,19 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function SignIn() {
-	const actionData = useActionData<typeof action>();
-	console.log('actionData', actionData);
-
+	const lastResult = useActionData<typeof action>();
+	console.log('lastResult', lastResult);
 	const [form, fields] = useForm({
 		id: 'login-form',
-		lastResult: actionData?.submission,
-		shouldValidate: 'onBlur',
 		shouldRevalidate: 'onInput',
+		constraint: getZodConstraint(LoginFormSchema),
+		lastResult,
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: LoginFormSchema });
 		},
 	});
+
+	console.log(form.errorId, form.errors);
 
 	return (
 		<>
@@ -101,7 +99,7 @@ export default function SignIn() {
 
 				<div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
 					<div className="bg-bg-alt px-6 py-12  shadow-lg sm:rounded-lg sm:px-12">
-						<Form {...getFormProps(form)} className="space-y-6" action="#" method="POST">
+						<Form {...getFormProps(form)} className="space-y-6" method="POST">
 							<div className="relative pb-4">
 								<label htmlFor={fields.email.id} className="block text-sm font-medium leading-6 text-text-primary">
 									Email address
@@ -165,6 +163,11 @@ export default function SignIn() {
 								>
 									Sign in
 								</button>
+							</div>
+							<div
+								className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'} flex justify-center`}
+							>
+								<ErrorList errors={form.errors} id={form.errorId} fontSize="16px" />
 							</div>
 						</Form>
 
