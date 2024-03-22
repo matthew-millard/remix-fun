@@ -1,12 +1,12 @@
-import { type MetaFunction } from '@remix-run/node';
-export const meta: MetaFunction = () => {
-	return [{ title: 'BarFly | Dashboard' }, { name: 'description', content: 'Users dashboard.' }];
-};
+import { useOptionalUser } from '~/utils/users';
 
 export default function Dashboard() {
+	const user = useOptionalUser();
+	console.log(user);
 	return (
 		<>
 			<h1>Dashboard</h1>
+			<h3>{user ? user.firstName : ''}</h3>
 		</>
 	);
 }
