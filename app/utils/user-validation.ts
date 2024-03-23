@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const UsernameSchema = z
-	.string({ required_error: 'Username is required' })
+	.string()
 	.min(3, { message: 'Username is too short' })
 	.max(20, { message: 'Username is too long' })
 	.regex(/^[a-zA-Z0-9_]+$/, {
@@ -31,7 +31,7 @@ export const LastNameSchema = z
 	.max(30, { message: 'Last name must be 30 characters or less.' });
 
 export const EmailSchema = z
-	.string({ required_error: 'Email is required' })
+	.string()
 	.email({ message: 'Email is invalid' })
 	.min(3, { message: 'Email is too short' })
 	.max(100, { message: 'Email is too long' })
