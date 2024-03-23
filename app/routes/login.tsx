@@ -27,7 +27,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		schema: LoginFormSchema.transform(async (data, ctx) => {
 			// Included the password hash in this select
 			const userAndPassword = await prisma.user.findUnique({
-				select: { id: true, password: { select: { hash: true } } },
+				select: { id: true, password: { select: { hash: true } }, username: { select: { username: true } } },
 				where: { email: data.email },
 			});
 
@@ -51,7 +51,7 @@ export async function action({ request }: ActionFunctionArgs) {
 			}
 
 			// Don't return password hash
-			return { ...data, user: { id: userAndPassword.id } };
+			return { ...data, user: { id: userAndPassword.id, username: userAndPassword.username.username } };
 		}),
 		async: true,
 	});
@@ -68,7 +68,8 @@ export async function action({ request }: ActionFunctionArgs) {
 	const cookieSession = await sessionStorage.getSession(request.headers.get('cookie'));
 	cookieSession.set('userId', user.id);
 
-	return redirect('/', {
+	// Redirect the user to /username, not the user's id
+	return redirect(`/${user.username}`, {
 		headers: {
 			'set-cookie': await sessionStorage.commitSession(cookieSession),
 		},
@@ -77,7 +78,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function SignIn() {
 	const lastResult = useActionData<typeof action>();
-	console.log('lastResult', lastResult);
 	const [form, fields] = useForm({
 		id: 'login-form',
 		shouldRevalidate: 'onInput',
@@ -88,8 +88,6 @@ export default function SignIn() {
 			return parseWithZod(formData, { schema: LoginFormSchema });
 		},
 	});
-
-	console.log(form.errorId, form.errors);
 
 	return (
 		<>

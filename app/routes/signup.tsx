@@ -1,18 +1,17 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
-import { parseWithZod } from '@conform-to/zod';
-import { PrismaClient } from '@prisma/client';
+import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { ActionFunctionArgs, json, redirect, type MetaFunction } from '@remix-run/node';
 import { Form, useActionData, useLoaderData } from '@remix-run/react';
-import { useId } from 'react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { z } from 'zod';
 import imageUrl from '~/assets/images/20220518_Stolen_Goods_25.jpg';
-import { ErrorList } from '~/components';
+import { AlertToast, ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { bcrypt } from '~/utils/auth.server';
-import { EmailSchema, FirstNameSchema, LastNameSchema, PasswordSchema } from '~/utils/user-validation';
+import { EmailSchema, FirstNameSchema, LastNameSchema, PasswordSchema, UsernameSchema } from '~/utils/user-validation';
+import { prisma } from '~/utils/db.server';
 
 type LoaderData = {
 	image: string;
@@ -30,6 +29,7 @@ const SignUpSchema = z
 		email: EmailSchema,
 		firstName: FirstNameSchema,
 		lastName: LastNameSchema,
+		username: UsernameSchema,
 		password: PasswordSchema,
 		passwordConfirm: z.string(),
 	})
@@ -39,21 +39,37 @@ const SignUpSchema = z
 	});
 
 export async function action({ request }: ActionFunctionArgs) {
-	const prisma = new PrismaClient();
 	const formData = await request.formData();
 	await checkCSRF(formData, request.headers);
 	checkHoneypot(formData);
 
-	const submission = parseWithZod(formData, { schema: SignUpSchema });
+	const submission = await parseWithZod(formData, {
+		schema: SignUpSchema.transform(async (data, ctx) => {
+			// Check if email is already in use
+			const emailExists = await prisma.user.findFirst({ where: { email: data.email } });
+			if (emailExists) {
+				ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['email'], message: 'Email is already in use' });
+			}
+
+			// Check if username is already in use
+			const usernameExists = await prisma.username.findFirst({ where: { username: data.username } });
+			if (usernameExists) {
+				ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['username'], message: 'Username is already in use' });
+			}
+
+			return data;
+		}),
+		async: true,
+	});
 
 	if (submission.status !== 'success') {
 		return submission.reply();
 	}
 
-	const { email, firstName, lastName, password } = submission.value;
+	const { email, firstName, lastName, password, username } = submission.value;
 
 	// Upload users data to db and hash password before storing
-	await prisma.user.create({
+	const newUser = await prisma.user.create({
 		data: {
 			email,
 			firstName,
@@ -63,19 +79,31 @@ export async function action({ request }: ActionFunctionArgs) {
 					hash: await bcrypt.hash(password, 10),
 				},
 			},
+			username: {
+				create: {
+					username,
+				},
+			},
 		},
 	});
 
-	return redirect('/dashboard');
+	// Check if user was created
+	if (!newUser) {
+		return json({ message: 'User could not be created' }, { status: 500 });
+	}
+
+	// Redirect to users profile page
+	return redirect(`/${submission.value.username}`);
 }
 
 export default function Signup() {
 	const { image } = useLoaderData<LoaderData>();
-	const actionData = useActionData<typeof action>();
+	const lastResult = useActionData<typeof action>();
 
 	const [form, fields] = useForm({
-		id: useId(),
+		id: 'signup-form',
 		shouldValidate: 'onBlur',
+		lastResult,
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: SignUpSchema });
@@ -105,7 +133,6 @@ export default function Signup() {
 											<input
 												{...getInputProps(fields.email, { type: 'email' })}
 												className="block w-full rounded-md border-0 px-2 py-1.5  shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-												autoFocus
 											/>
 											<div
 												className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.email.errors ? 'max-h-56' : 'max-h-0'}`}
@@ -151,6 +178,26 @@ export default function Signup() {
 												className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
 											>
 												<ErrorList errors={fields.lastName.errors} id={fields.lastName.errorId} />
+											</div>
+										</div>
+									</div>
+
+									<div>
+										<label
+											htmlFor={fields.username.id}
+											className="block text-sm font-medium leading-6 text-text-primary"
+										>
+											Username
+										</label>
+										<div className="mt-2">
+											<input
+												{...getInputProps(fields.username, { type: 'text' })}
+												className="block w-full rounded-md border-0 px-2 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+											/>
+											<div
+												className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.username.errors ? 'max-h-56' : 'max-h-0'}`}
+											>
+												<ErrorList errors={fields.username.errors} id={fields.username.errorId} />
 											</div>
 										</div>
 									</div>
@@ -225,6 +272,12 @@ export default function Signup() {
 										>
 											Sign up
 										</button>
+									</div>
+									<div
+										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'}`}
+									>
+										{/* <ErrorList errors={form.errors} id={form.errorId} fontSize="16px" /> */}
+										<AlertToast errors={form.errors} id={form.errorId} />
 									</div>
 								</Form>
 							</div>

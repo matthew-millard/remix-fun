@@ -39,8 +39,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 			})
 		: null;
 
-	console.log(user);
-
 	const data: LoaderData = {
 		theme: themeSession.getTheme(),
 		honeypotProps: honeypot.getInputProps(),
