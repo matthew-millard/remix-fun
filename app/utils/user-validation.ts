@@ -37,3 +37,9 @@ export const EmailSchema = z
 	.max(100, { message: 'Email is too long' })
 	// users can type the email in any case, but we store it in lowercase
 	.transform(value => value.toLowerCase());
+
+export const LoginEmailSchema = z
+	.string()
+	.email({ message: 'Email is invalid' })
+	// users can type the email in any case, but we convert it in lowercase
+	.transform(value => value.toLowerCase());
