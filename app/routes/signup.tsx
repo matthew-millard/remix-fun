@@ -63,7 +63,9 @@ export async function action({ request }: ActionFunctionArgs) {
 	});
 
 	if (submission.status !== 'success') {
-		return submission.reply();
+		return json(submission.reply({ formErrors: ['Submission failded'] }), {
+			status: submission.status === 'error' ? 400 : 200,
+		});
 	}
 
 	const { email, firstName, lastName, password, username } = submission.value;
@@ -276,7 +278,6 @@ export default function Signup() {
 									<div
 										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'}`}
 									>
-										{/* <ErrorList errors={form.errors} id={form.errorId} fontSize="16px" /> */}
 										<AlertToast errors={form.errors} id={form.errorId} />
 									</div>
 								</Form>
