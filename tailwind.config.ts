@@ -10,6 +10,8 @@ export default {
 				'bg-alt': 'var(--bg-alt)',
 				'border-primary': 'var(--border-primary)',
 				'border-secondary': 'var(--border-secondary)',
+				'border-tertiary': 'var(--border-tertiary)',
+				'border-dash': 'var(--border-dash)',
 				'text-primary': 'var(--text-primary)',
 				'text-secondary': 'var(--text-secondary)',
 				'text-notify': 'var(--color-blue-500)',
