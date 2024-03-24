@@ -1,6 +1,10 @@
 :root {
 	--color-black: #000;
 	--color-white: #fff;
+	--white-10: #ffffff1a;
+	--white-25: rgb(255 255 255 / 0.25);
+	--black-20: rgb(0 0 0 / 0.2);
+	--black-30: rgb(0 0 0 / 0.3);
 	--color-blue-100: #e8f2ff;
 	--color-blue-500: #4b96ff;
 	--color-slate-500: #a9adc1;
@@ -34,6 +38,8 @@ html.dark {
 	--bg-alt: var(--color-gray-700);
 	--border-primary: var(--color-gray-200);
 	--border-secondary: var(--color-gray-600);
+	--border-tertiary: var(--white-10);
+	--border-dash: var(--white-25);
 	--text-primary: var(--color-white);
 	--text-secondary: var(--color-slate-500);
 }
@@ -45,6 +51,8 @@ html.light {
 	--bg-alt: var(--color-gray-200);
 	--border-primary: var(--color-gray-600);
 	--border-secondary: var(--color-gray-200);
+	--border-tertiary: var(--black-20);
+	--border-dash: var(--black-30);
 	--text-primary: var(--color-black);
 	--text-secondary: var(--color-gray-500);
 }
