@@ -1,10 +1,12 @@
 import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { json, LoaderFunctionArgs } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { Form, useLoaderData } from '@remix-run/react';
 
 type loader = {
 	username: string;
 };
+
+const maxUploadFileSize = 3 * 1024 * 1024; // 3MB
 
 export async function loader({ params }: LoaderFunctionArgs) {
 	const username = params.username;
@@ -20,7 +22,7 @@ export default function Example() {
 	const { username } = useLoaderData<typeof loader>();
 
 	return (
-		<form className="mx-auto max-w-3xl px-6">
+		<Form className="mx-auto max-w-3xl px-6">
 			<div className="space-y-12">
 				<div className="border-border-tertiary border-b pb-12">
 					<h2 className="text-base font-semibold leading-7 text-text-primary">Profile</h2>
@@ -57,7 +59,7 @@ export default function Example() {
 									id="about"
 									name="about"
 									rows={3}
-									className="ring-border-tertiary block w-full rounded-md border-0 bg-bg-secondary py-1.5 text-text-primary shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+									className="ring-border-tertiary block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
 									defaultValue={''}
 								/>
 							</div>
@@ -70,12 +72,20 @@ export default function Example() {
 							</label>
 							<div className="mt-2 flex items-center gap-x-3">
 								<UserCircleIcon className="h-12 w-12 text-bg-alt" aria-hidden="true" />
-								<button
-									type="button"
+								<label
+									htmlFor="photo-file-upload"
 									className="rounded-md bg-bg-alt px-3 py-2 text-sm font-semibold text-text-primary shadow-sm hover:bg-bg-secondary"
 								>
 									Change
-								</button>
+								</label>
+								<input
+									type="file"
+									id="photo-file-upload"
+									className="sr-only hidden"
+									accept="image/png, image/jpeg, image/gif"
+									size={maxUploadFileSize}
+								></input>
+								<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
 							</div>
 						</div>
 
@@ -88,11 +98,11 @@ export default function Example() {
 									<PhotoIcon className="mx-auto h-12 w-12 text-bg-alt" aria-hidden="true" />
 									<div className="mt-4 flex text-sm leading-6 text-text-secondary">
 										<label
-											htmlFor="file-upload"
+											htmlFor="cover-photo-file-upload"
 											className="relative cursor-pointer rounded-md bg-none font-semibold text-text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-indigo-500"
 										>
 											<span>Upload a file</span>
-											<input id="file-upload" name="file-upload" type="file" className="sr-only" />
+											<input id="cover-photo-file-upload" name="cover-photo" type="file" className="sr-only" />
 										</label>
 										<p className="pl-1">or drag and drop</p>
 									</div>
@@ -352,6 +362,6 @@ export default function Example() {
 					Save
 				</button>
 			</div>
-		</form>
+		</Form>
 	);
 }
