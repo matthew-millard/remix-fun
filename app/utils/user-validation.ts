@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_UPLOAD_SIZE } from '~/routes/$username';
 
 export const UsernameSchema = z
 	.string()
@@ -43,3 +44,14 @@ export const LoginEmailSchema = z
 	.email({ message: 'Email is invalid' })
 	// users can type the email in any case, but we convert it in lowercase
 	.transform(value => value.toLowerCase());
+
+export const ImageFieldsetSchema = z.object({
+	id: z.string(),
+	file: z
+		.instanceof(File)
+		.refine(file => {
+			return file.size <= MAX_UPLOAD_SIZE;
+		}, 'File size must be less than 3MB')
+		.optional(),
+	altText: z.string().optional(),
+});

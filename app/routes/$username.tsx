@@ -1,11 +1,12 @@
-import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
-import { Form, useLoaderData } from '@remix-run/react';
+import { PhotoIcon } from '@heroicons/react/24/solid';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import {
 	ActionFunctionArgs,
 	json,
 	LoaderFunctionArgs,
 	unstable_parseMultipartFormData as parseMultipartFormData,
 	unstable_createMemoryUploadHandler as createMemoryUploadHandler,
+	redirect,
 } from '@remix-run/node';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
@@ -15,17 +16,168 @@ import { checkHoneypot } from '~/utils/honeypot.server';
 import { getSession } from '~/utils/session.server';
 import { canadaData } from '~/utils/canada-data';
 import { useState } from 'react';
+import { AlertToast, Avatar, ErrorList } from '~/components';
+import { z } from 'zod';
+import {
+	EmailSchema,
+	FirstNameSchema,
+	ImageFieldsetSchema,
+	LastNameSchema,
+	UsernameSchema,
+} from '~/utils/user-validation';
+import { parseWithZod } from '@conform-to/zod';
+import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm } from '@conform-to/react';
 
 // Useful variables
-const maxUploadFileSize = 3 * 1024 * 1024; // 3MB
+export const MAX_UPLOAD_SIZE = 3 * 1024 * 1024; // 3MB
+export const aboutMaxLength = 250;
+// Validation Schemas
+const profileInfoSchema = z.object({
+	username: UsernameSchema.optional(),
+	about: z.string().max(aboutMaxLength).trim().optional(),
+	profilePicture: ImageFieldsetSchema.optional(),
+	firstName: FirstNameSchema.optional(),
+	lastName: LastNameSchema.optional(),
+	email: EmailSchema.optional(),
+	country: z.literal('Canada').optional(),
+	province: z.string().optional(),
+	city: z.string().optional(),
+});
 
-type loader = {
-	username: string;
-};
+export async function action({ request }: ActionFunctionArgs) {
+	const uploadHandler = createMemoryUploadHandler({ maxPartSize: MAX_UPLOAD_SIZE });
+	const formData = await parseMultipartFormData(request, uploadHandler);
+	await checkCSRF(formData, request.headers);
+	checkHoneypot(formData);
+	const session = await getSession(request);
+	const userId = session.get('userId');
+
+	// Validate the form data
+	const submission = await parseWithZod(formData, {
+		schema: profileInfoSchema.transform(async (data, ctx) => {
+			const { username } = data;
+
+			// Check if the username is already taken
+			if (username) {
+				const user = await prisma.user.findFirst({
+					where: {
+						username: {
+							username,
+						},
+					},
+					select: {
+						id: true,
+						username: true,
+					},
+				});
+
+				console.log('user', user);
+
+				if (user?.id !== userId && user) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: 'Username is already taken',
+						path: ['username'],
+					});
+				}
+			}
+
+			return data;
+		}),
+
+		async: true,
+	});
+
+	if (submission.status !== 'success') {
+		return json(submission.reply({ formErrors: ['Submission failded'] }), {
+			status: submission.status === 'error' ? 400 : 200,
+		});
+	}
+
+	const { firstName, lastName, username, about, profilePicture, province, country, city } = submission.value;
+
+	const file = profilePicture?.file;
+	console.log('file', file);
+
+	// if file is not provided, do not update the profile image
+	if (file) {
+		const fileBuffer = await file.arrayBuffer(); // Convert the uploaded file to ArrayBuffer
+		const profileImage = Buffer.from(fileBuffer); // Convert ArrayBuffer to Buffer
+
+		await prisma.user.update({
+			where: {
+				id: userId,
+			},
+			data: {
+				profileImage: {
+					upsert: {
+						update: {
+							contentType: file.type,
+							blob: profileImage,
+						},
+						create: {
+							contentType: file.type,
+							blob: profileImage,
+						},
+					},
+				},
+			},
+		});
+	}
+
+	const updatedUser = await prisma.user.update({
+		where: {
+			id: userId,
+		},
+		data: {
+			firstName,
+			lastName,
+			username: {
+				update: {
+					username,
+				},
+			},
+			about: {
+				upsert: {
+					update: {
+						about,
+					},
+					create: {
+						about,
+					},
+				},
+			},
+
+			userLocation: {
+				upsert: {
+					update: {
+						country,
+						province,
+						city,
+					},
+					create: {
+						country,
+						province,
+						city,
+					},
+				},
+			},
+		},
+	});
+
+	console.log('updatedUser', updatedUser);
+
+	// refresh the page
+	return redirect(`/${username}`);
+}
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const session = await getSession(request);
 	const userId = session.get('userId');
+
+	if (!userId) {
+		return redirect('/login');
+	}
 
 	const user = await prisma.user.findUnique({
 		where: {
@@ -45,6 +197,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		},
 	});
 
+	if (!user) {
+		return redirect('/login');
+	}
+
 	const data = {
 		user,
 	};
@@ -52,62 +208,33 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	return json(data);
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-	const uploadHandler = createMemoryUploadHandler({ maxPartSize: maxUploadFileSize });
-	const formData = await parseMultipartFormData(request, uploadHandler);
-	await checkCSRF(formData, request.headers);
-	checkHoneypot(formData);
-
-	console.log('form data', formData);
-
-	// Save the form data to the database
-	const session = await getSession(request);
-	const userId = session.get('userId');
-	await prisma.user.update({
-		where: {
-			id: userId,
+export default function MyAccount() {
+	const data = useLoaderData<typeof loader>();
+	const { user } = data;
+	const lastResult = useActionData();
+	const [form, fields] = useForm({
+		id: 'profile-form',
+		shouldValidate: 'onInput',
+		lastResult,
+		shouldRevalidate: 'onInput',
+		onValidate({ formData }) {
+			return parseWithZod(formData, { schema: profileInfoSchema });
 		},
-		data: {
-			firstName: formData.get('firstName') as string,
-			lastName: formData.get('lastName') as string,
-			username: {
-				update: {
-					username: formData.get('username') as string,
-				},
-			},
-			about: {
-				upsert: {
-					create: {
-						about: formData.get('about') as string,
-					},
-					update: {
-						about: formData.get('about') as string,
-					},
-				},
-			},
-			userLocation: {
-				upsert: {
-					create: {
-						country: formData.get('country') as string,
-						province: formData.get('province') as string,
-						city: formData.get('city') as string,
-					},
-					update: {
-						country: formData.get('country') as string,
-						province: formData.get('province') as string,
-						city: formData.get('city') as string,
-					},
-				},
+		defaultValue: {
+			username: data.user.username.username,
+			about: data.user.about.about || '',
+			firstName: data.user.firstName,
+			lastName: data.user.lastName,
+			email: data.user.email,
+			// country: data.user.userLocation.country,
+			// province: data.user.userLocation.province,
+			// city: data.user.userLocation.city,
+			profilePicture: {
+				id: data.user.profileImage?.id,
 			},
 		},
 	});
 
-	// refresh the page
-	return json({ message: 'Profile updated successfully' }, { status: 200 });
-}
-
-export default function MyAccount() {
-	const { user } = useLoaderData<typeof loader>();
 	const [selectedProvince, setSelectedProvince] = useState<string>(() => {
 		const province = user?.userLocation?.province;
 		return province ? province : '';
@@ -116,29 +243,18 @@ export default function MyAccount() {
 		const city = user?.userLocation?.city;
 		return city ? city : '';
 	});
-	// const [isCitySelectActive, setIsCitySelectActive] = useState<boolean>(() => {
-	// 	const city = user?.userLocation?.city;
-	// 	return city ? true : false;
-	// });
-	const username = user?.username.username;
-	const about = user?.about?.about;
-	const country = user?.userLocation?.country;
-
-	console.log(selectedCity);
 
 	function handleProvinceChange(province: string) {
-		console.log(province);
 		setSelectedProvince(province);
 		setSelectedCity('');
 	}
 
 	function handleCityChange(city: string) {
-		console.log(city);
 		setSelectedCity(city);
 	}
 
 	return (
-		<Form method="POST" encType="multipart/form-data" className="mx-auto max-w-3xl px-6">
+		<Form {...getFormProps(form)} method="POST" encType="multipart/form-data" className="mx-auto max-w-3xl px-6">
 			<div className="space-y-12">
 				<div className="border-b border-border-tertiary pb-12">
 					<h2 className="text-base font-semibold leading-7 text-text-primary">Profile</h2>
@@ -148,68 +264,71 @@ export default function MyAccount() {
 
 					<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
 						<div className="sm:col-span-4">
-							<label htmlFor="username" className="block text-sm font-medium leading-6 text-text-primary">
+							<label htmlFor={fields.username.id} className="block text-sm font-medium leading-6 text-text-primary">
 								Username
 							</label>
 							<div className="mt-2">
 								<div className="flex rounded-md bg-bg-secondary ring-1 ring-inset ring-border-tertiary focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
 									<span className="flex select-none items-center pl-3 text-gray-500 sm:text-sm">barfly.com/</span>
 									<input
-										type="text"
-										name="username"
-										id="username"
-										autoComplete="username"
-										className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-text-primary focus:ring-0 sm:text-sm sm:leading-6"
-										defaultValue={username || 'johnsmith'}
+										{...getInputProps(fields.username, { type: 'text' })}
+										className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-text-primary focus:ring-0 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 									/>
 								</div>
+							</div>
+							<div
+								className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.username.errors ? 'max-h-56' : 'max-h-0'}`}
+							>
+								<ErrorList errors={fields.username.errors} id={fields.username.errorId} />
 							</div>
 						</div>
 
 						<div className="col-span-full">
-							<label htmlFor="about" className="block text-sm font-medium leading-6 text-text-primary">
+							<label htmlFor={fields.about.id} className="block text-sm font-medium leading-6 text-text-primary">
 								About
 							</label>
 							<div className="mt-2">
 								<textarea
-									id="about"
-									name="about"
+									{...getTextareaProps(fields.about)}
 									rows={3}
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-									defaultValue={about || ''}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 								/>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.about.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={fields.about.errors} id={fields.firstName.errorId} />
+								</div>
 							</div>
 							<p className="mt-3 text-sm leading-6 text-text-secondary">Write a few sentences about yourself.</p>
 						</div>
 
 						<div className="col-span-full">
-							<label htmlFor="photo" className="block text-sm font-medium leading-6 text-text-primary">
-								Photo
-							</label>
+							<p className="block text-sm font-medium leading-6 text-text-primary">Photo</p>
 							<div className="mt-2 flex items-center gap-x-3">
-								<UserCircleIcon className="h-12 w-12 text-bg-alt" aria-hidden="true" />
+								<Avatar imageId={user?.profileImage?.id} />
 								<label
-									htmlFor="photo-file-upload"
+									htmlFor={fields.profilePicture.id}
 									className="rounded-md bg-bg-alt px-3 py-2 text-sm font-semibold text-text-primary shadow-sm hover:bg-bg-secondary"
 								>
 									Change
 								</label>
 								<input
-									type="file"
-									id="photo-file-upload"
-									name="profile-photo"
+									{...getInputProps(fields.profilePicture, { type: 'file' })}
 									className="sr-only hidden"
 									accept="image/png, image/jpeg, image/gif"
-									size={maxUploadFileSize}
-								></input>
+									size={MAX_UPLOAD_SIZE}
+								/>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.profilePicture.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={fields.profilePicture.errors} id={fields.profilePicture.errorId} />
+								</div>
 								<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
 							</div>
 						</div>
 
 						<div className="col-span-full">
-							<label htmlFor="cover-photo" className="block text-sm font-medium leading-6 text-text-primary">
-								Cover photo
-							</label>
+							<p className="block text-sm font-medium leading-6 text-text-primary">Cover photo</p>
 							<div className="mt-2 flex justify-center rounded-lg border border-dashed border-border-dash px-6 py-10">
 								<div className="text-center">
 									<PhotoIcon className="mx-auto h-12 w-12 text-bg-alt" aria-hidden="true" />
@@ -219,7 +338,7 @@ export default function MyAccount() {
 											className="relative cursor-pointer rounded-md bg-none font-semibold text-text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-indigo-500"
 										>
 											<span>Upload a file</span>
-											<input id="cover-photo-file-upload" name="cover-photo" type="file" className="sr-only" />
+											<input id="cover-photo-file-upload" name="coverPhoto" type="file" className="sr-only" />
 										</label>
 										<p className="pl-1">or drag and drop</p>
 									</div>
@@ -238,79 +357,83 @@ export default function MyAccount() {
 
 					<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
 						<div className="sm:col-span-3">
-							<label htmlFor="first-name" className="block text-sm font-medium leading-6 text-text-primary">
+							<label htmlFor={fields.firstName.id} className="block text-sm font-medium leading-6 text-text-primary">
 								First name
 							</label>
 							<div className="mt-2">
 								<input
-									type="text"
-									name="firstName"
-									id="first-name"
-									autoComplete="given-name"
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-									defaultValue={user?.firstName || ''}
+									{...getInputProps(fields.firstName, { type: 'text' })}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 								/>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={fields.firstName.errors} id={fields.firstName.errorId} />
+								</div>
 							</div>
 						</div>
 
 						<div className="sm:col-span-3">
-							<label htmlFor="last-name" className="block text-sm font-medium leading-6 text-text-primary">
+							<label htmlFor={fields.lastName.id} className="block text-sm font-medium leading-6 text-text-primary">
 								Last name
 							</label>
 							<div className="mt-2">
 								<input
-									type="text"
-									name="lastName"
-									id="last-name"
-									autoComplete="family-name"
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-									defaultValue={user?.lastName || ''}
+									{...getInputProps(fields.lastName, { type: 'text' })}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 								/>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={fields.lastName.errors} id={fields.lastName.errorId} />
+								</div>
 							</div>
 						</div>
 
 						<div className="sm:col-span-4">
-							<label htmlFor="email" className="block text-sm font-medium leading-6 text-text-primary">
+							<label htmlFor={fields.email.id} className="block text-sm font-medium leading-6 text-text-primary">
 								Email address
 							</label>
 							<div className="mt-2">
+								{/* UPDATE ME...Do not want to allow user to easily change their email address attached to their account without 2FA */}
 								<input
-									id="email"
-									name="email"
-									type="email"
-									autoComplete="email"
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-									defaultValue={user?.email || ''}
+									{...getInputProps(fields.email, { type: 'email' })}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 								/>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.email.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={fields.email.errors} id={fields.email.errorId} />
+								</div>
 							</div>
 						</div>
 
 						<div className="sm:col-span-2 sm:col-start-1">
-							<label htmlFor="country-select" className="block text-sm font-medium leading-6 text-text-primary">
+							<label htmlFor={fields.country.id} className="block text-sm font-medium leading-6 text-text-primary">
 								Country
 							</label>
 							<div className="mt-2">
 								<select
-									id="country-select"
-									name="country"
-									autoComplete="country-name"
+									{...getSelectProps(fields.country)}
 									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-									defaultValue={country || 'Canada'}
-									// disabled={true}
 								>
 									<option value={'Canada'}>Canada</option>
 								</select>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={fields.country.errors} id={fields.country.errorId} />
+								</div>
 							</div>
 						</div>
 
 						<div className="sm:col-span-2">
-							<label htmlFor="province-select" className="block text-sm font-medium leading-6 text-text-primary">
+							<label htmlFor={fields.province.id} className="block text-sm font-medium leading-6 text-text-primary">
 								Province
 							</label>
 							<div className="mt-2">
 								<select
-									id="province-select"
-									name="province"
+									{...getSelectProps(fields.province)}
 									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
 									value={selectedProvince}
 									onChange={e => handleProvinceChange(e.target.value)}
@@ -322,17 +445,21 @@ export default function MyAccount() {
 										</option>
 									))}
 								</select>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={fields.province.errors} id={fields.province.errorId} />
+								</div>
 							</div>
 						</div>
 
 						<div className="sm:col-span-2 sm:col-start-1">
-							<label htmlFor="city-select" className="block text-sm font-medium leading-6 text-text-primary">
+							<label htmlFor={fields.city.id} className="block text-sm font-medium leading-6 text-text-primary">
 								City
 							</label>
 							<div className="mt-2">
 								<select
-									id="city-select"
-									name="city"
+									{...getSelectProps(fields.city)}
 									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
 									value={selectedCity}
 									onChange={e => handleCityChange(e.target.value)}
@@ -345,12 +472,17 @@ export default function MyAccount() {
 											</option>
 										))}
 								</select>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={fields.city.errors} id={fields.city.errorId} />
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 
-				<div className="border-b border-border-tertiary pb-12">
+				{/* <div className="border-b border-border-tertiary pb-12">
 					<h2 className="text-base font-semibold leading-7 text-text-primary">Notifications</h2>
 					<p className="mt-1 text-sm leading-6 text-text-secondary">
 						We&apos;ll always let you know about important changes, but you pick what else you want to hear about.
@@ -452,7 +584,13 @@ export default function MyAccount() {
 							</div>
 						</fieldset>
 					</div>
-				</div>
+				</div> */}
+			</div>
+
+			<div
+				className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'}`}
+			>
+				<AlertToast errors={form.errors} id={form.errorId} />
 			</div>
 
 			<div className="mt-6 flex items-center justify-end gap-x-6">
