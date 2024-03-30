@@ -17,11 +17,11 @@ import { AuthenticityTokenProvider } from 'remix-utils/csrf/react';
 import { sessionStorage } from './utils/session.server';
 import { prisma } from './utils/db.server';
 
-type LoaderData = {
+export type LoaderData = {
 	theme: Theme | null;
 	honeypotProps: ReturnType<typeof honeypot.getInputProps>;
 	csrfToken: string;
-	user: { id: string; firstName: string; lastName: string };
+	user: { id: string; firstName: string; lastName: string; profileImage: { id: string } } | null;
 };
 
 export const loader: LoaderFunction = async ({ request }) => {
@@ -35,7 +35,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 	const user = userId
 		? await prisma.user.findUnique({
 				where: { id: userId },
-				select: { id: true, firstName: true, lastName: true },
+				select: { id: true, firstName: true, lastName: true, profileImage: { select: { id: true } } },
 			})
 		: null;
 

@@ -24,7 +24,7 @@ const strongRateLimit = rateLimit({ ...rateLimitDefault, limit: 100 * maxMultipl
 const strongestRateLimit = rateLimit({ ...rateLimitDefault, limit: 3 * maxMultiple });
 
 app.use((req, res, next) => {
-	const strongPaths = ['sign-in']; // Add paths that should have a stronger rate limit
+	const strongPaths = ['login', 'signup']; // Add paths that should have a stronger rate limit
 	if (req.method !== 'GET' && req.method !== 'HEAD') {
 		if (strongPaths.some(path => req.path.includes(path))) {
 			return strongestRateLimit(req, res, next);
