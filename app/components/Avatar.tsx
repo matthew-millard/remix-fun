@@ -2,11 +2,11 @@ export default function Avatar({ imageId }: { imageId?: string }) {
 	const imageUrl = imageId ? `/resources/images/${imageId}` : null;
 
 	return imageUrl ? (
-		<span className="flex h-10 w-10 overflow-hidden rounded-full bg-gray-100 outline outline-2 outline-bg-primary transition-all duration-500 hover:outline-text-primary">
+		<span className="flex h-10 w-10 overflow-hidden rounded-full">
 			<img className="h-full w-full object-cover" src={imageUrl} alt={''} />
 		</span>
 	) : (
-		<span className="flex h-10 w-10 overflow-hidden rounded-full bg-gray-100 outline outline-2 outline-bg-primary transition-all duration-500 hover:outline-text-primary">
+		<span className="flex h-10 w-10 overflow-hidden rounded-full ">
 			<svg
 				className="h-full w-full text-gray-300 transition-all duration-500 hover:text-text-primary"
 				fill="currentColor"
