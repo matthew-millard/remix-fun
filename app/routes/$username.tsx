@@ -15,27 +15,28 @@ import { prisma } from '~/utils/db.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { getSession } from '~/utils/session.server';
 import { canadaData } from '~/utils/canada-data';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertToast, Avatar, ErrorList } from '~/components';
 import { z } from 'zod';
 import {
 	EmailSchema,
 	FirstNameSchema,
-	ImageFieldsetSchema,
+	profilePictureSchema,
 	LastNameSchema,
 	UsernameSchema,
+	ACCEPTED_FILE_TYPES,
+	MAX_UPLOAD_SIZE,
 } from '~/utils/user-validation';
 import { parseWithZod } from '@conform-to/zod';
 import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm } from '@conform-to/react';
+import { image } from 'remix-utils/responses';
 
-// Useful variables
-export const MAX_UPLOAD_SIZE = 3 * 1024 * 1024; // 3MB
 export const aboutMaxLength = 250;
 // Validation Schemas
 const profileInfoSchema = z.object({
 	username: UsernameSchema.optional(),
 	about: z.string().max(aboutMaxLength).trim().optional(),
-	profilePicture: ImageFieldsetSchema.optional(),
+	profilePicture: profilePictureSchema.optional(),
 	firstName: FirstNameSchema.optional(),
 	lastName: LastNameSchema.optional(),
 	email: EmailSchema.optional(),
@@ -71,8 +72,6 @@ export async function action({ request }: ActionFunctionArgs) {
 					},
 				});
 
-				console.log('user', user);
-
 				if (user?.id !== userId && user) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
@@ -96,13 +95,33 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const { firstName, lastName, username, about, profilePicture, province, country, city } = submission.value;
 
-	const file = profilePicture?.file;
-	console.log('file', file);
+	const file = profilePicture;
 
 	// if file is not provided, do not update the profile image
 	if (file) {
 		const fileBuffer = await file.arrayBuffer(); // Convert the uploaded file to ArrayBuffer
 		const profileImage = Buffer.from(fileBuffer); // Convert ArrayBuffer to Buffer
+
+		// // Check if the user already has a profile image
+		const user = await prisma.user.findUnique({
+			where: {
+				id: userId,
+			},
+			select: {
+				profileImage: true,
+			},
+		});
+
+		// If the user already has a profile image, delete the old one
+		if (user?.profileImage) {
+			await prisma.userProfileImage.delete({
+				where: {
+					id: user.profileImage.id,
+				},
+			});
+		}
+
+		// Update the user's profile image
 
 		await prisma.user.update({
 			where: {
@@ -125,7 +144,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const updatedUser = await prisma.user.update({
+	await prisma.user.update({
 		where: {
 			id: userId,
 		},
@@ -164,8 +183,6 @@ export async function action({ request }: ActionFunctionArgs) {
 			},
 		},
 	});
-
-	console.log('updatedUser', updatedUser);
 
 	// refresh the page
 	return redirect(`/${username}`);
@@ -210,6 +227,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function MyAccount() {
 	const data = useLoaderData<typeof loader>();
+
 	const { user } = data;
 	const lastResult = useActionData();
 	const [form, fields] = useForm({
@@ -222,16 +240,10 @@ export default function MyAccount() {
 		},
 		defaultValue: {
 			username: data.user.username.username,
-			about: data.user.about.about || '',
+			about: data.user.about?.about || '',
 			firstName: data.user.firstName,
 			lastName: data.user.lastName,
 			email: data.user.email,
-			// country: data.user.userLocation.country,
-			// province: data.user.userLocation.province,
-			// city: data.user.userLocation.city,
-			profilePicture: {
-				id: data.user.profileImage?.id,
-			},
 		},
 	});
 
@@ -243,6 +255,27 @@ export default function MyAccount() {
 		const city = user?.userLocation?.city;
 		return city ? city : '';
 	});
+
+	// Update the effect to reset the preview when the user's profile image changes
+	const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
+	useEffect(() => {
+		if (data.user?.profileImage?.id) {
+			setProfileImagePreviewUrl(`/resources/images/${data.user.profileImage.id}`);
+		} else {
+			setProfileImagePreviewUrl(null); // reset to null if no profile image is availble
+		}
+	}, [data.user?.profileImage?.id]);
+
+	function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+		const file = e.target.files[0];
+		if (file) {
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				setProfileImagePreviewUrl(reader.result as string);
+			};
+			reader.readAsDataURL(file);
+		}
+	}
 
 	function handleProvinceChange(province: string) {
 		setSelectedProvince(province);
@@ -305,7 +338,15 @@ export default function MyAccount() {
 						<div className="col-span-full">
 							<p className="block text-sm font-medium leading-6 text-text-primary">Photo</p>
 							<div className="mt-2 flex items-center gap-x-3">
-								<Avatar imageId={user?.profileImage?.id} />
+								{profileImagePreviewUrl ? (
+									<img
+										src={profileImagePreviewUrl}
+										alt="Profile preview"
+										className="h-20 w-20 overflow-hidden rounded-full object-cover"
+									/>
+								) : (
+									<Avatar imageId={user?.profileImage?.id} />
+								)}
 								<label
 									htmlFor={fields.profilePicture.id}
 									className="rounded-md bg-bg-alt px-3 py-2 text-sm font-semibold text-text-primary shadow-sm hover:bg-bg-secondary"
@@ -315,15 +356,16 @@ export default function MyAccount() {
 								<input
 									{...getInputProps(fields.profilePicture, { type: 'file' })}
 									className="sr-only hidden"
-									accept="image/png, image/jpeg, image/gif"
+									accept={ACCEPTED_FILE_TYPES}
 									size={MAX_UPLOAD_SIZE}
+									onChange={handleFileChange}
 								/>
+								<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
 								<div
 									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.profilePicture.errors ? 'max-h-56' : 'max-h-0'}`}
 								>
 									<ErrorList errors={fields.profilePicture.errors} id={fields.profilePicture.errorId} />
 								</div>
-								<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
 							</div>
 						</div>
 

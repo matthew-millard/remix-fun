@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { MAX_UPLOAD_SIZE } from '~/routes/$username';
+
+export const MAX_UPLOAD_SIZE = 1024 * 1024 * 3; // 3MB
+export const ACCEPTED_FILE_TYPES = 'image/png, image/jpeg, image/gif';
 
 export const UsernameSchema = z
 	.string()
@@ -45,13 +47,12 @@ export const LoginEmailSchema = z
 	// users can type the email in any case, but we convert it in lowercase
 	.transform(value => value.toLowerCase());
 
-export const ImageFieldsetSchema = z.object({
-	id: z.string(),
-	file: z
-		.instanceof(File)
-		.refine(file => {
-			return file.size <= MAX_UPLOAD_SIZE;
-		}, 'File size must be less than 3MB')
-		.optional(),
-	altText: z.string().optional(),
-});
+export const profilePictureSchema = z
+	.instanceof(File)
+	.optional()
+	.refine(file => {
+		return !file || file.size <= MAX_UPLOAD_SIZE;
+	}, 'File size must be less than 3MB')
+	.refine(file => {
+		return ACCEPTED_FILE_TYPES.includes(file.type);
+	}, 'File must be either a jpg, png, or gif');
