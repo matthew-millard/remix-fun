@@ -1,6 +1,15 @@
 import { prisma } from './db.server';
 
 interface UserFields {
+	id?: boolean;
+	email?: boolean;
+	firstName?: boolean;
+	lastName?: boolean;
+	username?: boolean;
+	about?: boolean;
+	userLocation?: boolean;
+	createdAt?: boolean;
+	updatedAt?: boolean;
 	profileImage?: boolean;
 }
 
@@ -52,7 +61,6 @@ interface UserData {
 
 export async function findUniqueUser(id: string, fieldsToSelect: UserFields = {}) {
 	try {
-		console.log('fieldsToSelect', fieldsToSelect);
 		const user = await prisma.user.findUnique({
 			where: {
 				id: id,

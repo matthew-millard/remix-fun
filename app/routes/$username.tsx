@@ -121,22 +121,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		return redirect('/login');
 	}
 
-	const user = await prisma.user.findUnique({
-		where: {
-			id: userId,
-		},
-		select: {
-			id: true,
-			email: true,
-			firstName: true,
-			lastName: true,
-			profileImage: true,
-			createdAt: true,
-			updatedAt: true,
-			username: true,
-			about: true,
-			userLocation: true,
-		},
+	const user = await findUniqueUser(userId, {
+		id: true,
+		email: true,
+		firstName: true,
+		lastName: true,
+		profileImage: true,
+		createdAt: true,
+		updatedAt: true,
+		username: true,
+		about: true,
+		userLocation: true,
 	});
 
 	if (!user) {
