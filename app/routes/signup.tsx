@@ -10,7 +10,13 @@ import { AlertToast, ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { bcrypt } from '~/utils/auth.server';
-import { EmailSchema, FirstNameSchema, LastNameSchema, PasswordSchema, UsernameSchema } from '~/utils/user-validation';
+import {
+	EmailSchema,
+	FirstNameSchema,
+	LastNameSchema,
+	PasswordSchema,
+	UsernameSchema,
+} from '~/utils/validation-schemas';
 import { prisma } from '~/utils/db.server';
 
 type LoaderData = {

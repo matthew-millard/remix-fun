@@ -18,75 +18,25 @@ import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
 import { AlertToast, Avatar, ErrorList } from '~/components';
 import { z } from 'zod';
-import {
-	EmailSchema,
-	FirstNameSchema,
-	profilePictureSchema,
-	LastNameSchema,
-	UsernameSchema,
-	ACCEPTED_FILE_TYPES,
-	MAX_UPLOAD_SIZE,
-} from '~/utils/user-validation';
+import { profileInfoSchema, ACCEPTED_FILE_TYPES, MAX_UPLOAD_SIZE } from '~/utils/validation-schemas';
 import { parseWithZod } from '@conform-to/zod';
 import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm } from '@conform-to/react';
-import { image } from 'remix-utils/responses';
-
-export const aboutMaxLength = 250;
-// Validation Schemas
-const profileInfoSchema = z.object({
-	username: UsernameSchema.optional(),
-	about: z.string().max(aboutMaxLength).trim().optional(),
-	profilePicture: profilePictureSchema.optional(),
-	firstName: FirstNameSchema.optional(),
-	lastName: LastNameSchema.optional(),
-	email: EmailSchema.optional(),
-	country: z.literal('Canada').optional(),
-	province: z.string().optional(),
-	city: z.string().optional(),
-});
+import { validateProfileInfo } from '~/utils/validate-profile-info';
+import { convertFileToBuffer } from '~/utils/file-utils';
+import { deleteUserProfileImage, findUniqueUser, updateUserProfile } from '~/utils/prisma-user-helpers';
 
 export async function action({ request }: ActionFunctionArgs) {
 	const uploadHandler = createMemoryUploadHandler({ maxPartSize: MAX_UPLOAD_SIZE });
 	const formData = await parseMultipartFormData(request, uploadHandler);
 	await checkCSRF(formData, request.headers);
 	checkHoneypot(formData);
+
+	// Get the user's ID from the session
 	const session = await getSession(request);
 	const userId = session.get('userId');
 
 	// Validate the form data
-	const submission = await parseWithZod(formData, {
-		schema: profileInfoSchema.transform(async (data, ctx) => {
-			const { username } = data;
-
-			// Check if the username is already taken
-			if (username) {
-				const user = await prisma.user.findFirst({
-					where: {
-						username: {
-							username,
-						},
-					},
-					select: {
-						id: true,
-						username: true,
-					},
-				});
-
-				if (user?.id !== userId && user) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: 'Username is already taken',
-						path: ['username'],
-					});
-				}
-			}
-
-			return data;
-		}),
-
-		async: true,
-	});
-
+	const submission = await validateProfileInfo(formData, userId);
 	if (submission.status !== 'success') {
 		return json(submission.reply({ formErrors: ['Submission failded'] }), {
 			status: submission.status === 'error' ? 400 : 200,
@@ -97,88 +47,63 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const file = profilePicture;
 
-	// if file is not provided, do not update the profile image
+	// if a file was uploaded, convert it to a buffer and update the user's profile image
 	if (file) {
-		const fileBuffer = await file.arrayBuffer(); // Convert the uploaded file to ArrayBuffer
-		const profileImage = Buffer.from(fileBuffer); // Convert ArrayBuffer to Buffer
+		const profileImage = await convertFileToBuffer(file);
 
-		// // Check if the user already has a profile image
-		const user = await prisma.user.findUnique({
-			where: {
-				id: userId,
-			},
-			select: {
-				profileImage: true,
-			},
-		});
-
-		// If the user already has a profile image, delete the old one
-		if (user?.profileImage) {
-			await prisma.userProfileImage.delete({
-				where: {
-					id: user.profileImage.id,
-				},
-			});
+		// Delete the user's current profile image
+		const user = await findUniqueUser(userId, { profileImage: true });
+		if (user.profileImage?.id) {
+			deleteUserProfileImage(user.profileImage.id);
 		}
 
-		// Update the user's profile image
-
-		await prisma.user.update({
-			where: {
-				id: userId,
-			},
-			data: {
-				profileImage: {
-					upsert: {
-						update: {
-							contentType: file.type,
-							blob: profileImage,
-						},
-						create: {
-							contentType: file.type,
-							blob: profileImage,
-						},
+		// Update user's profile image
+		await updateUserProfile(userId, {
+			profileImage: {
+				upsert: {
+					update: {
+						contentType: file.type,
+						blob: profileImage,
+					},
+					create: {
+						contentType: file.type,
+						blob: profileImage,
 					},
 				},
 			},
 		});
 	}
-
-	await prisma.user.update({
-		where: {
-			id: userId,
+	// Update the user's profile
+	await updateUserProfile(userId, {
+		firstName,
+		lastName,
+		username: {
+			update: {
+				username,
+			},
 		},
-		data: {
-			firstName,
-			lastName,
-			username: {
+		about: {
+			upsert: {
 				update: {
-					username,
+					about,
+				},
+				create: {
+					about,
 				},
 			},
-			about: {
-				upsert: {
-					update: {
-						about,
-					},
-					create: {
-						about,
-					},
-				},
-			},
+		},
 
-			userLocation: {
-				upsert: {
-					update: {
-						country,
-						province,
-						city,
-					},
-					create: {
-						country,
-						province,
-						city,
-					},
+		userLocation: {
+			upsert: {
+				update: {
+					country,
+					province,
+					city,
+				},
+				create: {
+					country,
+					province,
+					city,
 				},
 			},
 		},
