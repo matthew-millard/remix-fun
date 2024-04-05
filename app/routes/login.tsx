@@ -10,7 +10,7 @@ import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { bcrypt } from '~/utils/auth.server';
-import { LoginEmailSchema, PasswordSchema } from '~/utils/user-validation';
+import { LoginEmailSchema, PasswordSchema } from '~/utils/validation-schemas';
 import { sessionStorage } from '~/utils/session.server';
 
 const LoginFormSchema = z.object({
