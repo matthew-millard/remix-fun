@@ -9,7 +9,7 @@ import imageUrl from '~/assets/images/20220518_Stolen_Goods_25.jpg';
 import { AlertToast, ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
-import { bcrypt } from '~/utils/auth.server';
+import { bcrypt, getSessionExpirationDate } from '~/utils/auth.server';
 import {
 	EmailSchema,
 	FirstNameSchema,
@@ -18,6 +18,7 @@ import {
 	UsernameSchema,
 } from '~/utils/validation-schemas';
 import { prisma } from '~/utils/db.server';
+import { getSession, sessionStorage } from '~/utils/session.server';
 
 type LoaderData = {
 	image: string;
@@ -38,6 +39,7 @@ const SignUpSchema = z
 		username: UsernameSchema,
 		password: PasswordSchema,
 		passwordConfirm: z.string(),
+		rememberMe: z.boolean().optional(),
 	})
 	.refine(data => data.password === data.passwordConfirm, {
 		message: "Passwords don't match",
@@ -74,7 +76,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const { email, firstName, lastName, password, username } = submission.value;
+	const { email, firstName, lastName, password, username, rememberMe } = submission.value;
 
 	// Upload users data to db and hash password before storing
 	const newUser = await prisma.user.create({
@@ -100,13 +102,23 @@ export async function action({ request }: ActionFunctionArgs) {
 		return json({ message: 'User could not be created' }, { status: 500 });
 	}
 
+	// Set session cookie
+	const cookieSession = await getSession(request);
+	cookieSession.set('userId', newUser.id);
+
 	// Redirect to users profile page
-	return redirect(`/${submission.value.username}`);
+	return redirect(`/${username}/account`, {
+		headers: {
+			'set-cookie': await sessionStorage.commitSession(cookieSession, {
+				maxAge: rememberMe ? getSessionExpirationDate() : undefined,
+			}),
+		},
+	});
 }
 
-export default function Signup() {
+export default function SignupRoute() {
 	const { image } = useLoaderData<LoaderData>();
-	const lastResult = useActionData<typeof action>();
+	const lastResult = useActionData();
 
 	const [form, fields] = useForm({
 		id: 'signup-form',

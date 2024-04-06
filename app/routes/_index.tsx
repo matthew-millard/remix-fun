@@ -11,7 +11,6 @@ export default function Index() {
 
 export function ErrorBoundary() {
 	const error = useRouteError();
-	console.log('error', error);
 
 	if (isRouteErrorResponse(error)) {
 		return (
