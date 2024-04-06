@@ -16,7 +16,6 @@ import { getSession } from '~/utils/session.server';
 import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
 import { AlertToast, ErrorList, ImageChooser } from '~/components';
-import { z } from 'zod';
 import { profileInfoSchema, ACCEPTED_FILE_TYPES, MAX_UPLOAD_SIZE } from '~/utils/validation-schemas';
 import { parseWithZod } from '@conform-to/zod';
 import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm } from '@conform-to/react';
@@ -144,7 +143,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	return json(data);
 }
 
-export default function MyAccount() {
+export default function AccountRoute() {
 	const data = useLoaderData<typeof loader>();
 
 	const { user } = data;

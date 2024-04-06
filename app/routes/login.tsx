@@ -9,13 +9,14 @@ import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
-import { bcrypt } from '~/utils/auth.server';
+import { bcrypt, getSessionExpirationDate } from '~/utils/auth.server';
 import { LoginEmailSchema, PasswordSchema } from '~/utils/validation-schemas';
 import { sessionStorage } from '~/utils/session.server';
 
 const LoginFormSchema = z.object({
 	email: LoginEmailSchema,
 	password: PasswordSchema,
+	rememberMe: z.boolean().optional(),
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -63,7 +64,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const { user } = submission.value;
+	const { user, rememberMe } = submission.value;
 
 	const cookieSession = await sessionStorage.getSession(request.headers.get('cookie'));
 	cookieSession.set('userId', user.id);
@@ -73,12 +74,14 @@ export async function action({ request }: ActionFunctionArgs) {
 	const url = hasUsername ? `/${user.username}/account` : `${user.id}/account`;
 	return redirect(url, {
 		headers: {
-			'set-cookie': await sessionStorage.commitSession(cookieSession),
+			'set-cookie': await sessionStorage.commitSession(cookieSession, {
+				maxAge: rememberMe ? getSessionExpirationDate() : undefined,
+			}),
 		},
 	});
 }
 
-export default function SignIn() {
+export default function LoginRoute() {
 	const lastResult = useActionData<typeof action>();
 	const [form, fields] = useForm({
 		id: 'login-form',
@@ -140,14 +143,18 @@ export default function SignIn() {
 							<div className="flex items-center justify-between">
 								<div className="flex items-center">
 									<input
-										id="remember-me"
-										name="remember-me"
-										type="checkbox"
+										{...getInputProps(fields.rememberMe, { type: 'checkbox' })}
 										className="h-4 w-4 rounded border-white text-indigo-600 focus:ring-indigo-600"
+										defaultChecked={false}
 									/>
-									<label htmlFor="remember-me" className="ml-3 block text-sm leading-6 text-text-primary">
+									<label htmlFor={fields.rememberMe.id} className="ml-3 block text-sm leading-6 text-text-primary">
 										Remember me
 									</label>
+									<div
+										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.password.errors ? 'max-h-56' : 'max-h-0'}`}
+									>
+										<ErrorList errors={fields.rememberMe.errors} id={fields.rememberMe.errorId} />
+									</div>
 								</div>
 
 								<div className="text-sm leading-6">

@@ -1,7 +1,7 @@
-import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, redirect } from '@remix-run/node';
 import { getSession, sessionStorage } from '~/utils/session.server';
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader() {
 	return redirect('/');
 }
 
