@@ -70,7 +70,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	// If the user has a username, redirect them to their account using their username in the url, otherwise, use their id in the url
 	const hasUsername = user.username ? true : false;
-	const url = hasUsername ? `/${user.username}` : `${user.id}`;
+	const url = hasUsername ? `/${user.username}/account` : `${user.id}/account`;
 	return redirect(url, {
 		headers: {
 			'set-cookie': await sessionStorage.commitSession(cookieSession),
@@ -168,7 +168,6 @@ export default function SignIn() {
 							<div
 								className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'}`}
 							>
-								{/* <ErrorList errors={form.errors} id={form.errorId} fontSize="16px" /> */}
 								<AlertToast errors={form.errors} id={form.errorId} />
 							</div>
 						</Form>

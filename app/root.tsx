@@ -35,7 +35,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 	const user = userId
 		? await prisma.user.findUnique({
 				where: { id: userId },
-				select: { id: true, firstName: true, lastName: true, profileImage: { select: { id: true } } },
+				select: { id: true, firstName: true, lastName: true, username: true, profileImage: { select: { id: true } } },
 			})
 		: null;
 
