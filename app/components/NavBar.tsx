@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Avatar, Logo, ThemeSwitcher } from '../components';
+import { Avatar, DropDownIcon, Logo, ThemeSwitcher } from '../components';
 import { Link, NavLink, useLoaderData } from '@remix-run/react';
 import { type loader } from '../root';
 
@@ -16,6 +16,7 @@ const mobileNavigation = [{ name: 'Dashboard', href: '/dashboard' }, ...navigati
 export default function NavBar() {
 	const data = useLoaderData<typeof loader>();
 	const profileImageId = data.user?.profileImage?.id;
+	const username = data.user?.username.username;
 
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -38,7 +39,7 @@ export default function NavBar() {
 					))}
 				</div>
 				<div className="hidden flex-1 items-center justify-end gap-x-6 lg:flex">
-					<Avatar imageId={profileImageId} />
+					<DropDownIcon imageId={profileImageId} username={username} />
 					<ThemeSwitcher />
 				</div>
 				<div className="flex lg:hidden">
