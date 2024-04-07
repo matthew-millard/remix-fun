@@ -1,6 +1,6 @@
 import type { LoaderFunction, MetaFunction } from '@remix-run/node';
 import { cssBundleHref } from '@remix-run/css-bundle';
-import { LinksFunction, json } from '@remix-run/node';
+import { LinksFunction, json, redirect } from '@remix-run/node';
 import tailwindStylesheet from '~/tailwind.css';
 import globalStylesheet from '~/styles/global.css';
 import { ThemeProvider, Theme } from '~/utils/theme-provider';
@@ -14,7 +14,7 @@ import { honeypot } from './utils/honeypot.server';
 import { HoneypotProvider } from 'remix-utils/honeypot/react';
 import { csrf } from '~/utils/csrf.server';
 import { AuthenticityTokenProvider } from 'remix-utils/csrf/react';
-import { sessionStorage } from './utils/session.server';
+import { getSession, sessionStorage } from './utils/session.server';
 import { prisma } from './utils/db.server';
 
 export type LoaderData = {
@@ -28,7 +28,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 	const themeSession = await getThemeSession(request);
 	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request);
 	// Get userId from session_userId cookie
-	const cookieSession = await sessionStorage.getSession(request.headers.get('cookie'));
+	const cookieSession = await getSession(request);
 	const userId = cookieSession.get('userId');
 
 	// Query the database getting the users information
@@ -38,6 +38,15 @@ export const loader: LoaderFunction = async ({ request }) => {
 				select: { id: true, firstName: true, lastName: true, username: true, profileImage: { select: { id: true } } },
 			})
 		: null;
+
+	if (userId && !user) {
+		// If the user is not found in the database, clear the session_userId cookie
+		throw redirect('/', {
+			headers: {
+				'set-cookie': await sessionStorage.destroySession(cookieSession),
+			},
+		});
+	}
 
 	const data: LoaderData = {
 		theme: themeSession.getTheme(),

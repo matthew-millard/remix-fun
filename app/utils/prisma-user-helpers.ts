@@ -101,3 +101,23 @@ export async function deleteUserProfileImage(imageId: string) {
 		throw new Error('Failed to delete user profile image');
 	}
 }
+
+export async function deleteUser(userId: string) {
+	try {
+		const deletedUser = await prisma.user.delete({
+			where: {
+				id: userId,
+			},
+			select: {
+				id: true,
+				email: true,
+				firstName: true,
+				lastName: true,
+			},
+		});
+		return deletedUser;
+	} catch (error) {
+		console.error('Failed to delete user', error);
+		throw new Error('Failed to delete user');
+	}
+}
