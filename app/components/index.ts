@@ -7,5 +7,6 @@ import Avatar from './Avatar';
 import ErrorList from './ErrorList';
 import AlertToast from './AlertToast';
 import ImageChooser from './ImageChooser';
+import DialogBox from './Dialog';
 
-export { ErrorList, Avatar, NavBar, Footer, Logo, ThemeSwitcher, AlertToast, ImageChooser, DropDownIcon };
+export { ErrorList, Avatar, NavBar, Footer, Logo, ThemeSwitcher, AlertToast, ImageChooser, DropDownIcon, DialogBox };

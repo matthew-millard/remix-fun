@@ -15,7 +15,7 @@ import { checkHoneypot } from '~/utils/honeypot.server';
 import { getSession } from '~/utils/session.server';
 import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
-import { AlertToast, ErrorList, ImageChooser } from '~/components';
+import { AlertToast, DialogBox, ErrorList, ImageChooser } from '~/components';
 import { profileInfoSchema, ACCEPTED_FILE_TYPES, MAX_UPLOAD_SIZE } from '~/utils/validation-schemas';
 import { parseWithZod } from '@conform-to/zod';
 import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm } from '@conform-to/react';
@@ -174,6 +174,8 @@ export default function AccountRoute() {
 		return city ? city : '';
 	});
 
+	const [isDialogOpen, setIsDialogOpen] = useState(false);
+
 	// Update the effect to reset the preview when the user's profile image changes
 	const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
 	useEffect(() => {
@@ -202,6 +204,10 @@ export default function AccountRoute() {
 
 	function handleCityChange(city: string) {
 		setSelectedCity(city);
+	}
+
+	function showDialog(bool: boolean) {
+		setIsDialogOpen(bool);
 	}
 
 	return (
@@ -553,7 +559,7 @@ export default function AccountRoute() {
 				<AlertToast errors={form.errors} id={form.errorId} />
 			</div>
 
-			<div className="mt-6 flex items-center justify-end gap-x-6">
+			<div className="mt-6 flex items-center justify-end gap-x-6 border-b border-border-tertiary pb-8">
 				<button type="button" className="text-sm font-semibold leading-6 text-text-primary">
 					Cancel
 				</button>
@@ -564,6 +570,20 @@ export default function AccountRoute() {
 					Save
 				</button>
 			</div>
+			<div className="mt-6 flex  flex-col gap-x-6 gap-y-6 border-b  border-border-tertiary pb-8 sm:flex-row sm:justify-between">
+				<div>
+					<h2 className="text-base font-semibold leading-7 text-text-primary">Delete Account</h2>
+					<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently Delete Your Barfly Account</p>
+				</div>
+				<button
+					type="button"
+					className=" flex max-w-36 items-center  justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 "
+					onClick={() => showDialog(true)}
+				>
+					Delete Account
+				</button>
+			</div>
+			<DialogBox showDialog={showDialog} open={isDialogOpen} />
 			<HoneypotInputs />
 			<AuthenticityTokenInput />
 		</Form>
