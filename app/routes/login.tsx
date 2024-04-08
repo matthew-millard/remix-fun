@@ -1,7 +1,7 @@
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { Form, useActionData } from '@remix-run/react';
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
-import { ActionFunctionArgs, json, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from '@remix-run/node';
 import { AlertToast, ErrorList } from '~/components';
 import { z } from 'zod';
 import { checkHoneypot } from '~/utils/honeypot.server';
@@ -9,7 +9,7 @@ import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
-import { bcrypt, getSessionExpirationDate } from '~/utils/auth.server';
+import { bcrypt, getSessionExpirationDate, requireAnonymous } from '~/utils/auth.server';
 import { LoginEmailSchema, PasswordSchema } from '~/utils/validation-schemas';
 import { sessionStorage } from '~/utils/session.server';
 
@@ -18,6 +18,11 @@ const LoginFormSchema = z.object({
 	password: PasswordSchema,
 	rememberMe: z.boolean().optional(),
 });
+
+export async function loader({ request }: LoaderFunctionArgs) {
+	await requireAnonymous(request);
+	return json({});
+}
 
 export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
