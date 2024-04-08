@@ -1,6 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
 import { parseWithZod } from '@conform-to/zod';
-import { ActionFunctionArgs, json, redirect, type MetaFunction } from '@remix-run/node';
+import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect, type MetaFunction } from '@remix-run/node';
 import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
@@ -9,7 +9,7 @@ import imageUrl from '~/assets/images/20220518_Stolen_Goods_25.jpg';
 import { AlertToast, ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
-import { bcrypt, getSessionExpirationDate } from '~/utils/auth.server';
+import { bcrypt, getSessionExpirationDate, requireAnonymous } from '~/utils/auth.server';
 import {
 	EmailSchema,
 	FirstNameSchema,
@@ -24,12 +24,14 @@ type LoaderData = {
 	image: string;
 };
 
-export const loader = () => {
+export async function loader({ request }: LoaderFunctionArgs) {
+	await requireAnonymous(request);
+
 	const data = {
 		image: imageUrl,
 	};
 	return json(data);
-};
+}
 
 const SignUpSchema = z
 	.object({
