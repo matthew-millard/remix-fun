@@ -49,6 +49,7 @@ const SignUpSchema = z
 	});
 
 export async function action({ request }: ActionFunctionArgs) {
+	await requireAnonymous(request);
 	const formData = await request.formData();
 	await checkCSRF(formData, request.headers);
 	checkHoneypot(formData);
