@@ -12,7 +12,6 @@ import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
-import { getSession } from '~/utils/session.server';
 import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
 import { AlertToast, DialogBox, ErrorList, ImageChooser } from '~/components';
@@ -22,16 +21,20 @@ import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm 
 import { validateProfileInfo } from '~/utils/validate-profile-info';
 import { convertFileToBuffer } from '~/utils/file-utils';
 import { deleteUserProfileImage, findUniqueUser, updateUserProfile } from '~/utils/prisma-user-helpers';
+import { requireUser, requireUserId } from '~/utils/auth.server';
+import { invariantResponse } from '~/utils/misc';
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
+	const user = await requireUser(request);
+	const userId = user.id;
+	invariantResponse(user.username.username === params.username, 'Forbidden', {
+		status: 403,
+	});
+
 	const uploadHandler = createMemoryUploadHandler({ maxPartSize: MAX_UPLOAD_SIZE });
 	const formData = await parseMultipartFormData(request, uploadHandler);
 	await checkCSRF(formData, request.headers);
 	checkHoneypot(formData);
-
-	// Get the user's ID from the session
-	const session = await getSession(request);
-	const userId = session.get('userId');
 
 	// Validate the form data
 	const submission = await validateProfileInfo(formData, userId);
@@ -112,8 +115,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-	const session = await getSession(request);
-	const userId = session.get('userId');
+	const userId = await requireUserId(request);
 
 	if (!userId) {
 		return redirect('/login');
@@ -573,7 +575,7 @@ export default function AccountRoute() {
 			<div className="mt-6 flex  flex-col gap-x-6 gap-y-6 border-b  border-border-tertiary pb-8 sm:flex-row sm:justify-between">
 				<div>
 					<h2 className="text-base font-semibold leading-7 text-text-primary">Delete Account</h2>
-					<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently Delete Your Barfly Account</p>
+					<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently delete your Barfly account</p>
 				</div>
 				<button
 					type="button"
