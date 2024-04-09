@@ -30,11 +30,34 @@ export async function getUserId(request: Request) {
 	return user.id;
 }
 
+export async function requireUserId(request: Request) {
+	const userId = await getUserId(request);
+	if (!userId) {
+		throw redirect('/login');
+	}
+
+	return userId;
+}
+
 export async function requireAnonymous(request: Request) {
 	const userId = await getUserId(request);
 	if (userId) {
 		throw redirect('/', { status: 303 });
 	}
+}
+
+export async function requireUser(request: Request) {
+	const userId = await requireUserId(request);
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { id: true, username: true },
+	});
+
+	if (!user) {
+		throw await logout({ request });
+	}
+
+	return user;
 }
 
 export async function logout(
