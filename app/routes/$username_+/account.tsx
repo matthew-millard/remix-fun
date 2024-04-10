@@ -25,9 +25,10 @@ import { requireUser, requireUserId } from '~/utils/auth.server';
 import { invariantResponse } from '~/utils/misc';
 
 export async function action({ request, params }: ActionFunctionArgs) {
+	console.log('user******************');
 	const user = await requireUser(request);
 	const userId = user.id;
-	invariantResponse(user.username.username === params.username, 'Forbidden', {
+	invariantResponse(user.username.username === params.username, 'Not authorized', {
 		status: 403,
 	});
 
@@ -110,7 +111,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		},
 	});
 
-	// refresh the page
 	return redirect(`/${username}/account`);
 }
 

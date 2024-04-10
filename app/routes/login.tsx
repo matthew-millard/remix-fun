@@ -1,8 +1,9 @@
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
-import { Form, useActionData } from '@remix-run/react';
+import { Form, Link, useActionData, useSearchParams } from '@remix-run/react';
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from '@remix-run/node';
 import { AlertToast, ErrorList } from '~/components';
+import { safeRedirect } from 'remix-utils/safe-redirect';
 import { z } from 'zod';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
@@ -17,6 +18,7 @@ const LoginFormSchema = z.object({
 	email: LoginEmailSchema,
 	password: PasswordSchema,
 	rememberMe: z.boolean().optional(),
+	redirectTo: z.string().optional(),
 });
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -70,15 +72,15 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const { user, rememberMe } = submission.value;
+	const { user, rememberMe, redirectTo } = submission.value;
 
 	const cookieSession = await sessionStorage.getSession(request.headers.get('cookie'));
 	cookieSession.set('userId', user.id);
 
 	// If the user has a username, redirect them to their account using their username in the url, otherwise, use their id in the url
-	const hasUsername = user.username ? true : false;
-	const url = hasUsername ? `/${user.username}/account` : `${user.id}/account`;
-	return redirect(url, {
+	// const hasUsername = user.username ? true : false;
+	// const url = hasUsername ? `/${user.username}/account` : `${user.id}/account`;
+	return redirect(safeRedirect(redirectTo), {
 		headers: {
 			'set-cookie': await sessionStorage.commitSession(cookieSession, {
 				maxAge: rememberMe ? getSessionExpirationDate() : undefined,
@@ -89,6 +91,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function LoginRoute() {
 	const lastResult = useActionData<typeof action>();
+	const [searchParams] = useSearchParams();
+	const redirectTo = searchParams.get('redirectTo');
+
 	const [form, fields] = useForm({
 		id: 'login-form',
 		shouldRevalidate: 'onInput',
@@ -97,6 +102,9 @@ export default function LoginRoute() {
 		lastResult,
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: LoginFormSchema });
+		},
+		defaultValues: {
+			redirectTo: redirectTo,
 		},
 	});
 
@@ -163,6 +171,8 @@ export default function LoginRoute() {
 									</div>
 								</div>
 
+								{/* Hidden input for the redirectTo */}
+								<input {...getInputProps(fields.redirectTo, { type: 'hidden' })} value={redirectTo || ''} />
 								<div className="text-sm leading-6">
 									<a href="/forgot-password" className="font-semibold text-indigo-600 hover:text-indigo-500">
 										Forgot password?
@@ -240,9 +250,13 @@ export default function LoginRoute() {
 
 					<p className="mt-10 text-center text-sm text-gray-500">
 						Not a member?{' '}
-						<a href="/signup" className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
+						<Link
+							to={redirectTo ? `/signup?redirectTo=${encodeURIComponent(redirectTo)}` : '/signup'}
+							className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500"
+							prefetch="intent"
+						>
 							Sign up for an account
-						</a>
+						</Link>
 					</p>
 				</div>
 			</div>

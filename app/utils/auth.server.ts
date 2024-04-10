@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { getSession } from './session.server';
+import { getSession, sessionStorage } from './session.server';
 import { prisma } from './db.server';
 import { redirect } from '@remix-run/node';
 import { safeRedirect } from 'remix-utils/safe-redirect';
@@ -30,12 +30,15 @@ export async function getUserId(request: Request) {
 	return user.id;
 }
 
-export async function requireUserId(request: Request) {
+export async function requireUserId(request: Request, { redirectTo }: { redirectTo?: string | null } = {}) {
 	const userId = await getUserId(request);
 	if (!userId) {
-		throw redirect('/login');
+		const requestUrl = new URL(request.url);
+		redirectTo = redirectTo === null ? null : redirectTo ?? `${requestUrl.pathname}${requestUrl.search}`;
+		const loginParams = redirectTo ? new URLSearchParams({ redirectTo }) : null;
+		const loginRedirect = ['/login', loginParams?.toString()].filter(Boolean).join('?');
+		throw redirect(loginRedirect);
 	}
-
 	return userId;
 }
 
@@ -47,7 +50,9 @@ export async function requireAnonymous(request: Request) {
 }
 
 export async function requireUser(request: Request) {
+	console.log('requireUser');
 	const userId = await requireUserId(request);
+
 	const user = await prisma.user.findUnique({
 		where: { id: userId },
 		select: { id: true, username: true },
