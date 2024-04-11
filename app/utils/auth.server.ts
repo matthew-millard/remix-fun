@@ -50,7 +50,6 @@ export async function requireAnonymous(request: Request) {
 }
 
 export async function requireUser(request: Request) {
-	console.log('requireUser');
 	const userId = await requireUserId(request);
 
 	const user = await prisma.user.findUnique({
@@ -84,4 +83,28 @@ export async function logout(
 			},
 		}),
 	);
+}
+
+export async function verifyUserPassword(userId: string, password: string) {
+	const userWithPassword = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { id: true, password: { select: { hash: true } } },
+	});
+
+	if (!userWithPassword || !userWithPassword.password) {
+		return null;
+	}
+
+	const isValid = await bcrypt.compare(password, userWithPassword.password.hash);
+
+	if (!isValid) {
+		return null;
+	}
+
+	return { id: userWithPassword.id };
+}
+
+export async function getPasswordHash(password: string) {
+	const hash = await bcrypt.hash(password, 10);
+	return hash;
 }
