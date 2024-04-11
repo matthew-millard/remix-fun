@@ -1,5 +1,5 @@
 import { PhotoIcon } from '@heroicons/react/24/solid';
-import { Form, useActionData, useLoaderData } from '@remix-run/react';
+import { Form, Link, useActionData, useLoaderData } from '@remix-run/react';
 import {
 	ActionFunctionArgs,
 	json,
@@ -450,7 +450,7 @@ export default function AccountRoute() {
 					</div>
 				</div>
 
-				{/* <div className="border-b border-border-tertiary pb-12">
+				<div className="border-b border-border-tertiary pb-12">
 					<h2 className="text-base font-semibold leading-7 text-text-primary">Notifications</h2>
 					<p className="mt-1 text-sm leading-6 text-text-secondary">
 						We&apos;ll always let you know about important changes, but you pick what else you want to hear about.
@@ -552,7 +552,7 @@ export default function AccountRoute() {
 							</div>
 						</fieldset>
 					</div>
-				</div> */}
+				</div>
 			</div>
 
 			<div
@@ -572,18 +572,28 @@ export default function AccountRoute() {
 					Save
 				</button>
 			</div>
-			<div className="mt-6 flex  flex-col gap-x-6 gap-y-6 border-b  border-border-tertiary pb-8 sm:flex-row sm:justify-between">
-				<div>
-					<h2 className="text-base font-semibold leading-7 text-text-primary">Delete Account</h2>
-					<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently delete your Barfly account</p>
+			<div className=" flex flex-col justify-around border-b border-border-tertiary  py-8">
+				<div className=" flex  flex-row  justify-between  gap-x-6 gap-y-6 pb-8">
+					<div>
+						<h2 className="text-base font-semibold leading-7 text-text-primary">Change Password</h2>
+					</div>
+					<Link to={`/${data.user.username.username}/password`} className="text-text-notify">
+						...Change Password
+					</Link>
 				</div>
-				<button
-					type="button"
-					className=" flex max-w-36 items-center  justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 "
-					onClick={() => showDialog(true)}
-				>
-					Delete Account
-				</button>
+				<div className=" flex  flex-col gap-x-6 gap-y-6   sm:flex-row sm:justify-between">
+					<div>
+						<h2 className="text-base font-semibold leading-7 text-text-primary">Delete Account</h2>
+						<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently delete your Barfly account</p>
+					</div>
+					<button
+						type="button"
+						className=" flex max-w-36 items-center  justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 "
+						onClick={() => showDialog(true)}
+					>
+						Delete Account
+					</button>
+				</div>
 			</div>
 			<DialogBox showDialog={showDialog} open={isDialogOpen} />
 			<HoneypotInputs />
