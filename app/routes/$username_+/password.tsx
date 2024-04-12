@@ -31,7 +31,7 @@ const changePasswordSchema = z
 	});
 
 export async function action({ request }: ActionFunctionArgs) {
-	const userId = await requireUserId(request);
+	const id = await requireUserId(request);
 	const formData = await request.formData();
 	await checkCSRF(formData, request.headers);
 	checkHoneypot(formData);
@@ -40,7 +40,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		async: true,
 		schema: changePasswordSchema.superRefine(async ({ currentPassword, newPassword }, ctx) => {
 			if (currentPassword && newPassword) {
-				const user = await verifyUserPassword(userId, currentPassword);
+				const user = await verifyUserPassword({ id }, currentPassword);
 				if (!user) {
 					ctx.addIssue({
 						path: ['currentPassword'],
@@ -52,7 +52,6 @@ export async function action({ request }: ActionFunctionArgs) {
 		}),
 	});
 
-	console.log('submission*******************************', submission);
 	// clear the payload so we don't send the password back to the client
 	submission.payload = {};
 
@@ -66,7 +65,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const user = await prisma.user.update({
 		select: { username: true },
-		where: { id: userId },
+		where: { id },
 		data: {
 			password: {
 				update: {

@@ -23,6 +23,7 @@ model User {
   username     Username?
   about        About?
   userLocation UserLocation?
+  sessions     Session[]
 }
 
 model Username {
@@ -60,4 +61,15 @@ model UserLocation {
   country  String?
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId   String  @unique
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  expirationDate DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId         String
+
+  @@index([userId])
 }

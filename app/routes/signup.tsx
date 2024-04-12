@@ -9,7 +9,7 @@ import imageUrl from '~/assets/images/20220518_Stolen_Goods_25.jpg';
 import { AlertToast, ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
-import { bcrypt, getSessionExpirationDate, requireAnonymous } from '~/utils/auth.server';
+import { requireAnonymous, sessionKey, signup } from '~/utils/auth.server';
 import {
 	EmailSchema,
 	FirstNameSchema,
@@ -23,15 +23,6 @@ import { getSession, sessionStorage } from '~/utils/session.server';
 type LoaderData = {
 	image: string;
 };
-
-export async function loader({ request }: LoaderFunctionArgs) {
-	await requireAnonymous(request);
-
-	const data = {
-		image: imageUrl,
-	};
-	return json(data);
-}
 
 const SignUpSchema = z
 	.object({
@@ -47,6 +38,15 @@ const SignUpSchema = z
 		message: "Passwords don't match",
 		path: ['passwordConfirm'], // This will attach the error to the passwordConfirm field
 	});
+
+export async function loader({ request }: LoaderFunctionArgs) {
+	await requireAnonymous(request);
+
+	const data = {
+		image: imageUrl,
+	};
+	return json(data);
+}
 
 export async function action({ request }: ActionFunctionArgs) {
 	await requireAnonymous(request);
@@ -82,38 +82,22 @@ export async function action({ request }: ActionFunctionArgs) {
 	const { email, firstName, lastName, password, username, rememberMe } = submission.value;
 
 	// Upload users data to db and hash password before storing
-	const newUser = await prisma.user.create({
-		data: {
-			email,
-			firstName,
-			lastName,
-			password: {
-				create: {
-					hash: await bcrypt.hash(password, 10),
-				},
-			},
-			username: {
-				create: {
-					username,
-				},
-			},
-		},
-	});
+	const session = await signup({ email, firstName, lastName, password, username });
 
 	// Check if user was created
-	if (!newUser) {
+	if (!session) {
 		return json({ message: 'User could not be created' }, { status: 500 });
 	}
 
 	// Set session cookie
 	const cookieSession = await getSession(request);
-	cookieSession.set('userId', newUser.id);
+	cookieSession.set(sessionKey, session.id);
 
 	// Redirect to users profile page
 	return redirect(`/${username}/account`, {
 		headers: {
 			'set-cookie': await sessionStorage.commitSession(cookieSession, {
-				maxAge: rememberMe ? getSessionExpirationDate() : undefined,
+				expires: rememberMe ? session.expirationDate : undefined,
 			}),
 		},
 	});
