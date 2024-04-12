@@ -9,10 +9,9 @@ import { checkHoneypot } from '~/utils/honeypot.server';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { checkCSRF } from '~/utils/csrf.server';
-import { prisma } from '~/utils/db.server';
-import { bcrypt, getSessionExpirationDate, requireAnonymous } from '~/utils/auth.server';
+import { login, requireAnonymous, sessionKey } from '~/utils/auth.server';
 import { LoginEmailSchema, PasswordSchema } from '~/utils/validation-schemas';
-import { sessionStorage } from '~/utils/session.server';
+import { getSession, sessionStorage } from '~/utils/session.server';
 
 const LoginFormSchema = z.object({
 	email: LoginEmailSchema,
@@ -34,24 +33,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const submission = await parseWithZod(formData, {
 		schema: LoginFormSchema.transform(async (data, ctx) => {
-			// Included the password hash in this select
-			const userAndPassword = await prisma.user.findUnique({
-				select: { id: true, password: { select: { hash: true } }, username: { select: { username: true } } },
-				where: { email: data.email },
-			});
+			// @ts-expect-error - ignore zod issue
+			const session = await login(data);
 
-			if (!userAndPassword || !userAndPassword.password) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: 'Invalid username or password',
-				});
-
-				return z.NEVER;
-			}
-
-			const isValidPassword = await bcrypt.compare(data.password, userAndPassword.password.hash);
-
-			if (!isValidPassword) {
+			if (!session) {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					message: 'Invalid username or password',
@@ -59,8 +44,7 @@ export async function action({ request }: ActionFunctionArgs) {
 				return z.NEVER;
 			}
 
-			// Don't return password hash
-			return { ...data, user: { id: userAndPassword.id, username: userAndPassword.username.username } };
+			return { ...data, session };
 		}),
 		async: true,
 	});
@@ -72,18 +56,15 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const { user, rememberMe, redirectTo } = submission.value;
+	const { session, rememberMe, redirectTo } = submission.value;
 
-	const cookieSession = await sessionStorage.getSession(request.headers.get('cookie'));
-	cookieSession.set('userId', user.id);
+	const cookieSession = await getSession(request);
+	cookieSession.set(sessionKey, session.id);
 
-	// If the user has a username, redirect them to their account using their username in the url, otherwise, use their id in the url
-	// const hasUsername = user.username ? true : false;
-	// const url = hasUsername ? `/${user.username}/account` : `${user.id}/account`;
 	return redirect(safeRedirect(redirectTo), {
 		headers: {
 			'set-cookie': await sessionStorage.commitSession(cookieSession, {
-				maxAge: rememberMe ? getSessionExpirationDate() : undefined,
+				expires: rememberMe ? session.expirationDate : undefined,
 			}),
 		},
 	});

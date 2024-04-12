@@ -34,12 +34,3 @@ export async function getSession(request: Request) {
 	const cookie = request.headers.get('Cookie');
 	return sessionStorage.getSession(cookie);
 }
-
-export async function logout(request: Request, path: string = '/') {
-	const session = await getSession(request);
-	return redirect(path, {
-		headers: {
-			'Set-Cookie': await sessionStorage.destroySession(session),
-		},
-	});
-}

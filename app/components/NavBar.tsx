@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Avatar, DropDownIcon, Logo, ThemeSwitcher } from '../components';
+import { DropDownIcon, Logo, ThemeSwitcher } from '../components';
 import { Link, NavLink, useLoaderData } from '@remix-run/react';
 import { type loader } from '../root';
 
