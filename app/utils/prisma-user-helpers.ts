@@ -11,6 +11,17 @@ interface UserFields {
 	createdAt?: boolean;
 	updatedAt?: boolean;
 	profileImage?: boolean;
+	_count?: {
+		select: {
+			sessions: {
+				where: {
+					expirationDate: {
+						gt: Date;
+					};
+				};
+			};
+		};
+	};
 }
 
 interface UserData {
