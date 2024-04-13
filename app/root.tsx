@@ -1,6 +1,5 @@
-import type { LoaderFunction, MetaFunction } from '@remix-run/node';
+import { type LoaderFunctionArgs, type MetaFunction, type LinksFunction, json } from '@remix-run/node';
 import { cssBundleHref } from '@remix-run/css-bundle';
-import { LinksFunction, json } from '@remix-run/node';
 import tailwindStylesheet from '~/tailwind.css';
 import globalStylesheet from '~/styles/global.css';
 import { ThemeProvider, Theme } from '~/utils/theme-provider';
@@ -24,7 +23,7 @@ export type LoaderData = {
 	user: { id: string; firstName: string; lastName: string; profileImage: { id: string } } | null;
 };
 
-export const loader: LoaderFunction = async ({ request }) => {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const themeSession = await getThemeSession(request);
 	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request);
 	const userId = await getUserId(request);
@@ -45,13 +44,15 @@ export const loader: LoaderFunction = async ({ request }) => {
 	};
 
 	return json(data, { headers: csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : {} });
-};
+}
 
-export const links: LinksFunction = () => [
-	...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : []),
-	{ rel: 'stylesheet', href: tailwindStylesheet },
-	{ rel: 'stylesheet', href: globalStylesheet },
-];
+export function links(): ReturnType<LinksFunction> {
+	return [
+		{ rel: 'stylesheet', href: tailwindStylesheet },
+		{ rel: 'stylesheet', href: globalStylesheet },
+		...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : []),
+	];
+}
 
 function App({ children, theme }: { children: React.ReactNode; theme: Theme | null }) {
 	return (
@@ -91,14 +92,14 @@ export default function AppWithProviders() {
 	);
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
+export function meta({ data }: Parameters<MetaFunction<typeof loader>>[0]): ReturnType<MetaFunction<typeof loader>> {
 	const { user } = data;
 	const firstName = user ? user.firstName : null;
 	return [
 		{ title: 'BarFly' },
-		{ name: 'description', content: firstName ? `Welcome back to BarFly ${firstName}!` : 'Welcome to BarFly!' },
+		{ description: firstName ? `Welcome back to BarFly ${firstName}!` : 'Welcome to BarFly!' },
 	];
-};
+}
 
 export function ErrorBoundary() {
 	return (
