@@ -9,7 +9,7 @@ import imageUrl from '~/assets/images/20220518_Stolen_Goods_25.jpg';
 import { AlertToast, ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
-import { requireAnonymous, sessionKey, signup } from '~/utils/auth.server';
+import { requireAnonymous } from '~/utils/auth.server';
 import {
 	EmailSchema,
 	FirstNameSchema,
@@ -18,8 +18,9 @@ import {
 	UsernameSchema,
 } from '~/utils/validation-schemas';
 import { prisma } from '~/utils/db.server';
-import { getSession, sessionStorage } from '~/utils/session.server';
 import { sendEmail } from '~/utils/email.server';
+import { generateTOTP } from '@epic-web/totp';
+import { getDomainUrl } from '~/utils/misc';
 
 type LoaderData = {
 	image: string;
@@ -81,34 +82,79 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const { email, firstName, lastName, password, username, rememberMe } = submission.value;
+	const { email, firstName } = submission.value;
 	// Send verification email to user, this is a mock
-	await sendEmail({
-		to: [email],
-		subject: `Welcome to Barfly ${firstName}`,
-		html: `<h1>Thank you for signing up to BarFly</h1><p>Hi ${firstName}, it is great to have you as part of our community.</p>`,
+
+	const { otp, secret, algorithm, charSet, digits, period } = generateTOTP({
+		digits: 6,
+		algorithm: 'SHA256',
+		period: 15 * 60, // 15 minutes
+		charSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
 	});
 
-	// Upload users data to db and hash password before storing
-	const session = await signup({ email, firstName, lastName, password, username });
+	const type = 'email';
+	const redirectToUrl = new URL(`${getDomainUrl(request)}/verify`);
+	redirectToUrl.searchParams.set('type', type);
+	redirectToUrl.searchParams.set('target', email);
+	const verifyUrl = new URL(redirectToUrl);
+	verifyUrl.searchParams.set('code', otp);
 
-	// Check if user was created
-	if (!session) {
-		return json({ message: 'User could not be created' }, { status: 500 });
+	const verificationData = {
+		type,
+		target: email,
+		secret,
+		algorithm,
+		digits,
+		period,
+		charSet,
+		expiresAt: new Date(Date.now() + period * 1000),
+	};
+
+	await prisma.verification.upsert({
+		where: {
+			target_type: {
+				target: email,
+				type,
+			},
+		},
+		create: verificationData,
+		update: verificationData,
+	});
+
+	const response = await sendEmail({
+		to: [email],
+		subject: `Confirm your Barfly account`,
+		html: `<h1>Confirm your account</h1><p>Hi ${firstName}! Thank you for signing up for Barfly. To confirm your account, please either follow the button below or enter the one-time passcode.</p>
+		<h3>${otp}</h3>`,
+	});
+
+	console.log('response***********************************', response);
+
+	if (response.status !== 200) {
+		return json({ status: 'error', message: 'An error occured' }, { status: 500 });
 	}
 
-	// Set session cookie
-	const cookieSession = await getSession(request);
-	cookieSession.set(sessionKey, session.id);
+	return redirect(redirectToUrl.toString());
+	// // Upload users data to db and hash password before storing
+	// const session = await signup({ email, firstName, lastName, password, username });
+
+	// // Check if user was created
+	// if (!session) {
+	// 	return json({ message: 'User could not be created' }, { status: 500 });
+	// }
+
+	// // Set session cookie
+	// const cookieSession = await getSession(request);
+	// cookieSession.set(sessionKey, session.id);
 
 	// Redirect to users profile page
-	return redirect(`/${username}/account`, {
-		headers: {
-			'set-cookie': await sessionStorage.commitSession(cookieSession, {
-				expires: rememberMe ? session.expirationDate : undefined,
-			}),
-		},
-	});
+	// return redirect(`/${username}/account`, {
+	// 	headers: {
+	// 		'set-cookie': await sessionStorage.commitSession(cookieSession, {
+	// 			expires: rememberMe ? session.expirationDate : undefined,
+	// 		}),
+	// 	},
+	// });
 }
 
 export default function SignupRoute() {
