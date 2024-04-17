@@ -9,18 +9,18 @@ interface Email {
 }
 
 export async function sendEmail({ from = 'Barfly <matt@barfly.ca>', to, subject, html }: Email) {
-	const resend = new Resend(process.env.RESEND_API_KEY);
-	const { data, error } = await resend.emails.send({
-		from,
-		to,
-		subject,
-		html,
-	});
+	try {
+		const resend = new Resend(process.env.RESEND_API_KEY);
+		const data = await resend.emails.send({
+			from,
+			to,
+			subject,
+			html,
+		});
 
-	if (error) {
+		return json(data, { status: 200 });
+	} catch (error) {
 		console.error({ error });
 		return json({ message: 'An error occured' }, { status: 500 });
 	}
-
-	return data;
 }
