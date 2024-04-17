@@ -73,3 +73,18 @@ model Session {
 
   @@index([userId])
 }
+
+model Verification {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  type      String /// The type of verification, e.g. "email" or "phone"
+  target    String /// The thing we're trying to verify, e.g. a user's email or phone number
+  secret    String /// The secret key used to generate the otp
+  algorithm String /// The algorithm used to generate the otp
+  digits    Int /// The number of digits in the otp
+  period    Int /// The number of seconds the otp is valid for
+  charSet   String /// The valid characters for the otp
+  expiresAt DateTime? /// When it's safe to delete this verification
+
+  @@unique([target, type])
+}

@@ -19,7 +19,6 @@ import {
 } from '~/utils/validation-schemas';
 import { prisma } from '~/utils/db.server';
 import { getSession, sessionStorage } from '~/utils/session.server';
-import { Resend } from 'resend';
 import { sendEmail } from '~/utils/email.server';
 
 type LoaderData = {
