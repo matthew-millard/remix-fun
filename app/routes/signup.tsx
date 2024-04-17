@@ -19,6 +19,8 @@ import {
 } from '~/utils/validation-schemas';
 import { prisma } from '~/utils/db.server';
 import { getSession, sessionStorage } from '~/utils/session.server';
+import { Resend } from 'resend';
+import { sendEmail } from '~/utils/email.server';
 
 type LoaderData = {
 	image: string;
@@ -45,6 +47,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	const data = {
 		image: imageUrl,
 	};
+
 	return json(data);
 }
 
@@ -80,6 +83,12 @@ export async function action({ request }: ActionFunctionArgs) {
 	}
 
 	const { email, firstName, lastName, password, username, rememberMe } = submission.value;
+	// Send verification email to user, this is a mock
+	await sendEmail({
+		to: [email],
+		subject: `Welcome to Barfly ${firstName}`,
+		html: `<h1>Thank you for signing up to BarFly</h1><p>Hi ${firstName}, it is great to have you as part of our community.</p>`,
+	});
 
 	// Upload users data to db and hash password before storing
 	const session = await signup({ email, firstName, lastName, password, username });
