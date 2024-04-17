@@ -10,6 +10,7 @@ async function seed() {
 
 	console.time('🧹 Cleaned up the database...');
 	await prisma.user.deleteMany();
+	await prisma.verification.deleteMany();
 	console.timeEnd('🧹 Cleaned up the database...');
 
 	const totalUsers = 10;
