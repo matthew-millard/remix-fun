@@ -280,7 +280,7 @@ export default function AccountRoute() {
 								</label>
 								<div className="mt-2">
 									<div className="flex rounded-md bg-bg-secondary ring-1 ring-inset ring-border-tertiary focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
-										<span className="flex select-none items-center pl-3 text-gray-500 sm:text-sm">barfly.com/</span>
+										<span className="flex select-none items-center pl-3 text-gray-500 sm:text-sm">barfly.ca/</span>
 										<input
 											{...getInputProps(fields.username, { type: 'text' })}
 											className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-text-primary focus:ring-0 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
