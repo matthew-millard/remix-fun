@@ -29,7 +29,7 @@ export async function action({ request }: ActionFunctionArgs) {
 			// // Check if the email exists in the database
 			const user = await prisma.user.findUnique({
 				where: { email: data.email },
-				select: { id: true },
+				select: { id: true, firstName: true, username: true },
 			});
 
 			if (!user) {
@@ -39,7 +39,7 @@ export async function action({ request }: ActionFunctionArgs) {
 					path: ['email'],
 				});
 			}
-			return { ...data, user };
+			return { ...data, ...user };
 		}),
 		async: true,
 	});
@@ -55,6 +55,11 @@ export async function action({ request }: ActionFunctionArgs) {
 	}
 
 	const { email } = submission.value;
+
+	const user = await prisma.user.findFirstOrThrow({
+		where: { email },
+		select: { id: true, firstName: true, username: { select: { username: true } } },
+	});
 
 	const { otp, secret, algorithm, charSet, digits, period } = generateTOTP({
 		digits: 6,
@@ -94,9 +99,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const response = await sendEmail({
 		to: [email],
-		subject: 'Reset your password',
-		html: `<h3>Confirm your account</h3><p>To confirm your account, please either follow the button below or enter the one-time passcode.</p>
-		<p>${otp}</p>${verifyUrl}`,
+		subject: 'Reset Password Notification',
+		html: `<h3>Hello</h3><p>${user.firstName}, you are receiving this email because we received a password reset request for your account.</p>
+		<p>${otp}</p>${verifyUrl}
+		<p>This password reset link will expire in 15 minutes.</p>
+		<p>If you did not request a password reset, no further action is required.</p>
+		<p>Regards,</p>
+		<p>Barfly</p>`,
 	});
 
 	if (response.status !== 200) {
