@@ -71,7 +71,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function LoginRoute() {
-	const lastResult = useActionData<typeof action>();
+	const lastResult = useActionData();
 	const [searchParams] = useSearchParams();
 	const redirectTo = searchParams.get('redirectTo');
 
@@ -83,7 +83,7 @@ export default function LoginRoute() {
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: LoginFormSchema });
 		},
-		defaultValues: {
+		defaultValue: {
 			redirectTo: redirectTo,
 		},
 	});

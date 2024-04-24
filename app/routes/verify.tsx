@@ -19,6 +19,8 @@ const types = ['signup', 'reset-password'] as const;
 const verificationTypeSchema = z.enum(types);
 export type VerificationTypes = z.infer<typeof verificationTypeSchema>;
 
+export const resetPasswordUserSessionKey = 'user';
+
 const VerifySchema = z.object({
 	[codeQueryParam]: z.string().min(6).max(6),
 	[typeQueryParam]: verificationTypeSchema,
@@ -127,10 +129,25 @@ async function validateRequest(request: Request, body: URLSearchParams | FormDat
 	}
 }
 
-export async function handleResetPasswordVerification({ request, target }: { request: Request; target: string }) {
-	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
-	verifySession.set(targetQueryParam, target);
+export type VerifyFunctionArgs = {
+	request: Request;
+	target: string;
+};
 
+export async function handleResetPasswordVerification({ request, target }: VerifyFunctionArgs) {
+	const user = await prisma.user.findFirst({
+		where: { email: target },
+		select: { email: true, username: true, id: true, firstName: true },
+	});
+	// we don't want to say the user is not found if the email is not found
+	// because that would allow an attacker to check if an email is registered
+
+	if (!user) {
+		return json({ status: 'error' } as const, { status: 400 });
+	}
+
+	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
+	verifySession.set(resetPasswordUserSessionKey, user);
 	return redirect('/reset-password', {
 		headers: {
 			'set-cookie': await verifySessionStorage.commitSession(verifySession),
