@@ -48,6 +48,12 @@ export const LoginEmailSchema = z
 	// users can type the email in any case, but we convert it in lowercase
 	.transform(value => value.toLowerCase());
 
+export const ResetPasswordEmailSchema = z
+	.string()
+	.email({ message: 'Email is invalid' })
+	// users can type the email in any case, but we convert it in lowercase
+	.transform(value => value.toLowerCase());
+
 export const profilePictureSchema = z
 	.instanceof(File)
 	.optional()

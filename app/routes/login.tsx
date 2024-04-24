@@ -79,7 +79,6 @@ export default function LoginRoute() {
 		id: 'login-form',
 		shouldRevalidate: 'onInput',
 		constraint: getZodConstraint(LoginFormSchema),
-		// @ts-expect-error - ignore lastResult ts error
 		lastResult,
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: LoginFormSchema });
@@ -155,9 +154,9 @@ export default function LoginRoute() {
 								{/* Hidden input for the redirectTo */}
 								<input {...getInputProps(fields.redirectTo, { type: 'hidden' })} value={redirectTo || ''} />
 								<div className="text-sm leading-6">
-									<a href="/forgot-password" className="font-semibold text-indigo-600 hover:text-indigo-500">
+									<Link to="/forgot-password" className="font-semibold text-indigo-600 hover:text-indigo-500">
 										Forgot password?
-									</a>
+									</Link>
 								</div>
 							</div>
 							<div>

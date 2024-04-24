@@ -15,8 +15,9 @@ export const typeQueryParam = 'type';
 export const targetQueryParam = 'target';
 export const redirectToQueryParam = 'redirectTo';
 
-const types = ['signup'] as const;
+const types = ['signup', 'reset-password'] as const;
 const verificationTypeSchema = z.enum(types);
+export type VerificationTypes = z.infer<typeof verificationTypeSchema>;
 
 const VerifySchema = z.object({
 	[codeQueryParam]: z.string().min(6).max(6),
@@ -48,45 +49,51 @@ export async function action({ request }: ActionFunctionArgs) {
 	return validateRequest(request, formData);
 }
 
+export async function isCodeValid({ code, type, target }: { code: string; type: VerificationTypes; target: string }) {
+	const verification = await prisma.verification.findUnique({
+		where: {
+			target_type: {
+				target,
+				type,
+			},
+			OR: [{ expiresAt: { gt: new Date() } }, { expiresAt: null }],
+		},
+		select: {
+			secret: true,
+			period: true,
+			digits: true,
+			charSet: true,
+			algorithm: true,
+		},
+	});
+
+	if (!verification) return false;
+
+	const result = verifyTOTP({
+		otp: code,
+		secret: verification.secret,
+		period: verification.period,
+		digits: verification.digits,
+		charSet: verification.charSet,
+		algorithm: verification.algorithm,
+	});
+
+	if (!result) return false;
+
+	return true;
+}
+
 async function validateRequest(request: Request, body: URLSearchParams | FormData) {
 	const submission = await parseWithZod(body, {
 		schema: VerifySchema.transform(async (data, ctx) => {
-			const verification = await prisma.verification.findUnique({
-				where: {
-					target_type: {
-						target: data[targetQueryParam],
-						type: data[typeQueryParam],
-					},
-					OR: [{ expiresAt: { gt: new Date() } }, { expiresAt: null }],
-				},
-				select: {
-					secret: true,
-					period: true,
-					digits: true,
-					charSet: true,
-					algorithm: true,
-				},
+			const codeIsValid = await isCodeValid({
+				code: data[codeQueryParam],
+				type: data[typeQueryParam],
+				target: data[targetQueryParam],
 			});
 
-			if (!verification) {
-				ctx.addIssue({
-					path: [codeQueryParam],
-					code: z.ZodIssueCode.custom,
-					message: `Invalid code`,
-				});
-				return z.NEVER;
-			}
-
-			const codeIsValid = verifyTOTP({
-				otp: data[codeQueryParam],
-				...verification,
-			});
 			if (!codeIsValid) {
-				ctx.addIssue({
-					path: [codeQueryParam],
-					code: z.ZodIssueCode.custom,
-					message: `Invalid code`,
-				});
+				ctx.addIssue({ code: z.ZodIssueCode.custom, path: [codeQueryParam], message: 'Invalid code' });
 				return z.NEVER;
 			}
 
@@ -110,6 +117,28 @@ async function validateRequest(request: Request, body: URLSearchParams | FormDat
 		},
 	});
 
+	switch (type) {
+		case 'signup': {
+			return handleOnboardingVerification({ request, target });
+		}
+		case 'reset-password': {
+			return handleResetPasswordVerification({ request, target });
+		}
+	}
+}
+
+export async function handleResetPasswordVerification({ request, target }: { request: Request; target: string }) {
+	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
+	verifySession.set(targetQueryParam, target);
+
+	return redirect('/reset-password', {
+		headers: {
+			'set-cookie': await verifySessionStorage.commitSession(verifySession),
+		},
+	});
+}
+
+export async function handleOnboardingVerification({ request, target }: { request: Request; target: string }) {
 	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
 	verifySession.set(targetQueryParam, target);
 
