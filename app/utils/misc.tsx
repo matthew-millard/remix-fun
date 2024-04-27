@@ -62,3 +62,9 @@ export function getDomainUrl(request: Request) {
 	const protocol = host.includes('localhost') ? 'http' : 'https';
 	return `${protocol}://${host}`;
 }
+
+export function invariant(condition: any, message: string | (() => string)): asserts condition {
+	if (!condition) {
+		throw new Error(typeof message === 'function' ? message() : message);
+	}
+}
