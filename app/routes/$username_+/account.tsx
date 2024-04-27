@@ -410,22 +410,27 @@ export default function AccountRoute() {
 								</div>
 							</div>
 
-							<div className="sm:col-span-4">
+							<div className="sm:col-span-3">
 								<label htmlFor={fields.email.id} className="block text-sm font-medium leading-6 text-text-primary">
 									Email address
 								</label>
-								<div className="mt-2">
+
+								<div className="mt-2 self-end">
 									{/* UPDATE ME...Do not want to allow user to easily change their email address attached to their account without 2FA */}
-									<input
-										{...getInputProps(fields.email, { type: 'email' })}
-										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-									/>
-									<div
-										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.email.errors ? 'max-h-56' : 'max-h-0'}`}
-									>
-										<ErrorList errors={fields.email.errors} id={fields.email.errorId} />
-									</div>
+									<p className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6">
+										{fields.email.value}
+									</p>
 								</div>
+							</div>
+							<div className="flex sm:col-span-3">
+								<Link to={`/${data.user.username.username}/change-email`} className="self-end text-text-notify">
+									<button
+										type="button"
+										className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+									>
+										Change Email
+									</button>
+								</Link>
 							</div>
 
 							<div className="sm:col-span-2 sm:col-start-1">
@@ -637,13 +642,16 @@ export default function AccountRoute() {
 				>
 					<AuthenticityTokenInput />
 					<div>
-						<h2 className="text-base font-semibold leading-7 text-text-primary">Session Management</h2>
+						<h2 className="text-base font-semibold leading-7 text-text-primary">Log Out Other Sessions</h2>
 						{sessionCount ? (
 							<p className="mt-1 text-sm leading-6 text-text-secondary">
-								You are currently logged in on {sessionCount} other devices
+								You are currently logged in on {sessionCount} other {sessionCount === 1 ? 'session' : 'sessions'} across
+								all of your devices
 							</p>
 						) : (
-							<p className="mt-1 text-sm leading-6 text-text-secondary">You are not logged in on any other devices.</p>
+							<p className="mt-1 text-sm leading-6 text-text-secondary">
+								You are not logged in on any other sessions across all of your devices.
+							</p>
 						)}
 					</div>
 					<button
@@ -653,14 +661,23 @@ export default function AccountRoute() {
 						name="intent"
 						value={signOutOfOtherDevicesActionIntent}
 					>
-						Log Out of Other Devices
+						Log Out Other Sessions
 					</button>
 				</fetcher.Form>
 				<div className=" flex  flex-row  justify-between  gap-x-6 gap-y-6 pb-8">
-					<Link to={`/${data.user.username.username}/password`} className="text-text-notify">
-						<div>
-							<h2 className="text-base font-semibold leading-7 text-text-primary">Change Password</h2>
-						</div>
+					<div>
+						<h2 className="text-base font-semibold leading-7 text-text-primary">Password</h2>
+						<p className="mt-1 text-sm leading-6 text-text-secondary">
+							Update your password associated with your Barfly account
+						</p>
+					</div>
+					<Link to={`/${data.user.username.username}/password`} className="self-end text-text-notify">
+						<button
+							type="button"
+							className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+						>
+							Update Password
+						</button>
 					</Link>
 				</div>
 				<div className=" flex  flex-col gap-x-6 gap-y-6   sm:flex-row sm:justify-between">

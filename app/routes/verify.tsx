@@ -9,13 +9,16 @@ import { AlertToast, ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { verifySessionStorage } from '~/utils/verification.server';
+import { newEmailAddressSessionKey } from './$username_+/change-email';
+import { sendEmail } from '~/utils/email.server';
+import { invariant } from '~/utils/misc';
 
 export const codeQueryParam = 'code';
 export const typeQueryParam = 'type';
 export const targetQueryParam = 'target';
 export const redirectToQueryParam = 'redirectTo';
 
-const types = ['signup', 'reset-password'] as const;
+const types = ['signup', 'reset-password', 'change-email'] as const;
 const verificationTypeSchema = z.enum(types);
 export type VerificationTypes = z.infer<typeof verificationTypeSchema>;
 
@@ -126,6 +129,10 @@ async function validateRequest(request: Request, body: URLSearchParams | FormDat
 		case 'reset-password': {
 			return handleResetPasswordVerification({ request, target });
 		}
+
+		case 'change-email': {
+			return handleChangeEmailVerification({ request, submission });
+		}
 	}
 }
 
@@ -151,6 +158,69 @@ export async function handleResetPasswordVerification({ request, target }: Verif
 	return redirect('/reset-password', {
 		headers: {
 			'set-cookie': await verifySessionStorage.commitSession(verifySession),
+		},
+	});
+}
+
+export async function handleChangeEmailVerification({ request, submission }) {
+	// 🐨 get the verifySession from verifySessionStorage
+	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
+	// 🐨 get the newEmail from the verifySession
+	const newEmail = verifySession.get(newEmailAddressSessionKey);
+
+	// 🐨 if there's no newEmail, then return an error with something like:
+	// 'You must submit the code on the same device that requested the email change.'
+	if (!newEmail) {
+		submission.error[''] = ['You must submit the code on the same device that requested the email change.'];
+		return json({ status: 'error', submission } as const, { status: 500 });
+	}
+
+	invariant(submission.value, 'submission.value should be defined by now');
+
+	const userId = submission.value.target;
+
+	const user = await prisma.user.findFirst({
+		where: {
+			id: userId,
+		},
+		select: {
+			email: true,
+			username: true,
+		},
+	});
+
+	if (!user) {
+		submission.error.code = ['Invalid code'];
+		return json({ status: 'error', submission } as const, { status: 400 });
+	}
+
+	const prevEmail = user.email;
+	const username = user.username;
+
+	await prisma.user.update({
+		where: {
+			id: userId,
+		},
+		data: {
+			email: newEmail,
+		},
+	});
+
+	void sendEmail({
+		to: [prevEmail],
+		subject: 'Email has been changed notification',
+		html: `<h1>Your Barfly email has been changed</h1>
+	<p>We're writing to let you know that your Epic Notes email has been
+			changed.</p>
+	<p>If you changed your email address, then you can safely ignore this.
+			But if you did not change your email address, then please contact
+			support immediately.</p>
+	<p>Your Account ID: ${userId}</p>`,
+	});
+
+	return redirect(`/${username}/account`, {
+		headers: {
+			'set-cookie': await verifySessionStorage.destroySession(verifySession),
 		},
 	});
 }
