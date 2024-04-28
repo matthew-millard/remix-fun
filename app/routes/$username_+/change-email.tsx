@@ -16,6 +16,7 @@ import { getDomainUrl } from '~/utils/misc';
 import { ChangeEmailSchema } from '~/utils/validation-schemas';
 import { codeQueryParam, targetQueryParam, typeQueryParam } from '../verify';
 import { verifySessionStorage } from '~/utils/verification.server';
+import VerifyEmailAddress from 'packages/transactional/emails/VerifyEmailAddress';
 
 export const newEmailAddressSessionKey = 'new-email-address';
 
@@ -75,16 +76,6 @@ export async function action({ request }: ActionFunctionArgs) {
 		period: 15 * 60, // 15 minutes
 		charSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
 	});
-	// Then redirect the user to the verification page, however, I need to store the new email in the verifySessionStorage to presist the data
-	// Get the firstName from the db to use in the email
-	const { firstName } = await prisma.user.findUniqueOrThrow({
-		where: {
-			id: userId,
-		},
-		select: {
-			firstName: true,
-		},
-	});
 
 	const type = 'change-email';
 	const redirectToUrl = new URL('/verify', getDomainUrl(request));
@@ -118,12 +109,7 @@ export async function action({ request }: ActionFunctionArgs) {
 	const response = await sendEmail({
 		to: [email],
 		subject: 'Change Email Verification',
-		html: `<h3>Hello</h3><p>${firstName}, you are receiving this email because we received a request to change the email associated with your account.</p>
-		<p>${otp}</p>${verifyUrl}
-		<p>This verification link will expire in 15 minutes.</p>
-		<p>If you did not request a change in your email address, no further action is required.</p>
-		<p>Regards,</p>
-		<p>Barfly</p>`,
+		react: <VerifyEmailAddress otp={otp} verifyUrl={verifyUrl.toString()} title="Change Email" />,
 	});
 
 	if (response.status === 200) {

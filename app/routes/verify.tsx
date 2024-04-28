@@ -12,6 +12,7 @@ import { verifySessionStorage } from '~/utils/verification.server';
 import { newEmailAddressSessionKey } from './$username_+/change-email';
 import { sendEmail } from '~/utils/email.server';
 import { invariant } from '~/utils/misc';
+import EmailChangedNotification from 'packages/transactional/emails/EmailChangedNotification';
 
 export const codeQueryParam = 'code';
 export const typeQueryParam = 'type';
@@ -162,16 +163,12 @@ export async function handleResetPasswordVerification({ request, target }: Verif
 	});
 }
 
-export async function handleChangeEmailVerification({ request, submission }) {
-	// 🐨 get the verifySession from verifySessionStorage
+export async function handleChangeEmailVerification({ request, submission }: { request: Request; submission: any }) {
 	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
-	// 🐨 get the newEmail from the verifySession
 	const newEmail = verifySession.get(newEmailAddressSessionKey);
 
-	// 🐨 if there's no newEmail, then return an error with something like:
-	// 'You must submit the code on the same device that requested the email change.'
 	if (!newEmail) {
-		submission.error[''] = ['You must submit the code on the same device that requested the email change.'];
+		submission.reply({ formErrors: ['You must submit the code on the same device that requested the email change.'] });
 		return json({ status: 'error', submission } as const, { status: 500 });
 	}
 
@@ -190,12 +187,12 @@ export async function handleChangeEmailVerification({ request, submission }) {
 	});
 
 	if (!user) {
-		submission.error.code = ['Invalid code'];
+		submission.reply({ fieldErrors: { [codeQueryParam]: ['Invalid code'] } });
 		return json({ status: 'error', submission } as const, { status: 400 });
 	}
 
 	const prevEmail = user.email;
-	const username = user.username;
+	const username = user.username.username;
 
 	await prisma.user.update({
 		where: {
@@ -209,13 +206,7 @@ export async function handleChangeEmailVerification({ request, submission }) {
 	void sendEmail({
 		to: [prevEmail],
 		subject: 'Email has been changed notification',
-		html: `<h1>Your Barfly email has been changed</h1>
-	<p>We're writing to let you know that your Epic Notes email has been
-			changed.</p>
-	<p>If you changed your email address, then you can safely ignore this.
-			But if you did not change your email address, then please contact
-			support immediately.</p>
-	<p>Your Account ID: ${userId}</p>`,
+		react: <EmailChangedNotification userId={userId} title="Your Barfly email has been changed" />,
 	});
 
 	return redirect(`/${username}/account`, {
