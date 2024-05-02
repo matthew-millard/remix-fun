@@ -13,6 +13,7 @@ import { newEmailAddressSessionKey } from './$username_+/change-email';
 import { sendEmail } from '~/utils/email.server';
 import { invariant } from '~/utils/misc';
 import EmailChangedNotification from 'packages/transactional/emails/EmailChangedNotification';
+import { redirectWithToast } from '~/utils/toast.server';
 
 export const codeQueryParam = 'code';
 export const typeQueryParam = 'type';
@@ -209,11 +210,19 @@ export async function handleChangeEmailVerification({ request, submission }: { r
 		react: <EmailChangedNotification userId={userId} title="Your Barfly email has been changed" />,
 	});
 
-	return redirect(`/${username}/account`, {
-		headers: {
-			'set-cookie': await verifySessionStorage.destroySession(verifySession),
+	return redirectWithToast(
+		`/${username}/account`,
+		{
+			title: 'Email changed successfully',
+			description: `Email has been changed to ${newEmail}`,
+			type: 'success',
 		},
-	});
+		{
+			headers: {
+				'set-cookie': await verifySessionStorage.destroySession(verifySession),
+			},
+		},
+	);
 }
 
 export async function handleOnboardingVerification({ request, target }: { request: Request; target: string }) {

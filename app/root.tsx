@@ -8,24 +8,29 @@ import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderD
 import { NavBar, Footer } from './components';
 import clsx from 'clsx';
 import { GeneralErrorBoundary } from './components/ErrorBoundary';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { honeypot } from './utils/honeypot.server';
 import { HoneypotProvider } from 'remix-utils/honeypot/react';
+import { Toaster, toast as showToast } from 'sonner';
 import { csrf } from '~/utils/csrf.server';
 import { AuthenticityTokenProvider } from 'remix-utils/csrf/react';
 import { prisma } from './utils/db.server';
 import { getUserId } from './utils/auth.server';
+import { getToast, type Toast } from './utils/toast.server';
+import { combineHeaders } from './utils/misc';
 
 export type LoaderData = {
 	theme: Theme | null;
 	honeypotProps: ReturnType<typeof honeypot.getInputProps>;
 	csrfToken: string;
 	user: { id: string; firstName: string; lastName: string; profileImage: { id: string } } | null;
+	toast: Toast | null;
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const themeSession = await getThemeSession(request);
 	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request);
+	const { toast, headers: toastHeaders } = await getToast(request);
 	const userId = await getUserId(request);
 
 	// Query the database getting the users information
@@ -39,11 +44,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	const data: LoaderData = {
 		theme: themeSession.getTheme(),
 		honeypotProps: honeypot.getInputProps(),
+		toast,
 		csrfToken,
 		user,
 	};
 
-	return json(data, { headers: csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : {} });
+	return json(
+		{ ...data },
+		{ headers: combineHeaders(csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : null, toastHeaders) },
+	);
 }
 
 export function links(): ReturnType<LinksFunction> {
@@ -65,6 +74,7 @@ function App({ children, theme }: { children: React.ReactNode; theme: Theme | nu
 			</head>
 			<body className="flex h-screen flex-col">
 				{children}
+				<Toaster closeButton richColors expand={true} position="top-right" />
 				<ScrollRestoration />
 				<Scripts />
 				<LiveReload />
@@ -74,7 +84,7 @@ function App({ children, theme }: { children: React.ReactNode; theme: Theme | nu
 }
 
 export default function AppWithProviders() {
-	const { theme, honeypotProps, csrfToken } = useLoaderData<LoaderData>();
+	const { theme, honeypotProps, csrfToken, toast } = useLoaderData<LoaderData>();
 	return (
 		<ThemeProvider specifiedTheme={theme}>
 			<AuthenticityTokenProvider token={csrfToken}>
@@ -83,6 +93,7 @@ export default function AppWithProviders() {
 						<NavBar />
 						<main className="flex-grow">
 							<Outlet />
+							{toast ? <ShowToast toast={toast} /> : null}
 						</main>
 						<Footer />
 					</App>
@@ -90,6 +101,16 @@ export default function AppWithProviders() {
 			</AuthenticityTokenProvider>
 		</ThemeProvider>
 	);
+}
+
+function ShowToast({ toast }: { toast: Toast }): null {
+	const { id, type, title, description } = toast;
+	useEffect(() => {
+		setTimeout(() => {
+			showToast[type](title, { description, id });
+		}, 0);
+	}, [description, id, title, type]);
+	return null;
 }
 
 export function meta({ data }: Parameters<MetaFunction<typeof loader>>[0]): ReturnType<MetaFunction<typeof loader>> {
