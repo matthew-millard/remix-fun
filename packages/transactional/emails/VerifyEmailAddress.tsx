@@ -4,9 +4,10 @@ interface VerifyEmailAddressProps {
 	otp: string;
 	verifyUrl: string;
 	title: string;
+	description: string;
 }
 
-export default function VerifyEmailAddress({ otp, verifyUrl, title }: VerifyEmailAddressProps) {
+export default function VerifyEmailAddress({ otp, verifyUrl, title, description }: VerifyEmailAddressProps) {
 	return (
 		<Html>
 			<Head />
@@ -45,8 +46,7 @@ export default function VerifyEmailAddress({ otp, verifyUrl, title }: VerifyEmai
 							marginBottom: '16px',
 						}}
 					>
-						If you did not request a change to your email address associated with your Barfly account, you can safely
-						ignore this email.
+						{description}
 					</Text>
 
 					<h2 style={h2}>Barfly</h2>

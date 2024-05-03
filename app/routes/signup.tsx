@@ -15,6 +15,7 @@ import { sendEmail } from '~/utils/email.server';
 import { generateTOTP } from '@epic-web/totp';
 import { getDomainUrl } from '~/utils/misc';
 import { codeQueryParam, targetQueryParam, typeQueryParam } from './verify';
+import VerifyEmailAddress from 'packages/transactional/emails/VerifyEmailAddress';
 
 const SignUpSchema = z.object({
 	email: EmailSchema,
@@ -91,9 +92,15 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const response = await sendEmail({
 		to: [email],
-		subject: `Confirm your Barfly account`,
-		html: `<h3>Confirm your account</h3><p>Thank you for signing up for Barfly. To confirm your account, please either follow the button below or enter the one-time passcode.</p>
-		<p>${otp}</p>${verifyUrl}`,
+		subject: `Confirm your Email Address`,
+		react: (
+			<VerifyEmailAddress
+				otp={otp}
+				verifyUrl={verifyUrl.toString()}
+				title="Verify Email"
+				description="We need to verify your email address before allowing you to create an account with us. This quick step ensures the security of your account and a smooth experience for you."
+			/>
+		),
 	});
 
 	if (response.status !== 200) {
