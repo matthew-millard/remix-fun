@@ -1,7 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { generateTOTP } from '@epic-web/totp';
-import { ActionFunctionArgs, json, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, json, MetaFunction, redirect } from '@remix-run/node';
 import { Form, Link, useActionData } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
@@ -192,3 +192,13 @@ export default function ForgotPasswordRoute() {
 		</>
 	);
 }
+
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'BarFly | Forgot Password' },
+		{
+			name: 'description',
+			content: "Enter your email and we'll send you a link to reset your password.",
+		},
+	];
+};

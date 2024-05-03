@@ -1,7 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { verifyTOTP } from '@epic-web/totp';
-import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, json, LoaderFunctionArgs, MetaFunction, redirect } from '@remix-run/node';
 import { Form, useActionData, useSearchParams } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { z } from 'zod';
@@ -211,7 +211,7 @@ export async function handleChangeEmailVerification({ request, submission }: { r
 	});
 
 	return redirectWithToast(
-		`/${username}/account`,
+		`/${username}/settings`,
 		{
 			title: 'Email changed successfully',
 			description: `Email has been changed to ${newEmail}`,
@@ -229,7 +229,7 @@ export async function handleOnboardingVerification({ request, target }: { reques
 	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
 	verifySession.set(targetQueryParam, target);
 
-	return redirect('/onboarding', {
+	return redirect('/complete-your-signup', {
 		headers: {
 			'set-cookie': await verifySessionStorage.commitSession(verifySession),
 		},
@@ -306,3 +306,13 @@ export default function VerifyRoute() {
 		</div>
 	);
 }
+
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'BarFly | Verify' },
+		{
+			name: 'description',
+			content: 'Verify your account with a one-time password sent to your email.',
+		},
+	];
+};

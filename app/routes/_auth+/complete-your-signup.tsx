@@ -102,7 +102,7 @@ export async function action({ request }: ActionFunctionArgs) {
 	});
 }
 
-export default function SignupRoute() {
+export default function CompleteYourSignupRoute() {
 	const { email } = useLoaderData<typeof loader>();
 	const lastResult = useActionData();
 
@@ -125,7 +125,7 @@ export default function SignupRoute() {
 				<div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:w-6/12 lg:flex-none lg:px-20 xl:px-24">
 					<div className="mx-auto w-full max-w-sm lg:w-96">
 						<div>
-							<h2 className=" text-2xl font-bold leading-9 tracking-tight text-text-primary">Sign up for an account</h2>
+							<h2 className=" text-2xl font-bold leading-9 tracking-tight text-text-primary">Complete Your Sign up</h2>
 							<p className="mt-2 text-sm leading-6 text-text-secondary">Become part of our community</p>
 						</div>
 
@@ -332,5 +332,11 @@ export default function SignupRoute() {
 }
 
 export const meta: MetaFunction = () => {
-	return [{ title: 'BarFly | Sign up' }, { name: 'description', content: 'Insert page description here!' }];
+	return [
+		{ title: 'BarFly | Complete Your Sign up' },
+		{
+			name: 'description',
+			content: 'Complete your sign up to become part of our community.',
+		},
+	];
 };

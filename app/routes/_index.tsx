@@ -1,3 +1,4 @@
+import { MetaFunction } from '@remix-run/node';
 import { isRouteErrorResponse, useRouteError } from '@remix-run/react';
 import { Link } from 'react-router-dom';
 
@@ -44,3 +45,13 @@ export function ErrorBoundary() {
 		return <h1>Unknown Error</h1>;
 	}
 }
+
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'BarFly | Home' },
+		{
+			name: 'description',
+			content: 'BarFly is a community-driven platform for discovering the drinking establishments in Canada.',
+		},
+	];
+};

@@ -12,6 +12,7 @@ import { checkCSRF } from '~/utils/csrf.server';
 import { login, requireAnonymous, sessionKey } from '~/utils/auth.server';
 import { LoginEmailSchema, PasswordSchema } from '~/utils/validation-schemas';
 import { getSession, sessionStorage } from '~/utils/session.server';
+import type { MetaFunction } from '@remix-run/node';
 
 const LoginFormSchema = z.object({
 	email: LoginEmailSchema,
@@ -243,3 +244,14 @@ export default function LoginRoute() {
 		</>
 	);
 }
+
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'BarFly | Log In' },
+		{
+			name: 'description',
+			content:
+				"Log In to your BarFly account. Don't have an account? Sign up for free to access exclusive features and content.",
+		},
+	];
+};

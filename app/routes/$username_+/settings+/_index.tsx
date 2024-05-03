@@ -7,6 +7,7 @@ import {
 	unstable_parseMultipartFormData as parseMultipartFormData,
 	unstable_createMemoryUploadHandler as createMemoryUploadHandler,
 	redirect,
+	MetaFunction,
 } from '@remix-run/node';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
@@ -135,7 +136,7 @@ async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 		},
 	});
 
-	return redirectWithToast(`/${username}/account`, {
+	return redirectWithToast(`/${username}/settings`, {
 		title: 'Profile updated',
 		type: 'success',
 		description: 'Your profile has been updated successfully.',
@@ -200,7 +201,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	return json(data);
 }
 
-export default function AccountRoute() {
+export default function SettingsRoute() {
 	const data = useLoaderData<typeof loader>();
 	const fetcher = useFetcher();
 	const sessionCount = data.user._count.sessions - 1;
@@ -708,3 +709,13 @@ export default function AccountRoute() {
 		</div>
 	);
 }
+
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'BarFly | Settings' },
+		{
+			name: 'description',
+			content: 'Update your account settings, profile information, and more.',
+		},
+	];
+};
