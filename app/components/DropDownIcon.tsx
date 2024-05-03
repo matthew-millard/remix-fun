@@ -2,10 +2,9 @@ import { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import Avatar from './Avatar';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { useOptionalUser } from '~/utils/users';
-import { loader } from '~/root';
 
 function classNames(...classes: string[]) {
 	return classes.filter(Boolean).join(' ');

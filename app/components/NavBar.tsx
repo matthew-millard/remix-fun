@@ -4,6 +4,7 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { DropDownIcon, Logo, ThemeSwitcher } from '../components';
 import { Link, NavLink, useLoaderData } from '@remix-run/react';
 import { type loader } from '../root';
+import { useOptionalUser } from '~/utils/users';
 
 const navigation = [
 	{ name: 'Discovery', href: '/discovery' },
@@ -13,9 +14,12 @@ const navigation = [
 
 export default function NavBar() {
 	const data = useLoaderData<typeof loader>();
+	const isLoggedInUser = useOptionalUser();
 	const profileImageId = data.user?.profileImage?.id;
 	const username = data.user?.username.username;
-	const mobileNavigation = [{ name: 'My Account', href: `/${username}/account` }, ...navigation];
+	const mobileNavigation = isLoggedInUser
+		? [{ name: 'My Account', href: `/${username}/account` }, ...navigation]
+		: [{ name: 'Log In', href: '/login' }, ...navigation];
 
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
