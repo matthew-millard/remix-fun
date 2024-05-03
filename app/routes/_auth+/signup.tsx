@@ -240,5 +240,8 @@ export default function SignupRoute() {
 }
 
 export const meta: MetaFunction = () => {
-	return [{ title: 'BarFly | Sign up' }, { name: 'description', content: 'Insert page description here!' }];
+	return [
+		{ title: 'BarFly | Sign up' },
+		{ name: 'description', content: 'Become part of the Barfly community. Join us by signing up for an account.' },
+	];
 };

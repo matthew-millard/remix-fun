@@ -75,8 +75,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	// Redirect to the login page
 	return redirect('/login');
-
-	return {};
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
