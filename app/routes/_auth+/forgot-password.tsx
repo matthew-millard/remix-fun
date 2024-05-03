@@ -14,6 +14,7 @@ import { checkHoneypot } from '~/utils/honeypot.server';
 import { ResetPasswordEmailSchema } from '~/utils/validation-schemas';
 import { codeQueryParam, targetQueryParam, typeQueryParam } from './verify';
 import { getDomainUrl } from '~/utils/misc';
+import VerifyEmailAddress from 'packages/transactional/emails/VerifyEmailAddress';
 
 const ResetPasswordSchema = z.object({
 	email: ResetPasswordEmailSchema,
@@ -100,12 +101,14 @@ export async function action({ request }: ActionFunctionArgs) {
 	const response = await sendEmail({
 		to: [email],
 		subject: 'Reset Password Notification',
-		html: `<h3>Hello</h3><p>${user.firstName}, you are receiving this email because we received a password reset request for your account.</p>
-		<p>${otp}</p>${verifyUrl}
-		<p>This password reset link will expire in 15 minutes.</p>
-		<p>If you did not request a password reset, no further action is required.</p>
-		<p>Regards,</p>
-		<p>Barfly</p>`,
+		react: (
+			<VerifyEmailAddress
+				otp={otp}
+				verifyUrl={verifyUrl.toString()}
+				title={`${user.firstName}, you are receiving this email because we received a password reset request for your account.`}
+				description="If you did not request a password reset, no further action is required."
+			/>
+		),
 	});
 
 	if (response.status !== 200) {

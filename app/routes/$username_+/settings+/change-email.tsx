@@ -14,7 +14,7 @@ import { sendEmail } from '~/utils/email.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { getDomainUrl } from '~/utils/misc';
 import { ChangeEmailSchema } from '~/utils/validation-schemas';
-import { codeQueryParam, targetQueryParam, typeQueryParam } from '../verify';
+import { codeQueryParam, targetQueryParam, typeQueryParam } from '../../_auth+/verify';
 import { verifySessionStorage } from '~/utils/verification.server';
 import VerifyEmailAddress from 'packages/transactional/emails/VerifyEmailAddress';
 

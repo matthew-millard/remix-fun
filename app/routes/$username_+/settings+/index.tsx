@@ -430,7 +430,10 @@ export default function AccountRoute() {
 								</div>
 							</div>
 							<div className="flex sm:col-span-3">
-								<Link to={`/${data.user.username.username}/change-email`} className="self-end text-text-notify">
+								<Link
+									to={`/${data.user.username.username}/settings/change-email`}
+									className="self-end text-text-notify"
+								>
 									<button
 										type="button"
 										className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
@@ -678,12 +681,12 @@ export default function AccountRoute() {
 							Update your password associated with your Barfly account
 						</p>
 					</div>
-					<Link to={`/${data.user.username.username}/password`} className="self-end text-text-notify">
+					<Link to={`/${data.user.username.username}/settings/change-password`} className="self-end text-text-notify">
 						<button
 							type="button"
 							className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
 						>
-							Update Password
+							Change Password
 						</button>
 					</Link>
 				</div>
