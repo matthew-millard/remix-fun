@@ -51,7 +51,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 	return json(
 		{ ...data },
-		{ headers: combineHeaders(csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : null, toastHeaders) },
+		{
+			headers: combineHeaders(csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : null, toastHeaders),
+		},
 	);
 }
 

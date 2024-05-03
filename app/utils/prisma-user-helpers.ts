@@ -91,6 +91,7 @@ export async function updateUserProfile(id: string, data: UserData) {
 			where: {
 				id,
 			},
+			select: { username: true },
 			data,
 		});
 		return updatedUser;

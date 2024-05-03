@@ -1,5 +1,5 @@
 import { PhotoIcon } from '@heroicons/react/24/solid';
-import { Link, useActionData, useFetcher, useLoaderData } from '@remix-run/react';
+import { Form, Link, useActionData, useFetcher, useLoaderData } from '@remix-run/react';
 import {
 	ActionFunctionArgs,
 	json,
@@ -25,6 +25,7 @@ import { requireUser, requireUserId } from '~/utils/auth.server';
 import { invariantResponse } from '~/utils/misc';
 import { getSession } from '~/utils/session.server';
 import { prisma } from '~/utils/db.server';
+import { redirectWithToast } from '~/utils/toast.server';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -134,7 +135,11 @@ async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 		},
 	});
 
-	return json({ status: 'success', submission } as const);
+	return redirectWithToast(`/${username}/account`, {
+		title: 'Profile updated',
+		type: 'success',
+		description: 'Your profile has been updated successfully.',
+	});
 }
 
 async function signOutOfOtherDevicesAction({ request, userId }: ProfileActionArgs) {
@@ -265,7 +270,7 @@ export default function AccountRoute() {
 
 	return (
 		<div className="mx-auto max-w-3xl px-6">
-			<fetcher.Form {...getFormProps(form)} method="POST" encType="multipart/form-data">
+			<Form {...getFormProps(form)} method="POST" encType="multipart/form-data">
 				<div className="space-y-12">
 					<div className="border-b border-border-tertiary pb-12">
 						<h2 className="text-base font-semibold leading-7 text-text-primary">Profile</h2>
@@ -417,9 +422,11 @@ export default function AccountRoute() {
 
 								<div className="mt-2 self-end">
 									{/* UPDATE ME...Do not want to allow user to easily change their email address attached to their account without 2FA */}
-									<p className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6">
-										{fields.email.value}
-									</p>
+									<input
+										{...getInputProps(fields.email, { type: 'email' })}
+										disabled
+										className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6"
+									></input>
 								</div>
 							</div>
 							<div className="flex sm:col-span-3">
@@ -633,7 +640,7 @@ export default function AccountRoute() {
 				</div>
 				<HoneypotInputs />
 				<AuthenticityTokenInput />
-			</fetcher.Form>
+			</Form>
 			<div className=" flex flex-col justify-around border-b border-border-tertiary  py-8">
 				<fetcher.Form
 					method="POST"
