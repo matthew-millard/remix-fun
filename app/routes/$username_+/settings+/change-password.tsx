@@ -76,7 +76,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		},
 	});
 
-	return redirectWithToast(`/${user.username.username}/account`, {
+	return redirectWithToast(`/${user.username.username}/settings`, {
 		title: 'Password Changed',
 		type: 'success',
 		description: 'Your password has been successfully changed.',

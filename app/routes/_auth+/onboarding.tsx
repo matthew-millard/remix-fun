@@ -93,7 +93,7 @@ export async function action({ request }: ActionFunctionArgs) {
 	cookieSession.set(sessionKey, session.id);
 
 	//Redirect to users profile page
-	return redirect(`/${username}/account`, {
+	return redirect(`/${username}/settings`, {
 		headers: {
 			'set-cookie': await sessionStorage.commitSession(cookieSession, {
 				expires: rememberMe ? session.expirationDate : undefined,

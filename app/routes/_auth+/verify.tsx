@@ -9,7 +9,7 @@ import { AlertToast, ErrorList } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { verifySessionStorage } from '~/utils/verification.server';
-import { newEmailAddressSessionKey } from './$username_+/change-email';
+import { newEmailAddressSessionKey } from '../$username_+/settings+/change-email';
 import { sendEmail } from '~/utils/email.server';
 import { invariant } from '~/utils/misc';
 import EmailChangedNotification from 'packages/transactional/emails/EmailChangedNotification';
