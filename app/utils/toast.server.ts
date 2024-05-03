@@ -4,7 +4,6 @@ import { createId } from '@paralleldrive/cuid2';
 import { combineHeaders } from './misc';
 
 export const toastKey = 'toast';
-const toastId = createId();
 
 export type Toast = z.infer<typeof ToastSchema>;
 export type ToastInput = z.infer<typeof ToastSchema>;
@@ -21,7 +20,7 @@ const toastSessionStorage = createCookieSessionStorage({
 });
 
 const ToastSchema = z.object({
-	id: z.string().default(() => toastId),
+	id: z.string().default(() => createId()),
 	title: z.string().optional(),
 	description: z.string(),
 	type: z.enum(['success', 'error', 'info', 'warning']).default('info'),
@@ -37,7 +36,7 @@ export async function redirectWithToast(url: string, toast: ToastInput, init?: R
 export async function createToastHeaders(toastInput: ToastInput) {
 	const session = await toastSessionStorage.getSession();
 	const toast = ToastSchema.parse(toastInput);
-	session.set(toastKey, toast);
+	session.flash(toastKey, toast);
 	const cookie = await toastSessionStorage.commitSession(session);
 	return new Headers({ 'set-cookie': cookie });
 }

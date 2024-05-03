@@ -10,6 +10,7 @@ import { getPasswordHash, requireUser, requireUserId, verifyUserPassword } from 
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
+import { redirectWithToast } from '~/utils/toast.server';
 import { PasswordSchema } from '~/utils/validation-schemas';
 
 // Zod validation schema
@@ -75,7 +76,11 @@ export async function action({ request }: ActionFunctionArgs) {
 		},
 	});
 
-	return redirect(`/${user.username}/account`);
+	return redirectWithToast(`/${user.username.username}/account`, {
+		title: 'Password Changed',
+		type: 'success',
+		description: 'Your password has been successfully changed.',
+	});
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
