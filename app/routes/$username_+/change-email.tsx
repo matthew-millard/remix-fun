@@ -109,7 +109,15 @@ export async function action({ request }: ActionFunctionArgs) {
 	const response = await sendEmail({
 		to: [email],
 		subject: 'Change Email Verification',
-		react: <VerifyEmailAddress otp={otp} verifyUrl={verifyUrl.toString()} title="Change Email" />,
+		react: (
+			<VerifyEmailAddress
+				otp={otp}
+				verifyUrl={verifyUrl.toString()}
+				title="Change Email"
+				description="If you did not request a change to your email address associated with your Barfly account, you can safely
+		ignore this email."
+			/>
+		),
 	});
 
 	if (response.status === 200) {
