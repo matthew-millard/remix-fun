@@ -11,12 +11,11 @@ const navigation = [
 	{ name: 'Bar Of The Month', href: '/bar-of-the-month' },
 ];
 
-const mobileNavigation = [{ name: 'Dashboard', href: '/dashboard' }, ...navigation];
-
 export default function NavBar() {
 	const data = useLoaderData<typeof loader>();
 	const profileImageId = data.user?.profileImage?.id;
 	const username = data.user?.username.username;
+	const mobileNavigation = [{ name: 'My Account', href: `/${username}/account` }, ...navigation];
 
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -53,7 +52,7 @@ export default function NavBar() {
 					</button>
 				</div>
 			</nav>
-			<Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={setMobileMenuOpen}>
+			<Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
 				<div className="fixed inset-0 z-10" />
 				<Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-bg-primary px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
 					<div className="flex items-center justify-between gap-x-6">
@@ -81,6 +80,7 @@ export default function NavBar() {
 										to={item.href}
 										className="-mx-3 block rounded-md px-3 py-2 text-base font-medium leading-7 text-text-primary hover:bg-bg-secondary"
 										prefetch="viewport"
+										onClick={() => setMobileMenuOpen(false)}
 									>
 										{item.name}
 									</Link>

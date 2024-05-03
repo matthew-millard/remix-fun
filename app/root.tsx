@@ -23,7 +23,13 @@ export type LoaderData = {
 	theme: Theme | null;
 	honeypotProps: ReturnType<typeof honeypot.getInputProps>;
 	csrfToken: string;
-	user: { id: string; firstName: string; lastName: string; profileImage: { id: string } } | null;
+	user: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		profileImage: { id: string };
+		username: { username: string };
+	} | null;
 	toast: Toast | null;
 };
 
