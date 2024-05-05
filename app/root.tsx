@@ -125,8 +125,8 @@ export function meta({ data }: Parameters<MetaFunction<typeof loader>>[0]): Retu
 	const { user } = data;
 	const firstName = user ? user.firstName : null;
 	return [
-		{ title: 'BarFly' },
-		{ description: firstName ? `Welcome back to BarFly ${firstName}!` : 'Welcome to BarFly!' },
+		{ title: 'Barfly' },
+		{ description: firstName ? `Welcome back to Barfly ${firstName}!` : 'Welcome to BarFly!' },
 	];
 }
 

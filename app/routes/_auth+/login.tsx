@@ -13,6 +13,7 @@ import { login, requireAnonymous, sessionKey } from '~/utils/auth.server';
 import { LoginEmailSchema, PasswordSchema } from '~/utils/validation-schemas';
 import { getSession, sessionStorage } from '~/utils/session.server';
 import type { MetaFunction } from '@remix-run/node';
+import { prisma } from '~/utils/db.server';
 
 const LoginFormSchema = z.object({
 	email: LoginEmailSchema,
@@ -57,12 +58,19 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const { session, rememberMe, redirectTo } = submission.value;
+	const { session, rememberMe, redirectTo, email } = submission.value;
+
+	const { username } = await prisma.user.findUnique({
+		where: { email },
+		select: { username: { select: { username: true } } },
+	});
+
+	const redirectToLink = redirectTo ? safeRedirect(redirectTo) : `/${username.username}/profile`;
 
 	const cookieSession = await getSession(request);
 	cookieSession.set(sessionKey, session.id);
 
-	return redirect(safeRedirect(redirectTo), {
+	return redirect(redirectToLink, {
 		headers: {
 			'set-cookie': await sessionStorage.commitSession(cookieSession, {
 				expires: rememberMe ? session.expirationDate : undefined,

@@ -46,13 +46,26 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 							<Menu.Item>
 								{({ active }) => (
 									<a
+										href={`/${username}/profile`}
+										className={classNames(
+											active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+											'block px-4 py-2 text-sm',
+										)}
+									>
+										Profile
+									</a>
+								)}
+							</Menu.Item>
+							<Menu.Item>
+								{({ active }) => (
+									<a
 										href={`/${username}/settings`}
 										className={classNames(
 											active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
 											'block px-4 py-2 text-sm',
 										)}
 									>
-										Account Settings
+										Settings
 									</a>
 								)}
 							</Menu.Item>
