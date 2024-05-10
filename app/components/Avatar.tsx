@@ -1,5 +1,5 @@
 export default function Avatar({ imageId }: { imageId?: string }) {
-	const imageUrl = imageId ? `/resources/images/${imageId}` : null;
+	const imageUrl = imageId ? `/resources/images/${imageId}/profile` : null;
 
 	return imageUrl ? (
 		<span className="flex h-10 w-10 overflow-hidden rounded-full">

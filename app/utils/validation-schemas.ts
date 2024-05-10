@@ -60,20 +60,30 @@ export const ResetPasswordEmailSchema = z
 	// users can type the email in any case, but we convert it in lowercase
 	.transform(value => value.toLowerCase());
 
-export const profilePictureSchema = z
-	.instanceof(File)
-	.optional()
-	.refine(file => {
-		return !file || file.size <= MAX_UPLOAD_SIZE;
-	}, 'File size must be less than 3MB')
-	.refine(file => {
-		return ACCEPTED_FILE_TYPES.includes(file.type);
-	}, 'File must be either a jpg, png, or gif');
+export const UploadImageSchema = z
+	.instanceof(File, { message: 'No file uploaded' })
+	.refine(file => file !== undefined, {
+		message: 'No file uploaded',
+	})
+	.refine(file => file.size <= MAX_UPLOAD_SIZE, {
+		message: 'File size must be less than 3MB',
+	})
+	.refine(file => ACCEPTED_FILE_TYPES.includes(file.type), {
+		message: 'File must be either a jpg, png, or gif',
+	});
+
+// ************* Update schema to allow the user to update their about me to an empty string *************
+export const AboutSchema = z
+	.string()
+	.trim()
+	.max(CONTENT_MAX_LENTGH, { message: 'Must be 250 characters or less' })
+	.optional();
 
 export const profileInfoSchema = z.object({
 	username: UsernameSchema.optional(),
-	about: z.string().max(CONTENT_MAX_LENTGH).trim().optional(),
-	profilePicture: profilePictureSchema.optional(),
+	about: AboutSchema.optional(),
+	profilePicture: UploadImageSchema.optional(),
+	coverPicture: UploadImageSchema.optional(),
 	firstName: FirstNameSchema.optional(),
 	lastName: LastNameSchema.optional(),
 	email: EmailSchema.optional(),
