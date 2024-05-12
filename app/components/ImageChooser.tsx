@@ -1,6 +1,4 @@
-export default function ImageChooser({ imageId }: { imageId?: string }) {
-	const imageUrl = imageId ? `/resources/images/${imageId}` : null;
-
+export default function ImageChooser({ imageUrl }: { imageUrl?: string }) {
 	return imageUrl ? (
 		<span className="flex h-20 w-20 overflow-hidden rounded-full">
 			<img className="h-full w-full object-cover" src={imageUrl} alt={'profile'} />
