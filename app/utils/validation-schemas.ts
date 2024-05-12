@@ -80,10 +80,6 @@ export const AboutSchema = z
 	.optional();
 
 export const profileInfoSchema = z.object({
-	username: UsernameSchema.optional(),
-	about: AboutSchema.optional(),
-	profilePicture: UploadImageSchema.optional(),
-	coverPicture: UploadImageSchema.optional(),
 	firstName: FirstNameSchema.optional(),
 	lastName: LastNameSchema.optional(),
 	email: EmailSchema.optional(),

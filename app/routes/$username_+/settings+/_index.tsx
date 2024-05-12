@@ -1,5 +1,5 @@
 import { PhotoIcon } from '@heroicons/react/24/solid';
-import { Link, useActionData, useFetcher, useLoaderData } from '@remix-run/react';
+import { Form, Link, useActionData, useFetcher, useFormAction, useLoaderData, useNavigation } from '@remix-run/react';
 import {
 	ActionFunctionArgs,
 	json,
@@ -14,7 +14,7 @@ import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { canadaData } from '~/utils/canada-data';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertToast, Button, DialogBox, ErrorList } from '~/components';
 import {
 	profileInfoSchema,
@@ -35,6 +35,7 @@ import { getSession } from '~/utils/session.server';
 import { prisma } from '~/utils/db.server';
 import { redirectWithToast } from '~/utils/toast.server';
 import { z } from 'zod';
+import { useIsPending } from '~/hooks/useIsPending';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -89,7 +90,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 async function usernameUpdateAction({ userId, formData }: ProfileActionArgs) {
 	const submission = await parseWithZod(formData, {
 		async: true,
-		schema: z.object({ username: UsernameSchema }).transform(async (data, ctx) => {
+		schema: z.object({ username: UsernameSchema }).superRefine(async (data, ctx) => {
 			const { username } = data;
 
 			// Check if the username is already taken
@@ -112,6 +113,7 @@ async function usernameUpdateAction({ userId, formData }: ProfileActionArgs) {
 						message: 'Username is already taken',
 						path: ['username'],
 					});
+					return;
 				}
 			}
 
@@ -120,7 +122,7 @@ async function usernameUpdateAction({ userId, formData }: ProfileActionArgs) {
 	});
 
 	if (submission.status !== 'success') {
-		return json(submission.reply({ formErrors: ['Submission failed'] }), {
+		return json(submission.reply(), {
 			status: submission.status === 'error' ? 400 : 200,
 		});
 	}
@@ -134,6 +136,15 @@ async function usernameUpdateAction({ userId, formData }: ProfileActionArgs) {
 			},
 		},
 	});
+
+	if (!newUsername) {
+		return json(
+			submission.reply({
+				formErrors: ['Submission failed'],
+				resetForm: true,
+			}),
+		);
+	}
 
 	return redirectWithToast(`/${newUsername.username.username}/settings`, {
 		title: 'Username updated',
@@ -276,7 +287,7 @@ export async function coverImageUpdateAction({ userId, formData }: ProfileAction
 	});
 
 	if (submission.status !== 'success') {
-		return json(submission.reply({ formErrors: ['Submission failed'] }), {
+		return json(submission.reply({ resetForm: true, formErrors: ['Submission failed'] }), {
 			status: submission.status === 'error' ? 400 : 200,
 		});
 	}
@@ -378,9 +389,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function SettingsRoute() {
 	const data = useLoaderData<typeof loader>();
-	const lastResult = useActionData();
 
-	const usernameFetcher = useFetcher();
 	const aboutFetcher = useFetcher();
 	const coverFetcher = useFetcher();
 	const logOutOtherSessionsFetcher = useFetcher();
@@ -388,16 +397,20 @@ export default function SettingsRoute() {
 	const sessionCount = data.user._count.sessions - 1;
 	const { user } = data;
 
+	const isUsernamePending = useIsPending({
+		formIntent: usernameUpdateActionIntent,
+	});
+
 	const [usernameForm, usernameFields] = useForm({
 		id: 'username-form',
-		defaultValue: {
-			username: data.user.username.username,
-		},
-		lastResult,
+		lastResult: useActionData(),
 		shouldValidate: 'onInput',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: z.object({ username: UsernameSchema }) });
+		},
+		defaultValue: {
+			username: data.user.username.username,
 		},
 	});
 
@@ -406,7 +419,7 @@ export default function SettingsRoute() {
 		defaultValue: {
 			about: data.user.about?.about || '',
 		},
-		lastResult,
+		lastResult: useActionData(),
 		shouldValidate: 'onInput',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
@@ -417,7 +430,7 @@ export default function SettingsRoute() {
 	const [coverForm, coverFields] = useForm({
 		id: 'cover-form',
 		shouldValidate: 'onInput',
-		lastResult,
+		lastResult: useActionData(),
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: z.object({ cover: UploadImageSchema }) });
@@ -427,7 +440,7 @@ export default function SettingsRoute() {
 	const [form, fields] = useForm({
 		id: 'profile-form',
 		shouldValidate: 'onInput',
-		lastResult,
+		lastResult: useActionData(),
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: profileInfoSchema });
@@ -500,7 +513,7 @@ export default function SettingsRoute() {
 						</p>
 
 						<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-							<usernameFetcher.Form
+							<Form
 								{...getFormProps(usernameForm)}
 								method="POST"
 								encType="multipart/form-data"
@@ -528,7 +541,7 @@ export default function SettingsRoute() {
 										type="submit"
 										name="intent"
 										value={usernameUpdateActionIntent}
-										isPending={usernameFetcher.state !== 'idle'}
+										isPending={isUsernamePending}
 									/>
 								</div>
 								<div
@@ -536,7 +549,7 @@ export default function SettingsRoute() {
 								>
 									<ErrorList errors={usernameFields.username.errors} id={usernameFields.username.errorId} />
 								</div>
-							</usernameFetcher.Form>
+							</Form>
 
 							<aboutFetcher.Form
 								{...getFormProps(aboutForm)}
@@ -1022,7 +1035,7 @@ export default function SettingsRoute() {
 
 export const meta: MetaFunction = () => {
 	return [
-		{ title: 'BarFly | Settings' },
+		{ title: 'Barfly | Settings' },
 		{
 			name: 'description',
 			content: 'Update your account settings, profile information, and more.',
