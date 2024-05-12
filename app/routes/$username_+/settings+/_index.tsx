@@ -1,5 +1,5 @@
 import { PhotoIcon } from '@heroicons/react/24/solid';
-import { Form, Link, useActionData, useFetcher, useLoaderData } from '@remix-run/react';
+import { Form, Link, useActionData, useFetcher, useFormAction, useLoaderData, useNavigation } from '@remix-run/react';
 import {
 	ActionFunctionArgs,
 	json,
@@ -14,9 +14,16 @@ import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { canadaData } from '~/utils/canada-data';
-import { useEffect, useState } from 'react';
-import { AlertToast, DialogBox, ErrorList, ImageChooser } from '~/components';
-import { profileInfoSchema, ACCEPTED_FILE_TYPES, MAX_UPLOAD_SIZE } from '~/utils/validation-schemas';
+import { useEffect, useRef, useState } from 'react';
+import { AlertToast, Button, DialogBox, ErrorList } from '~/components';
+import {
+	profileInfoSchema,
+	ACCEPTED_FILE_TYPES,
+	MAX_UPLOAD_SIZE,
+	UploadImageSchema,
+	UsernameSchema,
+	AboutSchema,
+} from '~/utils/validation-schemas';
 import { parseWithZod } from '@conform-to/zod';
 import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm } from '@conform-to/react';
 import { validateProfileInfo } from '~/utils/validate-profile-info';
@@ -27,6 +34,8 @@ import { invariantResponse } from '~/utils/misc';
 import { getSession } from '~/utils/session.server';
 import { prisma } from '~/utils/db.server';
 import { redirectWithToast } from '~/utils/toast.server';
+import { z } from 'zod';
+import { useIsPending } from '~/hooks/useIsPending';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -36,11 +45,16 @@ type ProfileActionArgs = {
 
 const signOutOfOtherDevicesActionIntent = 'sign-out-other-devices';
 const profileUpdateActionIntent = 'update-profile';
+export const coverImageUpdateActionIntent = 'update-cover-image';
+const usernameUpdateActionIntent = 'update-username';
+const aboutUpdateActionIntent = 'update-about';
 
 export async function action({ request, params }: ActionFunctionArgs) {
 	const user = await requireUser(request);
+
 	const uploadHandler = createMemoryUploadHandler({ maxPartSize: MAX_UPLOAD_SIZE });
 	const formData = await parseMultipartFormData(request, uploadHandler);
+
 	const userId = user.id;
 	invariantResponse(user.username.username === params.username, 'Not authorized', {
 		status: 403,
@@ -50,19 +64,145 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	const intent = formData.get('intent');
 
 	switch (intent) {
+		case usernameUpdateActionIntent: {
+			return usernameUpdateAction({ request, userId, formData });
+		}
+
+		case aboutUpdateActionIntent: {
+			return aboutUpdateAction({ request, userId, formData });
+		}
+
 		case profileUpdateActionIntent: {
 			return profileUpdateAction({ request, userId, formData });
 		}
 		case signOutOfOtherDevicesActionIntent: {
 			return signOutOfOtherDevicesAction({ request, userId, formData });
 		}
+		case coverImageUpdateActionIntent: {
+			return coverImageUpdateAction({ request, userId, formData });
+		}
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
 		}
 	}
 }
+
+async function usernameUpdateAction({ userId, formData }: ProfileActionArgs) {
+	const submission = await parseWithZod(formData, {
+		async: true,
+		schema: z.object({ username: UsernameSchema }).superRefine(async (data, ctx) => {
+			const { username } = data;
+
+			// Check if the username is already taken
+			if (username) {
+				const user = await prisma.user.findFirst({
+					where: {
+						username: {
+							username,
+						},
+					},
+					select: {
+						id: true,
+						username: true,
+					},
+				});
+
+				if (user?.id !== userId && user) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: 'Username is already taken',
+						path: ['username'],
+					});
+					return;
+				}
+			}
+
+			return data;
+		}),
+	});
+
+	if (submission.status !== 'success') {
+		return json(submission.reply(), {
+			status: submission.status === 'error' ? 400 : 200,
+		});
+	}
+
+	const { username } = submission.value;
+
+	const newUsername = await updateUserProfile(userId, {
+		username: {
+			update: {
+				username,
+			},
+		},
+	});
+
+	if (!newUsername) {
+		return json(
+			submission.reply({
+				formErrors: ['Submission failed'],
+				resetForm: true,
+			}),
+		);
+	}
+
+	return redirectWithToast(`/${newUsername.username.username}/settings`, {
+		title: 'Username updated',
+		type: 'success',
+		description: `Your username has been updated successfully to ${newUsername.username.username}.`,
+	});
+}
+
+async function aboutUpdateAction({ userId, formData }: ProfileActionArgs) {
+	const submission = await parseWithZod(formData, {
+		async: true,
+		schema: z.object({ about: AboutSchema }),
+	});
+
+	if (submission.status !== 'success') {
+		return json(
+			submission.reply({
+				formErrors: ['Submission failed'],
+				fieldErrors: {
+					about: ['Invalid'],
+				},
+			}),
+			{
+				status: submission.status === 'error' ? 400 : 200,
+			},
+		);
+	}
+
+	// Convert an empty string to null so that it can be stored in the database
+	let aboutValue = submission?.value?.about;
+
+	if (aboutValue === undefined || aboutValue.trim() === '') {
+		aboutValue = null;
+	}
+
+	const { username } = await updateUserProfile(userId, {
+		about: {
+			upsert: {
+				update: {
+					about: aboutValue,
+				},
+				create: {
+					about: aboutValue,
+				},
+			},
+		},
+	});
+
+	return redirectWithToast(`/${username.username}/settings`, {
+		title: 'About updated',
+		type: 'success',
+		description: 'Your about section has been updated successfully.',
+	});
+}
+
 async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 	// Validate the form data
+
 	const submission = await validateProfileInfo(formData, userId);
 	if (submission.status !== 'success') {
 		return json(submission.reply({ formErrors: ['Submission failded'] }), {
@@ -70,16 +210,16 @@ async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 		});
 	}
 
-	const { firstName, lastName, username, about, profilePicture, province, country, city } = submission.value;
+	const { firstName, lastName, about, profilePicture, province, country, city } = submission.value;
 
-	const file = profilePicture;
+	const file = profilePicture as File;
 
-	// if a file was uploaded, convert it to a buffer and update the user's profile image
 	if (file) {
 		const profileImage = await convertFileToBuffer(file);
 
 		// Delete the user's current profile image
 		const user = await findUniqueUser(userId, { profileImage: true });
+
 		if (user.profileImage?.id) {
 			deleteUserProfileImage(user.profileImage.id);
 		}
@@ -101,14 +241,9 @@ async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 		});
 	}
 	// Update the user's profile
-	await updateUserProfile(userId, {
+	const { username } = await updateUserProfile(userId, {
 		firstName,
 		lastName,
-		username: {
-			update: {
-				username,
-			},
-		},
 		about: {
 			upsert: {
 				update: {
@@ -136,10 +271,60 @@ async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 		},
 	});
 
-	return redirectWithToast(`/${username}/settings`, {
+	return redirectWithToast(`/${username.username}/settings`, {
 		title: 'Profile updated',
 		type: 'success',
 		description: 'Your profile has been updated successfully.',
+	});
+}
+
+export async function coverImageUpdateAction({ userId, formData }: ProfileActionArgs) {
+	const submission = await parseWithZod(formData, {
+		async: true,
+		schema: z.object({
+			cover: UploadImageSchema,
+		}),
+	});
+
+	if (submission.status !== 'success') {
+		return json(submission.reply({ resetForm: true, formErrors: ['Submission failed'] }), {
+			status: submission.status === 'error' ? 400 : 200,
+		});
+	}
+
+	const { cover } = submission.value;
+	const coverImage = await convertFileToBuffer(cover as File);
+
+	// Delete the user's current cover image
+	const user = await findUniqueUser(userId, { coverImage: true, username: true });
+
+	if (user.coverImage?.id) {
+		await prisma.userCoverImage.delete({
+			where: {
+				id: user.coverImage.id,
+			},
+		});
+	}
+
+	// Update user's cover image
+	await updateUserProfile(userId, {
+		coverImage: {
+			upsert: {
+				update: {
+					contentType: cover.type,
+					blob: coverImage,
+				},
+				create: {
+					contentType: cover.type,
+					blob: coverImage,
+				},
+			},
+		},
+	});
+	return redirectWithToast(`/${user.username.username}/settings`, {
+		title: 'Cover image updated',
+		type: 'success',
+		description: 'Your cover image has been updated successfully.',
 	});
 }
 
@@ -172,6 +357,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		firstName: true,
 		lastName: true,
 		profileImage: true,
+		coverImage: true,
 		createdAt: true,
 		updatedAt: true,
 		username: true,
@@ -203,21 +389,63 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function SettingsRoute() {
 	const data = useLoaderData<typeof loader>();
-	const fetcher = useFetcher();
+
+	const aboutFetcher = useFetcher();
+	const coverFetcher = useFetcher();
+	const logOutOtherSessionsFetcher = useFetcher();
+
 	const sessionCount = data.user._count.sessions - 1;
 	const { user } = data;
-	const lastResult = useActionData();
+
+	const isUsernamePending = useIsPending({
+		formIntent: usernameUpdateActionIntent,
+	});
+
+	const [usernameForm, usernameFields] = useForm({
+		id: 'username-form',
+		lastResult: useActionData(),
+		shouldValidate: 'onInput',
+		shouldRevalidate: 'onInput',
+		onValidate({ formData }) {
+			return parseWithZod(formData, { schema: z.object({ username: UsernameSchema }) });
+		},
+		defaultValue: {
+			username: data.user.username.username,
+		},
+	});
+
+	const [aboutForm, aboutFields] = useForm({
+		id: 'about-form',
+		defaultValue: {
+			about: data.user.about?.about || '',
+		},
+		lastResult: useActionData(),
+		shouldValidate: 'onInput',
+		shouldRevalidate: 'onInput',
+		onValidate({ formData }) {
+			return parseWithZod(formData, { schema: z.object({ about: AboutSchema }) });
+		},
+	});
+
+	const [coverForm, coverFields] = useForm({
+		id: 'cover-form',
+		shouldValidate: 'onInput',
+		lastResult: useActionData(),
+		shouldRevalidate: 'onInput',
+		onValidate({ formData }) {
+			return parseWithZod(formData, { schema: z.object({ cover: UploadImageSchema }) });
+		},
+	});
+
 	const [form, fields] = useForm({
 		id: 'profile-form',
 		shouldValidate: 'onInput',
-		lastResult,
+		lastResult: useActionData(),
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: profileInfoSchema });
 		},
 		defaultValue: {
-			username: data.user.username.username,
-			about: data.user.about?.about || '',
 			firstName: data.user.firstName,
 			lastName: data.user.lastName,
 			email: data.user.email,
@@ -235,26 +463,31 @@ export default function SettingsRoute() {
 
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-	// Update the effect to reset the preview when the user's profile image changes
-	const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
-	useEffect(() => {
-		if (data.user?.profileImage?.id) {
-			setProfileImagePreviewUrl(`/resources/images/${data.user.profileImage.id}`);
-		} else {
-			setProfileImagePreviewUrl(null); // reset to null if no profile image is availble
-		}
-	}, [data.user?.profileImage?.id]);
+	// const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
+	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+	const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<string | null>(null);
 
-	function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-		const file = e.target.files[0];
-		if (file) {
-			const reader = new FileReader();
-			reader.onloadend = () => {
-				setProfileImagePreviewUrl(reader.result as string);
-			};
-			reader.readAsDataURL(file);
+	// useEffect(() => {
+	// 	if (data.user?.profileImage?.id) {
+	// 		setProfileImagePreviewUrl(`/resources/images/${data.user.profileImage.id}/profile`);
+	// 	} else {
+	// 		setProfileImagePreviewUrl(null); // reset to null if no profile image is availble
+	// 	}
+	// }, [data.user?.profileImage?.id]);
+
+	useEffect(() => {
+		if (coverFetcher.state === 'loading') {
+			setCoverImagePreviewUrl(null);
 		}
-	}
+	}, [coverFetcher.state]);
+
+	useEffect(() => {
+		if (data.user?.coverImage?.id) {
+			setCoverImageUrl(`/resources/images/${data.user.coverImage.id}/cover`);
+		} else {
+			setCoverImageUrl(null); // reset to null if no profile image is availble
+		}
+	}, [data.user?.coverImage?.id]);
 
 	function handleProvinceChange(province: string) {
 		setSelectedProvince(province);
@@ -271,55 +504,92 @@ export default function SettingsRoute() {
 
 	return (
 		<div className="mx-auto max-w-3xl px-6">
-			<Form {...getFormProps(form)} method="POST" encType="multipart/form-data">
+			<div>
 				<div className="space-y-12">
-					<div className="border-b border-border-tertiary pb-12">
+					<div className="border-b border-border-tertiary pb-4">
 						<h2 className="text-base font-semibold leading-7 text-text-primary">Profile</h2>
 						<p className="mt-1 text-sm leading-6 text-text-secondary">
 							This information will be displayed publicly so be careful what you share.
 						</p>
 
 						<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-							<div className="sm:col-span-4">
-								<label htmlFor={fields.username.id} className="block text-sm font-medium leading-6 text-text-primary">
+							<Form
+								{...getFormProps(usernameForm)}
+								method="POST"
+								encType="multipart/form-data"
+								className="sm:col-span-4"
+								preventScrollReset={true}
+							>
+								<AuthenticityTokenInput />
+								<HoneypotInputs />
+								<label
+									htmlFor={usernameFields.username.id}
+									className="block text-sm font-medium leading-6 text-text-primary"
+								>
 									Username
 								</label>
-								<div className="mt-2">
-									<div className="flex rounded-md bg-bg-secondary ring-1 ring-inset ring-border-tertiary focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
+								<div className="mt-2 flex  gap-4">
+									<div className="flex w-full rounded-md bg-bg-secondary ring-1 ring-inset ring-border-tertiary focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
 										<span className="flex select-none items-center pl-3 text-gray-500 sm:text-sm">barfly.ca/</span>
 										<input
-											{...getInputProps(fields.username, { type: 'text' })}
+											{...getInputProps(usernameFields.username, { type: 'text' })}
 											className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-text-primary focus:ring-0 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 										/>
 									</div>
+									<Button
+										label="Update"
+										type="submit"
+										name="intent"
+										value={usernameUpdateActionIntent}
+										isPending={isUsernamePending}
+									/>
 								</div>
 								<div
-									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.username.errors ? 'max-h-56' : 'max-h-0'}`}
+									className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${usernameFields.username.errors ? 'max-h-56' : 'max-h-0'}`}
 								>
-									<ErrorList errors={fields.username.errors} id={fields.username.errorId} />
+									<ErrorList errors={usernameFields.username.errors} id={usernameFields.username.errorId} />
 								</div>
-							</div>
+							</Form>
 
-							<div className="col-span-full">
-								<label htmlFor={fields.about.id} className="block text-sm font-medium leading-6 text-text-primary">
+							<aboutFetcher.Form
+								{...getFormProps(aboutForm)}
+								method="POST"
+								encType="multipart/form-data"
+								className="col-span-full"
+								preventScrollReset={true}
+							>
+								<AuthenticityTokenInput />
+								<HoneypotInputs />
+								<label htmlFor={aboutFields.about.id} className="block text-sm font-medium leading-6 text-text-primary">
 									About
 								</label>
 								<div className="mt-2">
 									<textarea
-										{...getTextareaProps(fields.about)}
+										{...getTextareaProps(aboutFields.about)}
 										rows={3}
 										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 									/>
 									<div
-										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.about.errors ? 'max-h-56' : 'max-h-0'}`}
+										className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${aboutFields.about.errors ? 'max-h-56' : 'max-h-0'}`}
 									>
-										<ErrorList errors={fields.about.errors} id={fields.firstName.errorId} />
+										<ErrorList errors={aboutFields.about.errors} id={aboutFields.about.errorId} />
 									</div>
 								</div>
-								<p className="mt-3 text-sm leading-6 text-text-secondary">Write a few sentences about yourself.</p>
-							</div>
+								<p className="mt-2 text-sm leading-6 text-text-secondary">Write a few sentences about yourself.</p>
+								<div className="flex w-full justify-end">
+									<Button
+										label="Update"
+										type="submit"
+										name="intent"
+										value={aboutUpdateActionIntent}
+										isPending={aboutFetcher.state !== 'idle'}
+									/>
+								</div>
+							</aboutFetcher.Form>
+						</div>
+					</div>
 
-							<div className="col-span-full">
+					{/* <div className="col-span-full">
 								<p className="block text-sm font-medium leading-6 text-text-primary">Photo</p>
 								<div className="mt-2 flex items-center gap-x-3">
 									{profileImagePreviewUrl ? (
@@ -351,29 +621,82 @@ export default function SettingsRoute() {
 										<ErrorList errors={fields.profilePicture.errors} id={fields.profilePicture.errorId} />
 									</div>
 								</div>
-							</div>
+							</div> */}
 
-							<div className="col-span-full">
-								<p className="block text-sm font-medium leading-6 text-text-primary">Cover photo</p>
-								<div className="mt-2 flex justify-center rounded-lg border border-dashed border-border-dash px-6 py-10">
-									<div className="text-center">
-										<PhotoIcon className="mx-auto h-12 w-12 text-bg-alt" aria-hidden="true" />
-										<div className="mt-4 flex text-sm leading-6 text-text-secondary">
-											<label
-												htmlFor="cover-photo-file-upload"
-												className="relative cursor-pointer rounded-md bg-none font-semibold text-text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-indigo-500"
-											>
-												<span>Upload a file</span>
-												<input id="cover-photo-file-upload" name="coverPhoto" type="file" className="sr-only" />
-											</label>
-											<p className="pl-1">or drag and drop</p>
-										</div>
-										<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
-									</div>
+					<coverFetcher.Form
+						{...getFormProps(coverForm)}
+						className="col-span-full"
+						method="POST"
+						encType="multipart/form-data"
+						preventScrollReset={true}
+					>
+						<AuthenticityTokenInput />
+						<HoneypotInputs />
+
+						<label htmlFor="cover-photo" className="block  text-sm font-medium leading-6 text-text-primary">
+							Cover photo
+						</label>
+						<div className="relative mt-2 flex justify-center overflow-hidden rounded-lg border border-dashed border-border-tertiary bg-transparent px-6 py-10">
+							{coverImagePreviewUrl ? (
+								<img
+									src={coverImagePreviewUrl}
+									alt={'Cover preview'}
+									className="absolute top-0 -z-10 h-full w-full object-cover "
+								/>
+							) : coverImageUrl ? (
+								<img
+									src={coverImageUrl}
+									alt={'Cover preview'}
+									className="absolute top-0 -z-10 h-full w-full object-cover "
+								/>
+							) : null}
+
+							<div className="text-center ">
+								<PhotoIcon className="mx-auto h-12 w-12 text-text-secondary" aria-hidden="true" />
+								<div className="mt-4 flex text-sm leading-6 text-gray-600">
+									<label
+										htmlFor={coverFields.cover.id}
+										className="relative cursor-pointer rounded-md px-1 font-semibold text-indigo-600 focus-within:outline-1 focus-within:ring-1 focus-within:ring-indigo-600 focus-within:ring-offset-1 hover:text-indigo-500"
+									>
+										<span>Upload a file</span>
+										<input
+											{...getInputProps(coverFields.cover, { type: 'file' })}
+											accept={ACCEPTED_FILE_TYPES}
+											size={MAX_UPLOAD_SIZE}
+											onChange={e => {
+												const file = e.currentTarget.files?.[0];
+												if (file) {
+													const reader = new FileReader();
+													reader.onload = event => {
+														setCoverImagePreviewUrl(event.target?.result?.toString() ?? null);
+													};
+													reader.readAsDataURL(file);
+												}
+											}}
+											className="sr-only"
+										/>
+									</label>
+									<p className="pl-1">or drag and drop</p>
 								</div>
+								<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
 							</div>
 						</div>
-					</div>
+						<div
+							className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${coverFields.cover.errors ? 'max-h-56' : 'max-h-0'}`}
+						>
+							<ErrorList errors={coverFields.cover.errors} id={coverFields.cover.errorId} />
+						</div>
+						<div className="mt-2 flex w-full justify-start">
+							<Button
+								label="Save"
+								type="submit"
+								name="intent"
+								value={coverImageUpdateActionIntent}
+								isPending={coverFetcher.state !== 'idle'}
+								disabled={!coverImagePreviewUrl || Boolean(coverFields.cover.errors) || coverFetcher.state !== 'idle'}
+							/>
+						</div>
+					</coverFetcher.Form>
 
 					<div className="border-b border-border-tertiary pb-12">
 						<h2 className="text-base font-semibold leading-7 text-text-primary">Personal Information</h2>
@@ -422,7 +745,6 @@ export default function SettingsRoute() {
 								</label>
 
 								<div className="mt-2 self-end">
-									{/* UPDATE ME...Do not want to allow user to easily change their email address attached to their account without 2FA */}
 									<input
 										{...getInputProps(fields.email, { type: 'email' })}
 										disabled
@@ -644,12 +966,13 @@ export default function SettingsRoute() {
 				</div>
 				<HoneypotInputs />
 				<AuthenticityTokenInput />
-			</Form>
+			</div>
 			<div className=" flex flex-col justify-around border-b border-border-tertiary  py-8">
-				<fetcher.Form
+				<logOutOtherSessionsFetcher.Form
 					method="POST"
 					encType="multipart/form-data"
 					className=" flex  flex-row  justify-between  gap-x-6 gap-y-6 pb-8"
+					preventScrollReset={true}
 				>
 					<AuthenticityTokenInput />
 					<div>
@@ -667,14 +990,14 @@ export default function SettingsRoute() {
 					</div>
 					<button
 						type="submit"
-						className=" disabled:transparency-1 flex items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-600"
+						className="flex items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-600"
 						disabled={sessionCount === 0}
 						name="intent"
 						value={signOutOfOtherDevicesActionIntent}
 					>
 						Log Out Other Sessions
 					</button>
-				</fetcher.Form>
+				</logOutOtherSessionsFetcher.Form>
 				<div className=" flex  flex-row  justify-between  gap-x-6 gap-y-6 pb-8">
 					<div>
 						<h2 className="text-base font-semibold leading-7 text-text-primary">Password</h2>
@@ -712,7 +1035,7 @@ export default function SettingsRoute() {
 
 export const meta: MetaFunction = () => {
 	return [
-		{ title: 'BarFly | Settings' },
+		{ title: 'Barfly | Settings' },
 		{
 			name: 'description',
 			content: 'Update your account settings, profile information, and more.',

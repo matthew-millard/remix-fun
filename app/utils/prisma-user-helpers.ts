@@ -11,6 +11,7 @@ interface UserFields {
 	createdAt?: boolean;
 	updatedAt?: boolean;
 	profileImage?: boolean;
+	coverImage?: boolean;
 	_count?: {
 		select: {
 			sessions: {
@@ -43,6 +44,18 @@ interface UserData {
 		};
 	};
 	profileImage?: {
+		upsert: {
+			update: {
+				contentType: string;
+				blob: Buffer;
+			};
+			create: {
+				contentType: string;
+				blob: Buffer;
+			};
+		};
+	};
+	coverImage?: {
 		upsert: {
 			update: {
 				contentType: string;

@@ -8,5 +8,22 @@ import ErrorList from './ErrorList';
 import AlertToast from './AlertToast';
 import ImageChooser from './ImageChooser';
 import DialogBox from './Dialog';
+import CoverPhoto from './CoverPhoto';
+import Button from './Button';
+import Spinner from './Spinner';
 
-export { ErrorList, Avatar, NavBar, Footer, Logo, ThemeSwitcher, AlertToast, ImageChooser, DropDownIcon, DialogBox };
+export {
+	ErrorList,
+	Avatar,
+	NavBar,
+	Footer,
+	Logo,
+	ThemeSwitcher,
+	AlertToast,
+	ImageChooser,
+	DropDownIcon,
+	DialogBox,
+	CoverPhoto,
+	Button,
+	Spinner,
+};

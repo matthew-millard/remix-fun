@@ -24,6 +24,7 @@ model User {
   about        About?
   userLocation UserLocation?
   sessions     Session[]
+  coverImage   UserCoverImage?
 }
 
 model Username {
@@ -39,6 +40,17 @@ model Password {
 }
 
 model UserProfileImage {
+  id          String   @id @default(cuid())
+  blob        Bytes
+  contentType String
+  altText     String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId      String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserCoverImage {
   id          String   @id @default(cuid())
   blob        Bytes
   contentType String

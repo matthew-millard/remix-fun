@@ -6,12 +6,7 @@ import { LoaderFunctionArgs } from '@remix-run/node';
 import { requireUser } from '~/utils/auth.server';
 import { prisma } from '~/utils/db.server';
 
-const profile = {
-	coverImageUrl:
-		'https://images.unsplash.com/photo-1444628838545-ac4016a5418a?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80',
-};
-
-function classNames(...classes) {
+function classNames(...classes: string[]) {
 	return classes.filter(Boolean).join(' ');
 }
 
@@ -20,7 +15,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 	const user = await prisma.user.findUnique({
 		where: { id: id },
-		include: { profileImage: true, userLocation: true, username: true, about: true },
+		include: { profileImage: true, coverImage: true, userLocation: true, username: true, about: true },
 	});
 
 	return {
@@ -43,15 +38,24 @@ export default function ProfileRoute() {
 		{ name: 'Reviews', href: `/${user.username.username}/profile/reviews`, current: false },
 	];
 
-	// Update the effect to reset the preview when the user's profile image changes
 	const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
+	const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<string | null>(null);
+
 	useEffect(() => {
 		if (user?.profileImage?.id) {
-			setProfileImagePreviewUrl(`/resources/images/${user.profileImage.id}`);
+			setProfileImagePreviewUrl(`/resources/images/${user.profileImage.id}/profile`);
 		} else {
 			setProfileImagePreviewUrl(null); // reset to null if no profile image is availble
 		}
 	}, [user?.profileImage?.id]);
+
+	useEffect(() => {
+		if (user?.coverImage?.id) {
+			setCoverImagePreviewUrl(`/resources/images/${user.coverImage.id}/cover`);
+		} else {
+			setCoverImagePreviewUrl(null); // reset to null if no profile image is availble
+		}
+	}, [user?.coverImage?.id]);
 
 	return (
 		<>
@@ -64,7 +68,7 @@ export default function ProfileRoute() {
 							{/* Profile header */}
 							<div>
 								<div>
-									<img className="h-32 w-full object-cover lg:h-48" src={profile.coverImageUrl} alt="" />
+									<img className="h-32 w-full object-cover lg:h-48" src={coverImagePreviewUrl} alt="" />
 								</div>
 								<div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
 									<div className="-mt-12 sm:-mt-16 sm:flex sm:items-end sm:space-x-5">
