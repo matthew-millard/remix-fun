@@ -3,7 +3,7 @@ export default function ImageChooser({ imageId }: { imageId?: string }) {
 
 	return imageUrl ? (
 		<span className="flex h-20 w-20 overflow-hidden rounded-full">
-			<img className="h-full w-full object-cover" src={imageUrl} alt={''} />
+			<img className="h-full w-full object-cover" src={imageUrl} alt={'profile'} />
 		</span>
 	) : (
 		<span className="flex h-20 w-20 overflow-hidden rounded-full ">
