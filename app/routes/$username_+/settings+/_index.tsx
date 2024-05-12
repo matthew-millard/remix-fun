@@ -450,23 +450,18 @@ export default function SettingsRoute() {
 
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+	const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 	const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
 	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 	const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (data.user?.profileImage?.id) {
-			setProfileImagePreviewUrl(`/resources/images/${data.user.profileImage.id}/profile`);
+			setProfileImageUrl(`/resources/images/${data.user.profileImage.id}/profile`);
 		} else {
-			setProfileImagePreviewUrl(null); // reset to null if no profile image is availble
+			setProfileImageUrl(null); // reset to null if no profile image is availble
 		}
 	}, [data.user?.profileImage?.id]);
-
-	useEffect(() => {
-		if (coverFetcher.state === 'loading') {
-			setCoverImagePreviewUrl(null);
-		}
-	}, [coverFetcher.state]);
 
 	useEffect(() => {
 		if (data.user?.coverImage?.id) {
@@ -581,6 +576,7 @@ export default function SettingsRoute() {
 						method="POST"
 						encType="multipart/form-data"
 						className="col-span-full "
+						preventScrollReset={true}
 					>
 						<AuthenticityTokenInput />
 						<HoneypotInputs />
@@ -593,7 +589,7 @@ export default function SettingsRoute() {
 									className="h-20 w-20 overflow-hidden rounded-full object-cover"
 								/>
 							) : (
-								<ImageChooser imageId={user?.profileImage?.id} />
+								<ImageChooser imageUrl={profileImageUrl} />
 							)}
 							<label
 								htmlFor={profileFields.profile.id}
@@ -615,6 +611,10 @@ export default function SettingsRoute() {
 										};
 										reader.readAsDataURL(file);
 									}
+
+									// Submit the form when a file is selected
+									const button = e.target.form.querySelector('button[type="submit"]') as HTMLButtonElement;
+									e.target.form.requestSubmit(button);
 								}}
 							/>
 							<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
@@ -624,7 +624,7 @@ export default function SettingsRoute() {
 								<ErrorList errors={profileFields.profile.errors} id={profileFields.profile.errorId} />
 							</div>
 						</div>
-						<div className="mt-2 flex w-full justify-end">
+						<div className="hidden ">
 							<Button
 								label="Update"
 								type="submit"
