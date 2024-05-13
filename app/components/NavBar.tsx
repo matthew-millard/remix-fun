@@ -18,7 +18,11 @@ export default function NavBar() {
 	const profileImageId = data.user?.profileImage?.id;
 	const username = data.user?.username.username;
 	const mobileNavigation = isLoggedInUser
-		? [{ name: 'Profile', href: `/${username}` }, { name: 'Settings', href: `/${username}/settings` }, ...navigation]
+		? [
+				{ name: 'Profile', href: `/${username}/profile` },
+				{ name: 'Settings', href: `/${username}/settings` },
+				...navigation,
+			]
 		: [{ name: 'Log In', href: '/login' }, ...navigation];
 
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
