@@ -15,7 +15,7 @@ import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
-import { AlertToast, Button, DialogBox, ErrorList, ImageChooser } from '~/components';
+import { AlertToast, Button, DialogBox, ErrorList, ImageChooser, Spinner } from '~/components';
 import {
 	profileInfoSchema,
 	ACCEPTED_FILE_TYPES,
@@ -510,8 +510,8 @@ export default function SettingsRoute() {
 								>
 									Username
 								</label>
-								<div className="mt-2 flex  gap-4">
-									<div className="flex w-full rounded-md bg-bg-secondary ring-1 ring-inset ring-border-tertiary focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
+								<div className="mt-2 flex flex-wrap gap-4">
+									<div className="flex flex-1 rounded-md bg-bg-secondary ring-1 ring-inset ring-border-tertiary focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
 										<span className="flex select-none items-center pl-3 text-gray-500 sm:text-sm">barfly.ca/</span>
 										<input
 											{...getInputProps(usernameFields.username, { type: 'text' })}
@@ -581,27 +581,28 @@ export default function SettingsRoute() {
 						<AuthenticityTokenInput />
 						<HoneypotInputs />
 						<p className="block text-sm font-medium leading-6 text-text-primary">Photo</p>
-						<div className="mt-2 flex items-center gap-x-3">
+						<div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
 							{profileImagePreviewUrl ? (
 								<img
 									src={profileImagePreviewUrl}
 									alt="Profile preview"
-									className="h-20 w-20 overflow-hidden rounded-full object-cover"
+									className="h-32 w-32 overflow-hidden rounded-full object-cover"
 								/>
 							) : (
 								<ImageChooser imageUrl={profileImageUrl} />
 							)}
 							<label
 								htmlFor={profileFields.profile.id}
-								className="rounded-md bg-bg-alt px-3 py-2 text-sm font-semibold text-text-primary shadow-sm hover:bg-bg-secondary"
+								className="flex min-w-20 justify-center rounded-md bg-bg-alt px-3 py-2 text-sm font-semibold text-text-primary shadow-sm hover:bg-bg-secondary"
 							>
-								Change
+								{profileFetcher.state === 'idle' ? 'Change' : <Spinner />}
 							</label>
 							<input
 								{...getInputProps(profileFields.profile, { type: 'file' })}
 								className="sr-only hidden"
 								accept={ACCEPTED_FILE_TYPES}
 								size={MAX_UPLOAD_SIZE}
+								disabled={profileFetcher.state !== 'idle'}
 								onChange={e => {
 									const file = e.currentTarget.files?.[0];
 									if (file) {
@@ -613,8 +614,8 @@ export default function SettingsRoute() {
 									}
 
 									// Submit the form when a file is selected
-									const button = e.target.form.querySelector('button[type="submit"]') as HTMLButtonElement;
-									e.target.form.requestSubmit(button);
+									const submitter = e.target.form.querySelector('button[type="submit"]') as HTMLButtonElement;
+									e.target.form.requestSubmit(submitter);
 								}}
 							/>
 							<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
