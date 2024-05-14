@@ -5,6 +5,7 @@ import { Link, Outlet, useLoaderData } from '@remix-run/react';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { requireUser } from '~/utils/auth.server';
 import { prisma } from '~/utils/db.server';
+import { ImageChooser } from '~/components';
 
 function classNames(...classes: string[]) {
 	return classes.filter(Boolean).join(' ');
@@ -24,38 +25,38 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function ProfileRoute() {
-	const { user } = useLoaderData<typeof loader>();
-	const fullName = user.firstName + ' ' + user.lastName;
+	const data = useLoaderData<typeof loader>();
+	const fullName = data.user.firstName + ' ' + data.user.lastName;
 	const activeTab = useRef('Profile');
 
 	const tabs = [
 		{
 			name: 'Profile',
-			href: `/${user.username.username}/profile`,
+			href: `/${data.user.username.username}/profile`,
 			current: true,
 		},
-		{ name: 'Favourite Bars', href: `/${user.username.username}/profile/favourite-bars`, current: false },
-		{ name: 'Reviews', href: `/${user.username.username}/profile/reviews`, current: false },
+		{ name: 'Favourite Bars', href: `/${data.user.username.username}/profile/favourite-bars`, current: false },
+		{ name: 'Reviews', href: `/${data.user.username.username}/profile/reviews`, current: false },
 	];
 
-	const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
-	const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<string | null>(null);
+	const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (user?.profileImage?.id) {
-			setProfileImagePreviewUrl(`/resources/images/${user.profileImage.id}/profile`);
+		if (data.user?.profileImage?.id) {
+			setProfileImageUrl(`/resources/images/${data.user.profileImage.id}/profile`);
 		} else {
-			setProfileImagePreviewUrl(null); // reset to null if no profile image is availble
+			setProfileImageUrl(null); // reset to null if no profile image is availble
 		}
-	}, [user?.profileImage?.id]);
+	}, [data.user?.profileImage?.id]);
 
 	useEffect(() => {
-		if (user?.coverImage?.id) {
-			setCoverImagePreviewUrl(`/resources/images/${user.coverImage.id}/cover`);
+		if (data.user?.coverImage?.id) {
+			setCoverImageUrl(`/resources/images/${data.user.coverImage.id}/cover`);
 		} else {
-			setCoverImagePreviewUrl(null); // reset to null if no profile image is availble
+			setCoverImageUrl(null); // reset to null if no profile image is availble
 		}
-	}, [user?.coverImage?.id]);
+	}, [data.user?.coverImage?.id]);
 
 	return (
 		<>
@@ -68,17 +69,16 @@ export default function ProfileRoute() {
 							{/* Profile header */}
 							<div>
 								<div>
-									<img className="h-32 w-full object-cover lg:h-48" src={coverImagePreviewUrl} alt="" />
+									<span className="flex h-56 w-full items-center justify-center overflow-hidden object-cover lg:h-96">
+										<ImageChooser imageUrl={coverImageUrl} />
+									</span>
 								</div>
 								<div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-									<div className="-mt-12 sm:-mt-16 sm:flex sm:items-end sm:space-x-5">
-										<div className="flex">
-											<img
-												className="h-24 w-24 overflow-hidden rounded-full object-cover ring-4 ring-white sm:h-32 sm:w-32"
-												src={profileImagePreviewUrl}
-												alt=""
-											/>
-										</div>
+									<div className="relative -mt-12 sm:-mt-16 sm:flex sm:items-end sm:space-x-5 ">
+										<span className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full object-cover ring-4 ring-white sm:h-32 sm:w-32 lg:h-40 lg:w-40">
+											<ImageChooser imageUrl={profileImageUrl} />
+										</span>
+
 										<div className="mt-6 sm:flex sm:min-w-0 sm:flex-1 sm:items-center sm:justify-end sm:space-x-6 sm:pb-1">
 											<div className="mt-6 min-w-0 flex-1 sm:hidden 2xl:block">
 												<h1 className="truncate text-2xl font-bold text-text-primary">{fullName}</h1>
