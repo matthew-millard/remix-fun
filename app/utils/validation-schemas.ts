@@ -79,7 +79,7 @@ export const AboutSchema = z
 	.max(CONTENT_MAX_LENTGH, { message: 'Must be 250 characters or less' })
 	.optional();
 
-export const profileInfoSchema = z.object({
+export const PersonalInfoSchema = z.object({
 	firstName: FirstNameSchema.optional(),
 	lastName: LastNameSchema.optional(),
 	email: EmailSchema.optional(),

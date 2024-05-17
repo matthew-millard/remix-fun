@@ -15,9 +15,9 @@ import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
-import { AlertToast, Button, DialogBox, ErrorList, ImageChooser, Spinner } from '~/components';
+import { Button, DialogBox, ErrorList, ImageChooser, Spinner } from '~/components';
 import {
-	profileInfoSchema,
+	PersonalInfoSchema,
 	ACCEPTED_FILE_TYPES,
 	MAX_UPLOAD_SIZE,
 	UploadImageSchema,
@@ -48,6 +48,7 @@ const profileUpdateActionIntent = 'update-profile';
 export const coverImageUpdateActionIntent = 'update-cover-image';
 const usernameUpdateActionIntent = 'update-username';
 const aboutUpdateActionIntent = 'update-about';
+const perosnalInfoUpdateActionIntent = 'update-personal-info';
 
 export async function action({ request, params }: ActionFunctionArgs) {
 	const user = await requireUser(request);
@@ -80,6 +81,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		}
 		case coverImageUpdateActionIntent: {
 			return coverImageUpdateAction({ request, userId, formData });
+		}
+		case perosnalInfoUpdateActionIntent: {
+			return personalInfoUpdateAction({ request, userId, formData });
 		}
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
@@ -304,6 +308,87 @@ export async function coverImageUpdateAction({ userId, formData }: ProfileAction
 	});
 }
 
+async function personalInfoUpdateAction({ userId, formData }: ProfileActionArgs) {
+	const submission = parseWithZod(formData, {
+		schema: PersonalInfoSchema.transform((data, ctx) => {
+			// Check if the province is valid
+			const province = data.province;
+			const city = data.city;
+
+			if (province && !Object.keys(canadaData).includes(province)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: 'Invalid province',
+					path: ['province'],
+				});
+			}
+
+			// Check if the city is valid within the given province
+			if (province && city && !canadaData[province].includes(city)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: 'Invalid city for the specified province',
+					path: ['city'],
+				});
+			}
+
+			// Check if the city is valid in any province if no province is specified
+			if (!province && city) {
+				let cityFound = false;
+				for (const prov in canadaData) {
+					if (canadaData[prov].includes(city)) {
+						cityFound = true;
+						break;
+					}
+				}
+
+				if (!cityFound) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: 'Invalid city',
+						path: ['city'],
+					});
+				}
+			}
+
+			return data;
+		}),
+	});
+
+	if (submission.status !== 'success') {
+		return json(submission.reply({ formErrors: ['Submission failed'] }), {
+			status: submission.status === 'error' ? 400 : 200,
+		});
+	}
+
+	const { firstName, lastName, province, city } = submission.value;
+
+	const { username } = await updateUserProfile(userId, {
+		firstName,
+		lastName,
+		userLocation: {
+			upsert: {
+				update: {
+					province,
+					city,
+					country: 'Canada',
+				},
+				create: {
+					province,
+					city,
+					country: 'Canada',
+				},
+			},
+		},
+	});
+
+	return redirectWithToast(`/${username.username}/settings`, {
+		title: 'Personal information updated',
+		type: 'success',
+		description: 'Your personal information has been updated successfully.',
+	});
+}
+
 async function signOutOfOtherDevicesAction({ request, userId }: ProfileActionArgs) {
 	const cookieSession = await getSession(request);
 	const sessionId = cookieSession.get('sessionId');
@@ -369,6 +454,7 @@ export default function SettingsRoute() {
 	const aboutFetcher = useFetcher();
 	const profileFetcher = useFetcher();
 	const coverFetcher = useFetcher();
+	// const personalInformationFetcher = useFetcher();
 	const logOutOtherSessionsFetcher = useFetcher();
 
 	const sessionCount = data.user._count.sessions - 1;
@@ -424,13 +510,13 @@ export default function SettingsRoute() {
 		},
 	});
 
-	const [form, fields] = useForm({
+	const [personalInfoForm, personalInfoFields] = useForm({
 		id: 'personal-info-form',
 		shouldValidate: 'onInput',
 		lastResult: useActionData(),
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
-			return parseWithZod(formData, { schema: profileInfoSchema });
+			return parseWithZod(formData, { schema: PersonalInfoSchema });
 		},
 		defaultValue: {
 			firstName: data.user.firstName,
@@ -713,7 +799,14 @@ export default function SettingsRoute() {
 						</div>
 					</coverFetcher.Form>
 
-					<div className="border-b border-border-tertiary pb-12">
+					<Form
+						{...getFormProps(personalInfoForm)}
+						method="POST"
+						encType="multipart/form-data"
+						className="border-b border-border-tertiary pb-12"
+					>
+						<AuthenticityTokenInput />
+						<HoneypotInputs />
 						<h2 className="text-base font-semibold leading-7 text-text-primary">Personal Information</h2>
 						<p className="mt-1 text-sm leading-6 text-text-secondary">
 							Use a permanent address where you can receive mail.
@@ -721,47 +814,56 @@ export default function SettingsRoute() {
 
 						<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
 							<div className="sm:col-span-3">
-								<label htmlFor={fields.firstName.id} className="block text-sm font-medium leading-6 text-text-primary">
+								<label
+									htmlFor={personalInfoFields.firstName.id}
+									className="block text-sm font-medium leading-6 text-text-primary"
+								>
 									First name
 								</label>
 								<div className="mt-2">
 									<input
-										{...getInputProps(fields.firstName, { type: 'text' })}
+										{...getInputProps(personalInfoFields.firstName, { type: 'text' })}
 										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 									/>
 									<div
-										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+										className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
 									>
-										<ErrorList errors={fields.firstName.errors} id={fields.firstName.errorId} />
+										<ErrorList errors={personalInfoFields.firstName.errors} id={personalInfoFields.firstName.errorId} />
 									</div>
 								</div>
 							</div>
 
 							<div className="sm:col-span-3">
-								<label htmlFor={fields.lastName.id} className="block text-sm font-medium leading-6 text-text-primary">
+								<label
+									htmlFor={personalInfoFields.lastName.id}
+									className="block text-sm font-medium leading-6 text-text-primary"
+								>
 									Last name
 								</label>
 								<div className="mt-2">
 									<input
-										{...getInputProps(fields.lastName, { type: 'text' })}
+										{...getInputProps(personalInfoFields.lastName, { type: 'text' })}
 										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 									/>
 									<div
-										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
+										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${personalInfoFields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
 									>
-										<ErrorList errors={fields.lastName.errors} id={fields.lastName.errorId} />
+										<ErrorList errors={personalInfoFields.lastName.errors} id={personalInfoFields.lastName.errorId} />
 									</div>
 								</div>
 							</div>
 
 							<div className="sm:col-span-3">
-								<label htmlFor={fields.email.id} className="block text-sm font-medium leading-6 text-text-primary">
+								<label
+									htmlFor={personalInfoFields.email.id}
+									className="block text-sm font-medium leading-6 text-text-primary"
+								>
 									Email address
 								</label>
 
 								<div className="mt-2 self-end">
 									<input
-										{...getInputProps(fields.email, { type: 'email' })}
+										{...getInputProps(personalInfoFields.email, { type: 'email' })}
 										disabled
 										className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6"
 									></input>
@@ -782,31 +884,37 @@ export default function SettingsRoute() {
 							</div>
 
 							<div className="sm:col-span-2 sm:col-start-1">
-								<label htmlFor={fields.country.id} className="block text-sm font-medium leading-6 text-text-primary">
+								<label
+									htmlFor={personalInfoFields.country.id}
+									className="block text-sm font-medium leading-6 text-text-primary"
+								>
 									Country
 								</label>
 								<div className="mt-2">
 									<select
-										{...getSelectProps(fields.country)}
+										{...getSelectProps(personalInfoFields.country)}
 										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
 									>
 										<option value={'Canada'}>Canada</option>
 									</select>
 									<div
-										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+										className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.country.errors ? 'max-h-56' : 'max-h-0'}`}
 									>
-										<ErrorList errors={fields.country.errors} id={fields.country.errorId} />
+										<ErrorList errors={personalInfoFields.country.errors} id={personalInfoFields.country.errorId} />
 									</div>
 								</div>
 							</div>
 
 							<div className="sm:col-span-2">
-								<label htmlFor={fields.province.id} className="block text-sm font-medium leading-6 text-text-primary">
+								<label
+									htmlFor={personalInfoFields.province.id}
+									className="block text-sm font-medium leading-6 text-text-primary"
+								>
 									Province
 								</label>
 								<div className="mt-2">
 									<select
-										{...getSelectProps(fields.province)}
+										{...getSelectProps(personalInfoFields.province)}
 										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
 										value={selectedProvince}
 										onChange={e => handleProvinceChange(e.target.value)}
@@ -819,20 +927,23 @@ export default function SettingsRoute() {
 										))}
 									</select>
 									<div
-										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+										className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${personalInfoFields.province.errors ? 'max-h-56' : 'max-h-0'}`}
 									>
-										<ErrorList errors={fields.province.errors} id={fields.province.errorId} />
+										<ErrorList errors={personalInfoFields.province.errors} id={personalInfoFields.province.errorId} />
 									</div>
 								</div>
 							</div>
 
 							<div className="sm:col-span-2 sm:col-start-1">
-								<label htmlFor={fields.city.id} className="block text-sm font-medium leading-6 text-text-primary">
+								<label
+									htmlFor={personalInfoFields.city.id}
+									className="block text-sm font-medium leading-6 text-text-primary"
+								>
 									City
 								</label>
 								<div className="mt-2">
 									<select
-										{...getSelectProps(fields.city)}
+										{...getSelectProps(personalInfoFields.city)}
 										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
 										value={selectedCity}
 										onChange={e => handleCityChange(e.target.value)}
@@ -846,14 +957,20 @@ export default function SettingsRoute() {
 											))}
 									</select>
 									<div
-										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${fields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+										className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.city.errors ? 'max-h-56' : 'max-h-0'}`}
 									>
-										<ErrorList errors={fields.city.errors} id={fields.city.errorId} />
+										<ErrorList errors={personalInfoFields.city.errors} id={personalInfoFields.city.errorId} />
 									</div>
 								</div>
 							</div>
 						</div>
-					</div>
+						<div className="mt-6 flex items-center justify-end gap-x-6">
+							<button type="button" className="text-sm font-semibold leading-6 text-text-primary">
+								Cancel
+							</button>
+							<Button type="submit" name="intent" label="Save Changes" value={perosnalInfoUpdateActionIntent} />
+						</div>
+					</Form>
 
 					<div className="border-b border-border-tertiary pb-12">
 						<h2 className="text-base font-semibold leading-7 text-text-primary">Notifications</h2>
@@ -959,28 +1076,6 @@ export default function SettingsRoute() {
 						</div>
 					</div>
 				</div>
-
-				<div
-					className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'}`}
-				>
-					<AlertToast errors={form.errors} id={form.errorId} />
-				</div>
-
-				<div className="mt-6 flex items-center justify-end gap-x-6 border-b border-border-tertiary pb-8">
-					<button type="button" className="text-sm font-semibold leading-6 text-text-primary">
-						Cancel
-					</button>
-					<button
-						type="submit"
-						className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-						name="intent"
-						value={profileUpdateActionIntent}
-					>
-						Save Changes
-					</button>
-				</div>
-				<HoneypotInputs />
-				<AuthenticityTokenInput />
 			</div>
 			<div className=" flex flex-col justify-around border-b border-border-tertiary  py-8">
 				<logOutOtherSessionsFetcher.Form
