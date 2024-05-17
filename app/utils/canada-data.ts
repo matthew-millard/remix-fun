@@ -1,4 +1,4 @@
-export const canadaData = {
+export const canadaData: { [key: string]: string[] } = {
 	Alberta: [
 		'Banff',
 		'Brooks',
