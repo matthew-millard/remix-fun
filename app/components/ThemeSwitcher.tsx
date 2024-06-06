@@ -9,16 +9,16 @@ export default function ThemeSwitcher() {
 	return (
 		<button
 			onClick={toggleTheme}
-			className="rounded-full border-2 border-border-secondary p-2 transition duration-500 hover:border-border-primary"
+			className="hover p-1 text-gray-400  hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
 		>
 			{theme === Theme.LIGHT ? (
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"
 					viewBox="0 0 24 24"
-					strokeWidth={2}
+					strokeWidth={1.5}
 					stroke="currentColor"
-					className="h-6 w-6 text-text-primary"
+					className="size-6"
 				>
 					<path
 						strokeLinecap="round"
@@ -31,9 +31,9 @@ export default function ThemeSwitcher() {
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"
 					viewBox="0 0 24 24"
-					strokeWidth={2}
+					strokeWidth={1.5}
 					stroke="currentColor"
-					className="h-6 w-6 text-text-primary"
+					className="size-6"
 				>
 					<path
 						strokeLinecap="round"

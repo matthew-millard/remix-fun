@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { Menu, Transition } from '@headlessui/react';
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import Avatar from './Avatar';
 import { Form } from '@remix-run/react';
@@ -16,7 +16,7 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 	return (
 		<Menu as="div" className="relative inline-block text-left">
 			<div>
-				<Menu.Button className="relative flex">
+				<MenuButton className="relative flex">
 					<div className="">
 						<Avatar imageId={imageId} />
 					</div>
@@ -24,7 +24,7 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 						className="absolute  -bottom-0 -right-0  h-4 w-4 rounded-full bg-bg-alt text-border-primary"
 						aria-hidden="true"
 					/>
-				</Menu.Button>
+				</MenuButton>
 			</div>
 
 			<Transition
@@ -37,13 +37,13 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 				leaveTo="transform opacity-0 scale-95"
 			>
 				{isLoggedInUser ? (
-					<Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+					<MenuItems className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
 						<div className="px-4 py-3">
 							<p className="text-sm">Signed in as</p>
 							<p className="truncate text-sm font-bold  text-gray-900">{username}</p>
 						</div>
 						<div className="py-1">
-							<Menu.Item>
+							<MenuItem>
 								{({ active }) => (
 									<a
 										href={`/${username}/profile`}
@@ -55,8 +55,8 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 										Profile
 									</a>
 								)}
-							</Menu.Item>
-							<Menu.Item>
+							</MenuItem>
+							<MenuItem>
 								{({ active }) => (
 									<a
 										href={`/${username}/settings`}
@@ -68,12 +68,12 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 										Settings
 									</a>
 								)}
-							</Menu.Item>
+							</MenuItem>
 						</div>
 						<div className="py-1">
 							<Form method="POST" action="/logout">
 								<AuthenticityTokenInput />
-								<Menu.Item>
+								<MenuItem>
 									{({ active }) => (
 										<button
 											type="submit"
@@ -85,18 +85,18 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 											Log Out
 										</button>
 									)}
-								</Menu.Item>
+								</MenuItem>
 							</Form>
 						</div>
-					</Menu.Items>
+					</MenuItems>
 				) : (
-					<Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+					<MenuItems className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
 						<div className="px-4 py-3">
 							<p className="text-sm"></p>
 							<p className="truncate text-sm font-bold  text-gray-900">Account Settings</p>
 						</div>
 						<div className="py-1">
-							<Menu.Item>
+							<MenuItem>
 								{({ active }) => (
 									<a
 										href={`/signup`}
@@ -108,10 +108,10 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 										Sign up for an account
 									</a>
 								)}
-							</Menu.Item>
+							</MenuItem>
 						</div>
 						<div className="py-1">
-							<Menu.Item>
+							<MenuItem>
 								{({ active }) => (
 									<a
 										href={`/login`}
@@ -123,9 +123,9 @@ export default function DropDownIcon({ imageId, username }: { imageId?: string; 
 										Log In
 									</a>
 								)}
-							</Menu.Item>
+							</MenuItem>
 						</div>
-					</Menu.Items>
+					</MenuItems>
 				)}
 			</Transition>
 		</Menu>
