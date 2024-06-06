@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Dialog } from '@headlessui/react';
+import { Dialog, DialogPanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { DropDownIcon, Logo, ThemeSwitcher } from '../components';
 import { Link, NavLink, useLoaderData } from '@remix-run/react';
 import { type loader } from '../root';
 import { useOptionalUser } from '~/utils/users';
+import NotificationBell from './ui/NotificationBell';
+import MagnifyingGlass from './MagnifyingGlass';
 
 const navigation = [
 	{ name: 'Discovery', href: '/discovery' },
@@ -38,7 +40,7 @@ export default function NavBar() {
 						<NavLink
 							key={item.name}
 							to={item.href}
-							className="block whitespace-nowrap text-lg font-medium text-text-secondary hover:text-text-primary focus:text-text-primary focus:outline-none"
+							className="block whitespace-nowrap text-base font-medium text-text-secondary hover:text-text-primary focus:text-text-primary focus:outline-none"
 							prefetch="intent"
 						>
 							{item.name}
@@ -46,10 +48,14 @@ export default function NavBar() {
 					))}
 				</div>
 				<div className="hidden flex-1 items-center justify-end gap-x-6 lg:flex">
-					<DropDownIcon imageId={profileImageId} username={username} />
+					<MagnifyingGlass />
+					<NotificationBell />
 					<ThemeSwitcher />
+					<DropDownIcon imageId={profileImageId} username={username} />
 				</div>
-				<div className="flex lg:hidden">
+				<div className="flex gap-4 lg:hidden">
+					<MagnifyingGlass />
+					<NotificationBell />
 					<button
 						type="button"
 						className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-text-primary"
@@ -62,13 +68,14 @@ export default function NavBar() {
 			</nav>
 			<Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
 				<div className="fixed inset-0 z-10" />
-				<Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-bg-primary px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
+				<DialogPanel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-bg-primary px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
 					<div className="flex items-center justify-between gap-x-6">
 						<div className="my-3 sm:invisible">
 							<Logo />
 						</div>
 						<div className="flex gap-4">
 							<ThemeSwitcher />
+							<MagnifyingGlass />
 							<button
 								type="button"
 								className="-m-2.5 rounded-md p-2.5 text-text-primary"
@@ -96,7 +103,7 @@ export default function NavBar() {
 							</div>
 						</div>
 					</div>
-				</Dialog.Panel>
+				</DialogPanel>
 			</Dialog>
 		</header>
 	);

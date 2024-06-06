@@ -9,9 +9,5 @@ export const meta: MetaFunction = () => {
 // Update page description!!!
 
 export default function Discovery() {
-	return (
-		<>
-			<h1>Discover Bars</h1>
-		</>
-	);
+	return <></>;
 }
