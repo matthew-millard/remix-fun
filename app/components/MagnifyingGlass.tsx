@@ -33,7 +33,7 @@ export default function MagnifyingGlass() {
 					/>
 				</svg>
 			</button>
-			{isSearchOpen && <Search isOpen={isSearchOpen} closeSearch={closeSearch} />}
+			{isSearchOpen && <Search isOpen={isSearchOpen} closeSearch={closeSearch} autoSubmit={true} />}
 		</>
 	);
 }
