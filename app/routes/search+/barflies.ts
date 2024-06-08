@@ -1,5 +1,4 @@
 import { json, LoaderFunctionArgs, redirect } from '@remix-run/node';
-import { profile } from 'console';
 import { z } from 'zod';
 import { prisma } from '~/utils/db.server';
 
@@ -27,10 +26,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 	const rawUsers = await prisma.$queryRaw`
 	SELECT 
-		U.id, 
-		U.email, 
-		U.firstName, 
-		U.lastName, 
+		U.id	AS id, 
+		U.email	AS email,
+		U.firstName AS firstName,
+		U.lastName AS lastName,
 		UN.username AS username,
 		UPI.id AS profileImageId,
 		UL.city || ', ' || UL.country AS userLocation,
@@ -42,7 +41,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	WHERE 
 		U.email LIKE ${like} OR 
 		U.firstName LIKE ${like} OR 
-		U.lastName LIKE ${like}`;
+		U.lastName LIKE ${like} OR
+		UN.username LIKE ${like} OR
+		UL.city LIKE ${like} OR
+		UL.province LIKE ${like} OR
+		UL.country LIKE ${like}
+
+		`;
 
 	const result = UsersSchema.safeParse(rawUsers);
 

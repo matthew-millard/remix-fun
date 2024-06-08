@@ -11,11 +11,22 @@ import {
 } from '@headlessui/react';
 import { ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { UsersIcon } from '@heroicons/react/24/outline';
-import { Form, Link, useLoaderData, useRouteLoaderData, useSearchParams, useSubmit } from '@remix-run/react';
+import {
+	Form,
+	Link,
+	useLoaderData,
+	useNavigate,
+	useNavigation,
+	useRouteLoaderData,
+	useSearchParams,
+	useSubmit,
+} from '@remix-run/react';
 import { useEffect, useId, useState } from 'react';
 import { useDebounce } from '~/hooks/useDebounce';
 import { loader } from '~/root';
 import ImageChooser from '../ImageChooser';
+import { useDelayedIsPending } from '~/hooks/useIsPending';
+import Spinner from '../Spinner';
 
 function classNames(...classes: string[]) {
 	return classes.filter(Boolean).join(' ');
@@ -27,36 +38,10 @@ interface User {
 	firstName: string;
 	lastName: string;
 	username: string;
-	profileImageAltText: string | null;
-	profileImageContentType: string | null;
-	profileImageBlob: Buffer | null;
+	profileImageId: string | null;
 	userLocation: string;
 	createdAt: Date;
 }
-
-// 	{
-// 		id: '1',
-// 		name: 'Finn Crooks',
-// 		phone: '1-613-223-9371',
-// 		email: 'finncrooks@barfly.ca',
-// 		role: 'Co-Founder / CEO',
-// 		url: 'https://barfly.ca/finncrooks',
-// 		profileUrl: '#',
-// 		imageUrl:
-// 			'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-// 	},
-// 	{
-// 		id: '2',
-// 		name: 'Hamish Millard',
-// 		phone: '1-493-747-9031',
-// 		email: 'lesliealexander@example.com',
-// 		role: 'Co-Founder / CEO',
-// 		url: 'https://example.com',
-// 		profileUrl: '#',
-// 		imageUrl:
-// 			'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-// 	},
-// ];
 
 // const recent: Person[] = [people[0], people[1]];
 
@@ -69,8 +54,17 @@ interface SearchProps {
 }
 
 export default function Search({ isOpen, closeSearch, status, autoFocus = false, autoSubmit = false }: SearchProps) {
-	const { filteredUsers = [] } = useRouteLoaderData('routes/search+/index') || {};
-	console.log('filteredUsers: ', filteredUsers);
+	const navigate = useNavigate();
+	const { filteredUsers = [] } = useRouteLoaderData('routes/search+/barflies') || {};
+	console.log('filteredUsers', filteredUsers);
+
+	const navigation = useNavigation();
+	console.log('navigation', navigation);
+	const isPending = useDelayedIsPending({
+		formAction: '/search/barflies',
+		formMethod: 'GET',
+	});
+	console.log('isPending', isPending);
 
 	const [query, setQuery] = useState('');
 	const [searchParams] = useSearchParams();
@@ -86,7 +80,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 	useEffect(() => {
 		if (filteredUsers.length > 0) {
 			const urls: Record<string, string | null> = {};
-			filteredUsers.forEach(user => {
+			filteredUsers.forEach((user: User) => {
 				if (user.profileImageId) {
 					urls[user.id] = `/resources/images/${user.profileImageId}/profile`;
 				} else {
@@ -113,7 +107,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 
 				<Form
 					method="GET"
-					action="/search"
+					action="/search/barflies"
 					className="fixed inset-0 z-10 w-screen overflow-y-auto p-4 sm:p-6 md:p-20"
 					onChange={e => autoSubmit && handleFormChange(e.currentTarget)}
 				>
@@ -126,14 +120,26 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 						leaveTo="opacity-0 scale-95"
 					>
 						<DialogPanel className="mx-auto max-w-3xl transform divide-y divide-border-tertiary overflow-hidden rounded-md bg-bg-secondary shadow-2xl ring-1 ring-inset ring-border-tertiary transition-all  ">
-							<Combobox<User>>
+							<Combobox<User>
+								onChange={(user: User) => {
+									navigate(`/${user.username}/profile`);
+									closeSearch();
+								}}
+								onClose={() => setQuery('')}
+							>
 								{({ activeOption }) => (
 									<>
 										<div className="relative">
-											<MagnifyingGlassIcon
-												className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-gray-400"
-												aria-hidden="true"
-											/>
+											{isPending ? (
+												<div className="pointer-events-none absolute left-4 top-3.5 h-5 w-5">
+													<Spinner />
+												</div>
+											) : (
+												<MagnifyingGlassIcon
+													className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-gray-400"
+													aria-hidden="true"
+												/>
+											)}
 											<Label htmlFor={id} className="sr-only"></Label>
 											<ComboboxInput
 												type="search"
@@ -165,7 +171,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 														<h2 className="mb-4 mt-2 text-xs font-semibold text-text-secondary">Recent searches</h2>
 													)}
 													<div className="-mx-2 text-sm text-text-secondary">
-														{(query === '' ? filteredUsers : filteredUsers).map(user => (
+														{(query === '' ? filteredUsers : filteredUsers).map((user: User) => (
 															<ComboboxOption
 																as="div"
 																key={user.id}
@@ -183,7 +189,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 																			{profileImageUrls[user.id] ? (
 																				<img
 																					src={profileImageUrls[user.id]}
-																					alt={user.profileImageAltText || 'Profile'}
+																					alt="Profile"
 																					className="h-full w-full object-cover"
 																				/>
 																			) : (
@@ -211,7 +217,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 																{profileImageUrls[activeOption.id] ? (
 																	<img
 																		src={profileImageUrls[activeOption.id]}
-																		alt={activeOption.profileImageAltText || 'Profile'}
+																		alt="Profile"
 																		className="h-full w-full object-cover"
 																	/>
 																) : (
@@ -228,7 +234,6 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 																<dt className="col-end-1 font-semibold text-text-primary">Location</dt>
 																<dd>{activeOption.userLocation}</dd>
 																<dt className="col-end-1 font-semibold text-text-primary">Member since</dt>
-																{/* calculate the date the user registered */}
 
 																<dd>
 																	{new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long' }).format(
