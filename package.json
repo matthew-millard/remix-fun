@@ -39,6 +39,7 @@
     "remix-utils": "^7.5.0",
     "resend": "^3.2.0",
     "sonner": "^1.4.41",
+    "spin-delay": "^2.0.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
