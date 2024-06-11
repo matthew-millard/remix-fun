@@ -11,28 +11,17 @@ import {
 } from '@headlessui/react';
 import { ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { UsersIcon } from '@heroicons/react/24/outline';
-import {
-	Form,
-	Link,
-	useLoaderData,
-	useNavigate,
-	useNavigation,
-	useRouteLoaderData,
-	useSearchParams,
-	useSubmit,
-} from '@remix-run/react';
+import { Link, useFetcher, useNavigate, useSearchParams } from '@remix-run/react';
 import { useEffect, useId, useState } from 'react';
 import { useDebounce } from '~/hooks/useDebounce';
-import { loader } from '~/root';
-import ImageChooser from '../ImageChooser';
-import { useDelayedIsPending } from '~/hooks/useIsPending';
 import Spinner from '../Spinner';
+import { ActionData } from '~/root';
 
 function classNames(...classes: string[]) {
 	return classes.filter(Boolean).join(' ');
 }
 
-interface User {
+export interface User {
 	id: string;
 	email: string;
 	firstName: string;
@@ -42,8 +31,6 @@ interface User {
 	userLocation: string;
 	createdAt: Date;
 }
-
-// const recent: Person[] = [people[0], people[1]];
 
 interface SearchProps {
 	isOpen: boolean;
@@ -55,24 +42,20 @@ interface SearchProps {
 
 export default function Search({ isOpen, closeSearch, status, autoFocus = false, autoSubmit = false }: SearchProps) {
 	const navigate = useNavigate();
-	const { filteredUsers = [] } = useRouteLoaderData('routes/search+/barflies') || {};
-	console.log('filteredUsers', filteredUsers);
+	const fetcher = useFetcher<ActionData>();
+	const data = fetcher.data;
+	const searchResults = data?.searchResults || { filteredUsers: [] };
+	const filteredUsers = searchResults.filteredUsers;
 
-	const navigation = useNavigation();
-	console.log('navigation', navigation);
-	const isPending = useDelayedIsPending({
-		formAction: '/search/barflies',
-		formMethod: 'GET',
-	});
-	console.log('isPending', isPending);
+	const isPending = fetcher.state !== 'idle';
 
 	const [query, setQuery] = useState('');
 	const [searchParams] = useSearchParams();
 	const id = useId();
-	const submit = useSubmit();
 
 	const handleFormChange = useDebounce((form: HTMLFormElement) => {
-		submit(form);
+		const formData = new FormData(form);
+		fetcher.submit(formData, { method: 'POST', action: '/' });
 	}, 400);
 
 	const [profileImageUrls, setProfileImageUrls] = useState<Record<string, string | null>>({});
@@ -80,7 +63,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 	useEffect(() => {
 		if (filteredUsers.length > 0) {
 			const urls: Record<string, string | null> = {};
-			filteredUsers.forEach((user: User) => {
+			filteredUsers.forEach(user => {
 				if (user.profileImageId) {
 					urls[user.id] = `/resources/images/${user.profileImageId}/profile`;
 				} else {
@@ -105,9 +88,8 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 					<div className="fixed inset-0 bg-slate-900 bg-opacity-50 backdrop-blur-sm" />
 				</TransitionChild>
 
-				<Form
-					method="GET"
-					action="/search/barflies"
+				<fetcher.Form
+					method="POST"
 					className="fixed inset-0 z-10 w-screen overflow-y-auto p-4 sm:p-6 md:p-20"
 					onChange={e => autoSubmit && handleFormChange(e.currentTarget)}
 				>
@@ -146,6 +128,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 												name="query"
 												id={id}
 												defaultValue={searchParams.get('query') ?? ''}
+												// eslint-disable-next-line jsx-a11y/no-autofocus
 												autoFocus={autoFocus}
 												className=" h-12 w-full rounded-t-md border-0  bg-transparent pl-11 pr-4 text-text-primary placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 focus:ring-offset-0 sm:text-sm"
 												placeholder="Barflies, bars, cocktails..."
@@ -154,7 +137,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 											/>
 										</div>
 
-										{(query === '' || !filteredUsers || filteredUsers.length > 0) && (
+										{filteredUsers.length > 0 && (
 											<ComboboxOptions
 												as="div"
 												static
@@ -167,11 +150,10 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 														activeOption && 'sm:h-96',
 													)}
 												>
-													{query === '' && (
-														<h2 className="mb-4 mt-2 text-xs font-semibold text-text-secondary">Recent searches</h2>
-													)}
+													<h2 className="mb-4 mt-2 text-xs font-semibold text-text-secondary">Recent searches</h2>
+
 													<div className="-mx-2 text-sm text-text-secondary">
-														{(query === '' ? filteredUsers : filteredUsers).map((user: User) => (
+														{filteredUsers.map(user => (
 															<ComboboxOption
 																as="div"
 																key={user.id}
@@ -243,6 +225,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 															</dl>
 															<Link
 																to={`/${activeOption.username}/profile`}
+																onClick={closeSearch}
 																className="mt-6 flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
 															>
 																View profile
@@ -267,7 +250,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 							</Combobox>
 						</DialogPanel>
 					</TransitionChild>
-				</Form>
+				</fetcher.Form>
 			</Dialog>
 		</Transition>
 	);
