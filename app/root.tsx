@@ -18,6 +18,8 @@ import { prisma } from './utils/db.server';
 import { getUserId } from './utils/auth.server';
 import { getToast, type Toast } from './utils/toast.server';
 import { combineHeaders } from './utils/misc';
+import { searchUsersByQuery, UsersSchema } from './utils/searchByQuery';
+import { z } from 'zod';
 
 export type LoaderData = {
 	theme: Theme | null;
@@ -32,6 +34,26 @@ export type LoaderData = {
 	} | null;
 	toast: Toast | null;
 };
+
+export type ActionData = {
+	searchResults: { filteredUsers: z.infer<typeof UsersSchema> } | null;
+};
+
+export async function action({ request }: LoaderFunctionArgs) {
+	const formData = await request.formData();
+	const query = formData.get('query') as string | null;
+
+	let searchResults = null;
+	if (query && query.trim() !== '') {
+		searchResults = await searchUsersByQuery(query);
+	}
+
+	const data: ActionData = {
+		searchResults,
+	};
+
+	return json({ ...data });
+}
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const themeSession = await getThemeSession(request);

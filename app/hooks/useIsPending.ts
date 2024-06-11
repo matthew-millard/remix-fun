@@ -63,11 +63,10 @@ export function useDelayedIsPending({
 	minDuration = 300,
 }: Parameters<typeof useIsPendingWithoutIntent>[0] & Parameters<typeof useSpinDelay>[1] = {}) {
 	const isPending = useIsPendingWithoutIntent({ formAction, formMethod });
-	console.log('isPendingInsideHook', isPending);
 	const delayedIsPending = useSpinDelay(isPending, {
 		delay,
 		minDuration,
 	});
-	console.log('delayedIsPending', delayedIsPending);
+
 	return delayedIsPending;
 }

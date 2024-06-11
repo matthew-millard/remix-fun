@@ -1,4 +1,4 @@
-import { json, LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { z } from 'zod';
 import { prisma } from '~/utils/db.server';
 
@@ -15,12 +15,14 @@ const UserSchema = z.object({
 
 const UsersSchema = z.array(UserSchema);
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function searchUsersByQuery({ request }: Request) {
 	const query = new URL(request.url).searchParams.get('query');
 
 	if (query === '') {
-		return redirect('/', { status: 302 });
+		return redirect('/');
 	}
+
+	console.log('query', query);
 
 	const like = `%${query}%`;
 
@@ -46,7 +48,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		UL.city LIKE ${like} OR
 		UL.province LIKE ${like} OR
 		UL.country LIKE ${like}
-
+	LIMIT 50
 		`;
 
 	const result = UsersSchema.safeParse(rawUsers);
@@ -54,13 +56,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	console.log('result', result);
 
 	if (!result.success) {
-		return json({
+		return {
+			status: 'error',
 			message: "We couldn't find anything with that term. Please try again.",
-		} as const);
+		};
 	}
 
-	return json({
+	return {
 		status: 'idle',
 		filteredUsers: result.data,
-	} as const);
+	};
 }

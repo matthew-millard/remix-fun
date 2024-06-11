@@ -7,10 +7,7 @@ export default function ThemeSwitcher() {
 		setTheme(prevTheme => (prevTheme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT));
 	}
 	return (
-		<button
-			onClick={toggleTheme}
-			className="hover p-1 text-gray-400  hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-		>
+		<button onClick={toggleTheme} className="hover p-1 text-gray-400  hover:text-gray-500">
 			{theme === Theme.LIGHT ? (
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
