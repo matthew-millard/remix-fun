@@ -1,5 +1,5 @@
 import { LoaderFunctionArgs } from '@remix-run/node';
-import { Link, useLoaderData } from '@remix-run/react';
+import { Link, useLoaderData, useRouteLoaderData } from '@remix-run/react';
 import { requireUser } from '~/utils/auth.server';
 import { prisma } from '~/utils/db.server';
 
@@ -34,21 +34,11 @@ const team = [
 	},
 ];
 
-export async function loader({ request }: LoaderFunctionArgs) {
-	const { id } = await requireUser(request);
-
-	const user = await prisma.user.findUnique({
-		where: { id: id },
-		include: { profileImage: true, userLocation: true, username: true, about: true },
-	});
-
-	return {
-		user,
-	};
-}
-
 export default function Profile() {
-	const { user } = useLoaderData<typeof loader>();
+	const data = useRouteLoaderData('routes/$username_+/profile');
+	console.log('data use route data', data);
+	const user = data.user;
+
 	return (
 		<div>
 			<div className="mx-auto mt-6 max-w-5xl px-4 sm:px-6 lg:px-8">

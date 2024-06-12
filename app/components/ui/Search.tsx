@@ -40,7 +40,7 @@ interface SearchProps {
 	autoSubmit?: boolean;
 }
 
-export default function Search({ isOpen, closeSearch, status, autoFocus = false, autoSubmit = false }: SearchProps) {
+export default function Search({ isOpen, closeSearch, status, autoFocus = true, autoSubmit = true }: SearchProps) {
 	const navigate = useNavigate();
 	const fetcher = useFetcher<ActionData>();
 	const data = fetcher.data;
@@ -128,7 +128,6 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = false,
 												name="query"
 												id={id}
 												defaultValue={searchParams.get('query') ?? ''}
-												// eslint-disable-next-line jsx-a11y/no-autofocus
 												autoFocus={autoFocus}
 												className=" h-12 w-full rounded-t-md border-0  bg-transparent pl-11 pr-4 text-text-primary placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 focus:ring-offset-0 sm:text-sm"
 												placeholder="Barflies, bars, cocktails..."
