@@ -11,13 +11,30 @@ function classNames(...classes: string[]) {
 	return classes.filter(Boolean).join(' ');
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
-	const { id } = await requireUser(request);
-
-	const user = await prisma.user.findUnique({
-		where: { id: id },
-		include: { profileImage: true, coverImage: true, userLocation: true, username: true, about: true },
+export async function loader({ request, params }: LoaderFunctionArgs) {
+	await requireUser(request);
+	const user = await prisma.user.findFirst({
+		select: {
+			firstName: true,
+			lastName: true,
+			createdAt: true,
+			profileImage: true,
+			coverImage: true,
+			userLocation: true,
+			about: true,
+			username: true,
+			email: true,
+		},
+		where: {
+			username: {
+				username: params.username,
+			},
+		},
 	});
+
+	if (!user) {
+		throw new Response('User not found', { status: 404 });
+	}
 
 	return {
 		user,
@@ -26,6 +43,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function ProfileRoute() {
 	const data = useLoaderData<typeof loader>();
+
 	const fullName = data.user.firstName + ' ' + data.user.lastName;
 	const activeTab = useRef('Profile');
 
