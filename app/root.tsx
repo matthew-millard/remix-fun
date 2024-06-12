@@ -1,4 +1,10 @@
-import { type LoaderFunctionArgs, type MetaFunction, type LinksFunction, json } from '@remix-run/node';
+import {
+	type LoaderFunctionArgs,
+	type MetaFunction,
+	type LinksFunction,
+	json,
+	ActionFunctionArgs,
+} from '@remix-run/node';
 import { cssBundleHref } from '@remix-run/css-bundle';
 import tailwindStylesheet from '~/tailwind.css';
 import globalStylesheet from '~/styles/global.css';
@@ -39,7 +45,7 @@ export type ActionData = {
 	searchResults: { filteredUsers: z.infer<typeof UsersSchema> } | null;
 };
 
-export async function action({ request }: LoaderFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
 	const query = formData.get('query') as string | null;
 
