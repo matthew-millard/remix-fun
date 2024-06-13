@@ -1,7 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node';
-import { Link, useLoaderData, useRouteLoaderData } from '@remix-run/react';
-import { requireUser } from '~/utils/auth.server';
-import { prisma } from '~/utils/db.server';
+import { Link, useRouteLoaderData } from '@remix-run/react';
 
 const team = [
 	{

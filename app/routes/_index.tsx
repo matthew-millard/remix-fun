@@ -48,10 +48,10 @@ export function ErrorBoundary() {
 
 export const meta: MetaFunction = () => {
 	return [
-		{ title: 'BarFly | Home' },
+		{ title: 'Home | Barfly' },
 		{
 			name: 'description',
-			content: 'BarFly is a community-driven platform for discovering the drinking establishments in Canada.',
+			content: 'Barfly is a community-driven platform for discovering the drinking establishments in Canada.',
 		},
 	];
 };
