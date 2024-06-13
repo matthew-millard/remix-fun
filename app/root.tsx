@@ -10,7 +10,7 @@ import tailwindStylesheet from '~/tailwind.css';
 import globalStylesheet from '~/styles/global.css';
 import { ThemeProvider, Theme } from '~/utils/theme-provider';
 import { getThemeSession } from './utils/theme.server';
-import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
+import { Link, Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
 import { NavBar, Footer } from './components';
 import clsx from 'clsx';
 import { GeneralErrorBoundary } from './components/ErrorBoundary';
@@ -26,6 +26,7 @@ import { getToast, type Toast } from './utils/toast.server';
 import { combineHeaders } from './utils/misc';
 import { searchUsersByQuery, UsersSchema } from './utils/searchByQuery';
 import { z } from 'zod';
+import Breadcrumbs from './components/ui/Breadcrumbs';
 
 export type LoaderData = {
 	theme: Theme | null;
@@ -127,7 +128,7 @@ export default function AppWithProviders() {
 				<HoneypotProvider {...honeypotProps}>
 					<App theme={theme}>
 						<NavBar />
-						<main className="flex-grow">
+						<main className="flex-grow pt-8">
 							<Outlet />
 							{toast ? <ShowToast toast={toast} /> : null}
 						</main>
@@ -154,9 +155,17 @@ export function meta({ data }: Parameters<MetaFunction<typeof loader>>[0]): Retu
 	const firstName = user ? user.firstName : null;
 	return [
 		{ title: 'Barfly' },
-		{ description: firstName ? `Welcome back to Barfly ${firstName}!` : 'Welcome to BarFly!' },
+		{ description: firstName ? `Welcome back to Barfly ${firstName}!` : 'Welcome to Barfly!' },
 	];
 }
+
+export const handle = {
+	breadcrumb: () => (
+		<Link className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to="/">
+			Home
+		</Link>
+	),
+};
 
 export function ErrorBoundary() {
 	return (

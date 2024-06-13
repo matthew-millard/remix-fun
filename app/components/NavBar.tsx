@@ -7,6 +7,7 @@ import { type loader } from '../root';
 import { useOptionalUser } from '~/utils/users';
 import NotificationBell from './ui/NotificationBell';
 import MagnifyingGlass from './MagnifyingGlass';
+import Breadcrumbs from './ui/Breadcrumbs';
 
 const navigation = [
 	{ name: 'Discovery', href: '/discovery' },
@@ -32,7 +33,7 @@ export default function NavBar() {
 	return (
 		<header className="flex-none">
 			<nav className="mx-auto flex max-w-7xl items-center justify-between gap-x-6 p-6 lg:px-8" aria-label="Global">
-				<div className="flex lg:flex-1">
+				<div className="flex  lg:flex-1">
 					<Logo />
 				</div>
 				<div className="hidden lg:flex lg:gap-x-12">
@@ -66,6 +67,9 @@ export default function NavBar() {
 					</button>
 				</div>
 			</nav>
+			<div className="mx-auto  max-w-7xl px-6 lg:px-8">
+				<Breadcrumbs />
+			</div>
 			<Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
 				<div className="fixed inset-0 z-10" />
 				<DialogPanel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-bg-primary px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">

@@ -1,7 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from '@remix-run/node';
-import { Form, useActionData, useSearchParams } from '@remix-run/react';
+import { Form, Link, useActionData, useSearchParams } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { z } from 'zod';
@@ -206,3 +206,15 @@ export default function Password() {
 		</Form>
 	);
 }
+
+export const handle = {
+	breadcrumb: ({ params: { username } }: LoaderFunctionArgs) => (
+		<Link
+			prefetch="intent"
+			className="ml-4 text-sm  text-gray-400 hover:text-gray-500"
+			to={`/${username}/settings/change-password`}
+		>
+			Change Password
+		</Link>
+	),
+};
