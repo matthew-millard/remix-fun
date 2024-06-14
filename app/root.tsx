@@ -90,8 +90,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			})
 		: null;
 
-	console.log('user:', user);
-
 	const data: LoaderData = {
 		theme: themeSession.getTheme(),
 		honeypotProps: honeypot.getInputProps(),

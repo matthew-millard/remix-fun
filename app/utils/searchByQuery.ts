@@ -8,7 +8,7 @@ const UserSchema = z.object({
 	lastName: z.string(),
 	username: z.string(),
 	profileImageId: z.string().nullable(),
-	userLocation: z.string(),
+	userLocation: z.string().nullable(),
 	createdAt: z.date(),
 });
 
@@ -32,10 +32,7 @@ export async function searchUsersByQuery(query: string): Promise<{ filteredUsers
 		WHEN U.lastName LIKE ${like} THEN 2
 		WHEN U.email LIKE ${like} THEN 3
 		WHEN UN.username LIKE ${like} THEN 4
-		WHEN UL.city LIKE ${like} THEN 5
-		WHEN UL.province LIKE ${like} THEN 6
-		WHEN UL.country LIKE ${like} THEN 7
-		ELSE 8
+		ELSE 5
 	END AS relevance
 	FROM User U
 	LEFT JOIN UserProfileImage UPI ON U.id = UPI.userId
@@ -45,10 +42,7 @@ export async function searchUsersByQuery(query: string): Promise<{ filteredUsers
 		U.email LIKE ${like} OR 
 		U.firstName LIKE ${like} OR 
 		U.lastName LIKE ${like} OR
-		UN.username LIKE ${like} OR
-		UL.city LIKE ${like} OR
-		UL.province LIKE ${like} OR
-		UL.country LIKE ${like}
+		UN.username LIKE ${like} 
 	ORDER BY relevance, U.firstName, U.lastName
 	LIMIT 20`;
 

@@ -72,7 +72,7 @@ export default function NavBar() {
 					</button>
 				</div>
 			</nav>
-			<div className="mx-auto  max-w-7xl px-6 lg:px-8">
+			<div className="mx-auto  max-w-7xl px-6 pb-6 lg:px-8">
 				<Breadcrumbs />
 			</div>
 			<Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
