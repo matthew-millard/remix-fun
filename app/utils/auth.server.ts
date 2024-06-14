@@ -139,6 +139,7 @@ export async function signup({
 					email,
 					firstName,
 					lastName,
+					roles: { connect: { name: 'user' } },
 					password: {
 						create: {
 							hash: passwordHash,

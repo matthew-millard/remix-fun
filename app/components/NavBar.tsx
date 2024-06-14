@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { DropDownIcon, Logo, ThemeSwitcher } from '../components';
-import { Link, NavLink, useLoaderData } from '@remix-run/react';
+import { Link, NavLink, useLoaderData, useNavigate } from '@remix-run/react';
 import { type loader } from '../root';
 import { useOptionalUser } from '~/utils/users';
 import NotificationBell from './ui/NotificationBell';
 import MagnifyingGlass from './MagnifyingGlass';
 import Breadcrumbs from './ui/Breadcrumbs';
+import { WrenchScrewdriverIcon } from '@heroicons/react/20/solid';
 
 const navigation = [
 	{ name: 'Discovery', href: '/discovery' },
@@ -16,8 +17,11 @@ const navigation = [
 ];
 
 export default function NavBar() {
+	const navigate = useNavigate();
 	const data = useLoaderData<typeof loader>();
 	const isLoggedInUser = useOptionalUser();
+	const isAdmin = data.user?.roles.some(role => role.name === 'admin');
+
 	const profileImageId = data.user?.profileImage?.id;
 	const username = data.user?.username.username;
 	const mobileNavigation = isLoggedInUser
@@ -53,6 +57,7 @@ export default function NavBar() {
 					<NotificationBell />
 					<ThemeSwitcher />
 					<DropDownIcon imageId={profileImageId} username={username} />
+					{isAdmin ? <WrenchScrewdriverIcon height={'24'} color="white" onClick={() => navigate(`/admin`)} /> : null}
 				</div>
 				<div className="flex gap-4 lg:hidden">
 					<MagnifyingGlass />
