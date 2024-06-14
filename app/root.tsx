@@ -26,7 +26,6 @@ import { getToast, type Toast } from './utils/toast.server';
 import { combineHeaders } from './utils/misc';
 import { searchUsersByQuery, UsersSchema } from './utils/searchByQuery';
 import { z } from 'zod';
-import Breadcrumbs from './components/ui/Breadcrumbs';
 
 export type LoaderData = {
 	theme: Theme | null;
@@ -38,6 +37,7 @@ export type LoaderData = {
 		lastName: string;
 		profileImage: { id: string };
 		username: { username: string };
+		roles: { name: string; permissions: { entity: string; action: string; access: string }[] }[];
 	} | null;
 	toast: Toast | null;
 };
@@ -72,9 +72,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	const user = userId
 		? await prisma.user.findUniqueOrThrow({
 				where: { id: userId },
-				select: { id: true, firstName: true, lastName: true, username: true, profileImage: { select: { id: true } } },
+				select: {
+					id: true,
+					firstName: true,
+					lastName: true,
+					username: true,
+					profileImage: { select: { id: true } },
+					roles: {
+						select: {
+							name: true,
+							permissions: {
+								select: { entity: true, action: true, access: true },
+							},
+						},
+					},
+				},
 			})
 		: null;
+
+	console.log('user:', user);
 
 	const data: LoaderData = {
 		theme: themeSession.getTheme(),
