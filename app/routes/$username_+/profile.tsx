@@ -81,8 +81,6 @@ export default function ProfileRoute() {
 			<div className="flex h-full">
 				<div className="relative z-0 flex flex-1 overflow-hidden">
 					<main className="relative z-0 flex-1 overflow-y-auto focus:outline-none xl:order-last">
-						{/* Breadcrumb */}
-
 						<article>
 							{/* Profile header */}
 							<div>
