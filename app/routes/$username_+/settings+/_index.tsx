@@ -1077,11 +1077,28 @@ export default function SettingsRoute() {
 					</div>
 				</div>
 			</div>
-			<div className=" flex flex-col justify-around border-b border-border-tertiary  py-8">
+			<div className=" flex flex-col border-b border-border-tertiary  py-8">
+				<Link
+					to={`/${data.user.username.username}/settings/two-factor-authentication`}
+					className=" flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between"
+				>
+					<div>
+						<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
+						<p className="mt-1 text-sm leading-6 text-text-secondary">
+							Add additional security to your account using two-factor authentication
+						</p>
+					</div>
+					<button
+						type="submit"
+						className=" flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+					>
+						Enable Two-Factor Authentication
+					</button>
+				</Link>
 				<logOutOtherSessionsFetcher.Form
 					method="POST"
 					encType="multipart/form-data"
-					className=" flex  flex-row  justify-between  gap-x-6 gap-y-6 pb-8"
+					className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between"
 					preventScrollReset={true}
 				>
 					<AuthenticityTokenInput />
@@ -1100,7 +1117,7 @@ export default function SettingsRoute() {
 					</div>
 					<button
 						type="submit"
-						className="flex items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-600"
+						className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-600"
 						disabled={sessionCount === 0}
 						name="intent"
 						value={signOutOfOtherDevicesActionIntent}
@@ -1108,30 +1125,30 @@ export default function SettingsRoute() {
 						Log Out Other Sessions
 					</button>
 				</logOutOtherSessionsFetcher.Form>
-				<div className=" flex  flex-row  justify-between  gap-x-6 gap-y-6 pb-8">
+				<div className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
 					<div>
 						<h2 className="text-base font-semibold leading-7 text-text-primary">Password</h2>
 						<p className="mt-1 text-sm leading-6 text-text-secondary">
 							Update your password associated with your Barfly account
 						</p>
 					</div>
-					<Link to={`/${data.user.username.username}/settings/change-password`} className="self-end text-text-notify">
+					<Link to={`/${data.user.username.username}/settings/change-password`} className="self-end">
 						<button
 							type="button"
-							className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+							className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
 						>
 							Change Password
 						</button>
 					</Link>
 				</div>
-				<div className=" flex  flex-col gap-x-6 gap-y-6   sm:flex-row sm:justify-between">
+				<div className=" flex  flex-col gap-x-6 gap-y-2 sm:flex-row sm:justify-between">
 					<div>
 						<h2 className="text-base font-semibold leading-7 text-text-primary">Delete Account</h2>
 						<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently delete your Barfly account</p>
 					</div>
 					<button
 						type="button"
-						className=" flex max-w-36 items-center  justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 "
+						className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 "
 						onClick={() => showDialog(true)}
 					>
 						Delete Account
