@@ -13,7 +13,7 @@ export const handle = {
 		<Link
 			prefetch="intent"
 			className="ml-4 text-sm  text-gray-400 hover:text-gray-500"
-			to={`/${username}/profile/favourite-bars`}
+			to={`/${username}/favourite-bars`}
 		>
 			Favourite Bars
 		</Link>

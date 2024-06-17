@@ -241,7 +241,15 @@ export default function SignupRoute() {
 
 export const meta: MetaFunction = () => {
 	return [
-		{ title: 'BarFly | Sign up' },
+		{ title: 'Barfly | Sign up' },
 		{ name: 'description', content: 'Become part of the Barfly community. Join us by signing up for an account.' },
 	];
+};
+
+export const handle = {
+	breadcrumb: () => (
+		<Link prefetch="intent" className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to={`/signup`}>
+			Sign Up
+		</Link>
+	),
 };

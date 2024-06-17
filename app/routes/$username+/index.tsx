@@ -1,3 +1,4 @@
+import { LoaderFunctionArgs } from '@remix-run/node';
 import { Link, useRouteLoaderData } from '@remix-run/react';
 
 const team = [
@@ -31,10 +32,32 @@ const team = [
 	},
 ];
 
+export type LoaderData = {
+	user: {
+		firstName: string;
+		lastName: string;
+		createdAt: Date;
+		profileImage: {
+			id: string;
+		};
+		coverImage: {
+			id: string;
+		};
+		userLocation: {
+			city: string;
+		};
+		about: {
+			about: string;
+		};
+		username: {
+			username: string;
+		};
+		email: string;
+	};
+};
 export default function Profile() {
-	const data = useRouteLoaderData('routes/$username_+/profile');
-	console.log('data use route data', data);
-	const user = data.user;
+	const data = useRouteLoaderData<LoaderData>('routes/$username+/_layout');
+	const user = data?.user;
 
 	return (
 		<div>
@@ -42,7 +65,7 @@ export default function Profile() {
 				<dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
 					<div className="sm:col-span-1">
 						<dt className="text-sm font-medium text-text-secondary">Username</dt>
-						<dd className="mt-1 text-sm text-text-primary">{user.username?.username}</dd>
+						<dd className="mt-1 text-sm text-text-primary">{user?.username?.username}</dd>
 					</div>
 					<div className="sm:col-span-1">
 						<dt className="text-sm font-medium text-text-secondary">Email</dt>
@@ -50,7 +73,7 @@ export default function Profile() {
 					</div>
 					<div className="sm:col-span-1">
 						<dt className="text-sm font-medium text-text-secondary">Location</dt>
-						<dd className="mt-1 text-sm text-text-primary">{user.userLocation?.city}</dd>
+						<dd className="mt-1 text-sm text-text-primary">{user?.userLocation?.city}</dd>
 					</div>
 					<div className="sm:col-span-1">
 						<dt className="text-sm font-medium text-text-secondary">Find me</dt>
@@ -60,7 +83,7 @@ export default function Profile() {
 						<dt className="text-sm font-medium text-text-secondary">About</dt>
 						<dd
 							className="mt-1 max-w-prose space-y-5 text-sm text-text-primary"
-							dangerouslySetInnerHTML={{ __html: user.about?.about }}
+							dangerouslySetInnerHTML={{ __html: user?.about?.about }}
 						/>
 					</div>
 				</dl>
@@ -91,3 +114,11 @@ export default function Profile() {
 		</div>
 	);
 }
+
+export const handle = {
+	breadcrumb: ({ params: { username } }: LoaderFunctionArgs) => (
+		<Link prefetch="intent" className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to={`/${username}`}>
+			Profile
+		</Link>
+	),
+};
