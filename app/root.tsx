@@ -173,14 +173,6 @@ export function meta({ data }: Parameters<MetaFunction<typeof loader>>[0]): Retu
 	];
 }
 
-export const handle = {
-	breadcrumb: () => (
-		<Link className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to="/">
-			Home
-		</Link>
-	),
-};
-
 export function ErrorBoundary() {
 	return (
 		<App theme={null}>

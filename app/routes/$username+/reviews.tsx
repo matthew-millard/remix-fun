@@ -10,11 +10,7 @@ export default function Reviews() {
 }
 export const handle = {
 	breadcrumb: ({ params: { username } }: LoaderFunctionArgs) => (
-		<Link
-			prefetch="intent"
-			className="ml-4 text-sm  text-gray-400 hover:text-gray-500"
-			to={`/${username}/profile/reviews`}
-		>
+		<Link prefetch="intent" className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to={`/${username}/reviews`}>
 			Reviews
 		</Link>
 	),

@@ -65,7 +65,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		select: { username: { select: { username: true } } },
 	});
 
-	const redirectToLink = redirectTo ? safeRedirect(redirectTo) : `/${username.username}/profile`;
+	const redirectToLink = redirectTo ? safeRedirect(redirectTo) : `/${username.username}`;
 
 	const cookieSession = await getSession(request);
 	cookieSession.set(sessionKey, session.id);
@@ -255,11 +255,19 @@ export default function LoginRoute() {
 
 export const meta: MetaFunction = () => {
 	return [
-		{ title: 'BarFly | Log In' },
+		{ title: 'Barfly | Log In' },
 		{
 			name: 'description',
 			content:
-				"Log In to your BarFly account. Don't have an account? Sign up for free to access exclusive features and content.",
+				"Log In to your Barfly account. Don't have an account? Sign up for free to access exclusive features and content.",
 		},
 	];
+};
+
+export const handle = {
+	breadcrumb: () => (
+		<Link prefetch="intent" className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to={`/login`}>
+			Login
+		</Link>
+	),
 };

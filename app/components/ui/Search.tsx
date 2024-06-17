@@ -104,7 +104,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = true, 
 						<DialogPanel className="mx-auto max-w-3xl transform divide-y divide-border-tertiary overflow-hidden rounded-md bg-bg-secondary shadow-2xl ring-1 ring-inset ring-border-tertiary transition-all  ">
 							<Combobox<User>
 								onChange={(user: User) => {
-									navigate(`/${user.username}/profile`);
+									navigate(`/${user.username}`);
 									closeSearch();
 								}}
 								onClose={() => setQuery('')}
@@ -223,7 +223,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = true, 
 																</dd>
 															</dl>
 															<Link
-																to={`/${activeOption.username}/profile`}
+																to={`/${activeOption.username}`}
 																onClick={closeSearch}
 																className="mt-6 flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
 															>

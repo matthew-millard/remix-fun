@@ -1,5 +1,5 @@
 import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from '@remix-run/node';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, Link, useLoaderData } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { getPasswordHash, requireAnonymous } from '~/utils/auth.server';
@@ -165,3 +165,11 @@ export default function ResetPasswordRoute() {
 		</Form>
 	);
 }
+
+export const handle = {
+	breadcrumb: () => (
+		<Link prefetch="intent" className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to={`/reset-password`}>
+			Reset Password
+		</Link>
+	),
+};

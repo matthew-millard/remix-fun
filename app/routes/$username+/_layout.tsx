@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-
 import { EnvelopeIcon } from '@heroicons/react/20/solid';
 import { Link, Outlet, useLoaderData } from '@remix-run/react';
 import { LoaderFunctionArgs } from '@remix-run/node';
@@ -41,7 +40,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	};
 }
 
-export default function ProfileRoute() {
+export default function ProfileLayoutRoute() {
 	const data = useLoaderData<typeof loader>();
 
 	const fullName = data.user.firstName + ' ' + data.user.lastName;
@@ -50,11 +49,11 @@ export default function ProfileRoute() {
 	const tabs = [
 		{
 			name: 'Profile',
-			href: `/${data.user.username.username}/profile`,
+			href: `/${data.user.username.username}`,
 			current: true,
 		},
-		{ name: 'Favourite Bars', href: `/${data.user.username.username}/profile/favourite-bars`, current: false },
-		{ name: 'Reviews', href: `/${data.user.username.username}/profile/reviews`, current: false },
+		{ name: 'Favourite Bars', href: `/${data.user.username.username}/favourite-bars`, current: false },
+		{ name: 'Reviews', href: `/${data.user.username.username}/reviews`, current: false },
 	];
 
 	const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
@@ -142,7 +141,6 @@ export default function ProfileRoute() {
 									</div>
 								</div>
 							</div>
-
 							<Outlet />
 						</article>
 					</main>
@@ -154,8 +152,8 @@ export default function ProfileRoute() {
 
 export const handle = {
 	breadcrumb: ({ params: { username } }: LoaderFunctionArgs) => (
-		<Link prefetch="intent" className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to={`/${username}/profile`}>
-			Profile
+		<Link prefetch="intent" className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to={`/${username}`}>
+			{username}
 		</Link>
 	),
 };
