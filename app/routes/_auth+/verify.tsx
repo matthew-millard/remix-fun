@@ -14,13 +14,14 @@ import { sendEmail } from '~/utils/email.server';
 import { invariant } from '~/utils/misc';
 import EmailChangedNotification from 'packages/transactional/emails/EmailChangedNotification';
 import { redirectWithToast } from '~/utils/toast.server';
+import { twoFAVerifyVerificationType } from '../$username_+/settings+/two-factor-authentication+/verify';
 
 export const codeQueryParam = 'code';
 export const typeQueryParam = 'type';
 export const targetQueryParam = 'target';
 export const redirectToQueryParam = 'redirectTo';
 
-const types = ['signup', 'reset-password', 'change-email'] as const;
+const types = ['signup', 'reset-password', 'change-email', '2fa'] as const;
 const verificationTypeSchema = z.enum(types);
 export type VerificationTypes = z.infer<typeof verificationTypeSchema>;
 
@@ -56,7 +57,15 @@ export async function action({ request }: ActionFunctionArgs) {
 	return validateRequest(request, formData);
 }
 
-export async function isCodeValid({ code, type, target }: { code: string; type: VerificationTypes; target: string }) {
+export async function isCodeValid({
+	code,
+	type,
+	target,
+}: {
+	code: string;
+	type: VerificationTypes | typeof twoFAVerifyVerificationType;
+	target: string;
+}) {
 	const verification = await prisma.verification.findUnique({
 		where: {
 			target_type: {
@@ -134,6 +143,9 @@ async function validateRequest(request: Request, body: URLSearchParams | FormDat
 
 		case 'change-email': {
 			return handleChangeEmailVerification({ request, submission });
+		}
+		case '2fa': {
+			throw new Error('Not implemented');
 		}
 	}
 }

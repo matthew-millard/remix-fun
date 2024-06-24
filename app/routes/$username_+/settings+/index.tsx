@@ -571,7 +571,7 @@ export default function SettingsRoute() {
 	}
 
 	return (
-		<div className="mx-auto max-w-3xl px-6">
+		<div className="mx-auto max-w-3xl">
 			<div>
 				<div className="space-y-12">
 					<div className="border-b border-border-tertiary pb-4">

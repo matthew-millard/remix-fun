@@ -1,6 +1,9 @@
 import { ShieldCheckIcon } from '@heroicons/react/16/solid';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { Link, Outlet } from '@remix-run/react';
+import { VerificationTypes } from '~/routes/_auth+/verify';
+
+export const twoFAVerificationType = '2fa' satisfies VerificationTypes;
 
 export default function TwoFactorAuthLayoutRoute() {
 	return <Outlet />;

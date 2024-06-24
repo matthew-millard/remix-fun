@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import Search from './ui/Search';
 
 export default function MagnifyingGlass() {
+	const searchInputId = useId();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 	function openSearch() {
@@ -10,10 +11,14 @@ export default function MagnifyingGlass() {
 
 	function closeSearch() {
 		setIsSearchOpen(false);
+		// Defocus the button
+		setTimeout(() => {
+			document.getElementById(searchInputId)?.blur();
+		}, 0);
 	}
 	return (
 		<>
-			<button type="button" className="hover  p-1 text-gray-400  hover:text-gray-500 " onClick={openSearch}>
+			<button id={searchInputId} type="button" className="p-1 text-gray-400  hover:text-gray-500 " onClick={openSearch}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					fill="none"
