@@ -10,10 +10,10 @@ export const handle = {
 	breadcrumb: ({ params: { username } }: LoaderFunctionArgs) => (
 		<Link
 			prefetch="intent"
-			className="ml-4 text-sm  text-gray-400 hover:text-gray-500"
+			className="ml-1 text-xs text-gray-400 hover:text-gray-500  lg:ml-4 lg:text-sm"
 			to={`/${username}/settings/two-factor-authentication`}
 		>
-			<ShieldCheckIcon className="-mt-1 mr-1 inline-block h-5 w-5" />
+			<ShieldCheckIcon className="-mt-1 mr-1 inline-block h-4 w-4 lg:h-5 lg:w-5" />
 			2FA
 		</Link>
 	),

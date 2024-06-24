@@ -266,7 +266,11 @@ export const meta: MetaFunction = () => {
 
 export const handle = {
 	breadcrumb: () => (
-		<Link prefetch="intent" className="ml-4 text-sm  text-gray-400 hover:text-gray-500" to={`/login`}>
+		<Link
+			prefetch="intent"
+			className="ml-1 text-xs text-gray-400 hover:text-gray-500  lg:ml-4 lg:text-sm"
+			to={`/login`}
+		>
 			Login
 		</Link>
 	),
