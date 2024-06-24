@@ -15,7 +15,7 @@ export const handle = {
 	breadcrumb: ({ params: { username } }: LoaderFunctionArgs) => (
 		<Link
 			prefetch="intent"
-			className="ml-4 text-sm  text-gray-400 hover:text-gray-500"
+			className="ml-1 text-xs text-gray-400 hover:text-gray-500  lg:ml-4 lg:text-sm"
 			to={`/${username}/settings/two-factor-authentication/disable`}
 		>
 			Disable

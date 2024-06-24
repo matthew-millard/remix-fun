@@ -19,7 +19,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	const formData = await request.formData();
 	await checkCSRF(formData, request.headers);
 	const username = params.username;
-	const { secret, period, algorithm, charSet, digits } = generateTOTP({ period: 10 });
+	const { secret, period, algorithm, charSet, digits } = generateTOTP({ period: 10, digits: 5 });
 
 	const verificationData = {
 		type: twoFAVerifyVerificationType,

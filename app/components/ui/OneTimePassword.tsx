@@ -19,7 +19,7 @@ export default function OneTimePassword({ otpUri }: { otpUri: string }) {
 			{!showOTPUri ? (
 				<Form action="" method="post">
 					<div className="flex flex-col items-center gap-y-8 px-8 py-12">
-						<div className="flex w-full max-w-sm flex-row items-center justify-between">
+						<div className="flex w-full max-w-sm flex-row items-center justify-center gap-2">
 							<OneTimePasswordInput autoFocus={true} />
 							<OneTimePasswordInput />
 							<OneTimePasswordInput />
@@ -76,9 +76,9 @@ export default function OneTimePassword({ otpUri }: { otpUri: string }) {
 
 export function OneTimePasswordInput({ autoFocus = false }: { autoFocus?: boolean }) {
 	return (
-		<div className="h-16 w-16 ">
+		<div className="h-12 w-12 lg:h-14 lg:w-14">
 			<input
-				className="flex h-full w-full flex-col items-center justify-center rounded-lg border border-bg-secondary bg-gray-50  text-center text-4xl font-bold text-indigo-700 outline-none ring-indigo-700 focus:bg-white focus:ring-2"
+				className="flex h-full w-full flex-col items-center justify-center rounded-lg border border-bg-secondary bg-gray-50  text-center text-xl font-bold text-indigo-700 outline-none ring-indigo-700 focus:bg-white focus:ring-2 lg:text-2xl"
 				type="text"
 				name=""
 				id=""

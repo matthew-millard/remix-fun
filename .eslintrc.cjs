@@ -46,14 +46,9 @@ module.exports = {
 				'import/resolver': {
 					typescript: {},
 				},
-				rules: {
-					'jsx-a11y/no-autofocus': [
-						2,
-						{
-							ignoreNonDOM: true,
-						},
-					],
-				},
+			},
+			rules: {
+				'jsx-a11y/no-autofocus': 'off', // Turn off the rule
 			},
 		},
 

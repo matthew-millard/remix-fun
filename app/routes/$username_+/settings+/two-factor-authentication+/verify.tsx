@@ -17,7 +17,7 @@ import OneTimePassword from '~/components/ui/OneTimePassword';
 export const twoFAVerifyVerificationType = '2fa-verify';
 
 const VerifySchema = z.object({
-	code: z.string().min(6).max(6),
+	code: z.string().min(5).max(5),
 });
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -122,11 +122,11 @@ export default function TwoFactorAuthVerifyRoute() {
 	});
 
 	return (
-		<div className="flex justify-center pb-12 pt-4">
+		<div className="flex justify-center lg:pb-12 lg:pt-4">
 			<div className="w-full max-w-lg overflow-hidden rounded-xl bg-bg-secondary shadow-xl">
 				<div className="flex flex-col items-center justify-center   px-8 pt-12">
 					<div className="flex flex-col items-center justify-center gap-y-12 text-3xl font-semibold">
-						<h2 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+						<h2 className="text-2xl font-bold tracking-tight text-text-primary lg:text-3xl">
 							Set up authenticator app
 						</h2>
 						<img alt="qr code" src={data.qrCode} className="h-56 w-56 rounded-xl" />
@@ -145,7 +145,7 @@ export const handle = {
 	breadcrumb: ({ params: { username } }: LoaderFunctionArgs) => (
 		<Link
 			prefetch="intent"
-			className="ml-4 text-sm  text-gray-400 hover:text-gray-500"
+			className="ml-1 text-xs text-gray-400 hover:text-gray-500  lg:ml-4 lg:text-sm"
 			to={`/${username}/settings/two-factor-authentication/verify`}
 		>
 			Verify
