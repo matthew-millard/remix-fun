@@ -3,8 +3,7 @@ import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { getTOTPAuthUri } from '@epic-web/totp';
 import * as QRCode from 'qrcode';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from '@remix-run/node';
-import { Form, Link, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
-import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
+import { Link, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { z } from 'zod';
 import { useIsPendingWithoutIntent } from '~/hooks/useIsPending';
 import { requireUserId } from '~/utils/auth.server';
@@ -13,10 +12,12 @@ import { prisma } from '~/utils/db.server';
 import { getDomainUrl } from '~/utils/misc';
 import { redirectWithToast } from '~/utils/toast.server';
 import OneTimePassword from '~/components/ui/OneTimePassword';
+import { isCodeValid } from '~/routes/_auth+/verify';
+import { twoFAVerificationType } from './_layout';
 
 export const twoFAVerifyVerificationType = '2fa-verify';
 
-const VerifySchema = z.object({
+export const VerifySchema = z.object({
 	code: z.string().min(5).max(5),
 });
 
@@ -69,25 +70,32 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		});
 		return redirect(`/${username}/settings/two-factor-authentication`);
 	}
+
 	const submission = await parseWithZod(formData, {
-		schema: () =>
-			VerifySchema.transform(async (data, ctx) => {
-				const codeIsValid = false;
-				if (!codeIsValid) {
-					ctx.addIssue({
-						path: ['code'],
-						code: z.ZodIssueCode.custom,
-						message: `Invalid code`,
-					});
-					return z.NEVER;
-				}
-			}),
+		schema: VerifySchema.transform(async (data, ctx) => {
+			// Check if the code is valid
+			const codeIsValid = await isCodeValid({
+				code: data.code,
+				target: userId,
+				type: twoFAVerifyVerificationType,
+			});
+
+			if (!codeIsValid) {
+				ctx.addIssue({
+					path: ['code'],
+					code: z.ZodIssueCode.custom,
+					message: `Invalid code`,
+				});
+				return z.NEVER;
+			}
+			return data;
+		}),
 
 		async: true,
 	});
 
 	if (submission.status !== 'success') {
-		return json(submission.reply({ formErrors: ['Submission failed'] }), {
+		return json(submission.reply({ formErrors: ['Invalid code'] }), {
 			status: submission.status === 'error' ? 400 : 200,
 		});
 	}
@@ -96,6 +104,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	}
 
 	// we'll need to update the verification type here...
+
+	await prisma.verification.update({
+		where: {
+			target_type: { type: twoFAVerifyVerificationType, target: userId },
+		},
+		data: {
+			expiresAt: null,
+			type: twoFAVerificationType,
+		},
+	});
 
 	throw await redirectWithToast(`/${username}/settings/two-factor-authentication`, {
 		type: 'success',
@@ -106,20 +124,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 export default function TwoFactorAuthVerifyRoute() {
 	const data = useLoaderData<typeof loader>();
-	const actionData = useActionData();
-	const navigation = useNavigation();
-
-	const isPending = useIsPendingWithoutIntent();
-	const pendingIntent = isPending ? navigation.formData?.get('intent') : null;
-
-	const [form, fields] = useForm({
-		id: 'verify-form',
-		constraint: getZodConstraint(VerifySchema),
-		lastResult: actionData,
-		onValidate({ formData }) {
-			return parseWithZod(formData, { schema: VerifySchema });
-		},
-	});
 
 	return (
 		<div className="flex justify-center lg:pb-12 lg:pt-4">
