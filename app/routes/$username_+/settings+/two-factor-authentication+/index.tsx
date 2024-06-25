@@ -1,17 +1,18 @@
 import { generateTOTP } from '@epic-web/totp';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from '@remix-run/node';
-import { Form, Link, useLoaderData, useNavigate } from '@remix-run/react';
+import { Form, useLoaderData, useNavigate } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { requireUserId } from '~/utils/auth.server';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { twoFAVerifyVerificationType } from './verify';
 import { twoFAVerificationType } from './_layout';
+import { DialogBox } from '~/components';
+import { useState } from 'react';
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const userId = await requireUserId(request);
-	const username = params.username;
 	const verification = await prisma.verification.findUnique({
 		where: {
 			target_type: {
@@ -24,14 +25,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 		},
 	});
 
-	return json({ is2FAEnabled: Boolean(verification), username });
+	return json({ is2FAEnabled: Boolean(verification) });
 }
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const userId = await requireUserId(request);
 	const formData = await request.formData();
 	await checkCSRF(formData, request.headers);
-	const username = params.username;
+	const { username } = await prisma.user.findUnique({
+		where: {
+			id: userId,
+		},
+		select: {
+			username: {
+				select: {
+					username: true,
+				},
+			},
+		},
+	});
+
 	const { secret, period, algorithm, charSet, digits } = generateTOTP({ period: 10, digits: 5 });
 
 	const verificationData = {
@@ -56,15 +69,28 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		create: verificationData,
 	});
 
-	return redirect(`/${username}/settings/two-factor-authentication/verify`);
+	return redirect(`/${username.username}/settings/two-factor-authentication/verify`);
 }
 
 export default function TwoFactorAuthRoute() {
-	const { is2FAEnabled, username } = useLoaderData<typeof loader>();
+	const { is2FAEnabled } = useLoaderData<typeof loader>();
+	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const navigate = useNavigate();
+
+	function showDialog(bool: boolean) {
+		setIsDialogOpen(bool);
+	}
 
 	const handleBackClick = () => {
 		navigate('../', { preventScrollReset: true });
+	};
+
+	const dialogProps = {
+		actionUrl: `/disable-two-factor-authentication`,
+		showDialog,
+		open: isDialogOpen,
+		title: 'Disable 2FA',
+		description: 'Are you sure you want to disable two-factor authentication? You can enable it again at any time.',
 	};
 
 	return (
@@ -77,15 +103,16 @@ export default function TwoFactorAuthRoute() {
 						</h1>
 						<p className="mx-auto mt-6 max-w-xl text-base leading-8 text-text-secondary sm:text-lg">
 							Disabling two-factor authentication will make your account less secure. You will only need your password
-							to log in. If you disable 2FA, you can enable it again at any time.
+							to log in.
 						</p>
 						<div className="mt-10 flex items-center justify-center gap-x-6">
-							<Link
-								to={`/${username}/settings/two-factor-authentication/disable`}
+							<button
+								type="button"
+								onClick={() => showDialog(true)}
 								className="rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white dark:bg-white dark:text-indigo-600 dark:hover:bg-indigo-50"
 							>
 								Disable 2FA
-							</Link>
+							</button>
 
 							<button
 								onClick={handleBackClick}
@@ -98,6 +125,7 @@ export default function TwoFactorAuthRoute() {
 								Back{' '}
 							</button>
 						</div>
+						<DialogBox {...dialogProps} />
 					</div>
 				</div>
 			) : (

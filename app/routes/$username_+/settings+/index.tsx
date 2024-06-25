@@ -555,6 +555,15 @@ export default function SettingsRoute() {
 	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 	const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<string | null>(null);
 
+	const dialogProps = {
+		actionUrl: '/delete-account',
+		open: isDialogOpen,
+		showDialog,
+		title: 'Delete account',
+		description: `Are you sure you want to delete your account? All of your data will be permanently removed.
+		This action cannot be undone.`,
+	};
+
 	useEffect(() => {
 		if (data.user?.profileImage?.id) {
 			setProfileImageUrl(`/resources/images/${data.user.profileImage.id}/profile`);
@@ -1188,7 +1197,7 @@ export default function SettingsRoute() {
 					</button>
 				</div>
 			</div>
-			<DialogBox showDialog={showDialog} open={isDialogOpen} />
+			<DialogBox {...dialogProps} />
 		</div>
 	);
 }
