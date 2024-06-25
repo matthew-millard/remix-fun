@@ -14,6 +14,13 @@ import { LoginEmailSchema, PasswordSchema } from '~/utils/validation-schemas';
 import { getSession, sessionStorage } from '~/utils/session.server';
 import type { MetaFunction } from '@remix-run/node';
 import { prisma } from '~/utils/db.server';
+import { twoFAVerificationType } from '../$username_+/settings+/two-factor-authentication+/_layout';
+import { verifySessionStorage } from '~/utils/verification.server';
+import { getRedirectToUrl, invariant } from '~/utils/misc';
+import { redirectWithToast } from '~/utils/toast.server';
+
+const unverifiedSessionIdKey = 'unverified-session-id';
+const rememberMeKey = 'remember-me';
 
 const LoginFormSchema = z.object({
 	email: LoginEmailSchema,
@@ -21,6 +28,44 @@ const LoginFormSchema = z.object({
 	rememberMe: z.boolean().optional(),
 	redirectTo: z.string().optional(),
 });
+
+export async function handleVerification({ request, submission }: { request: Request; submission: any }) {
+	invariant(submission.value, 'Submission.value should be defined by now');
+	const cookieSession = await sessionStorage.getSession(request.headers.get('cookie'));
+	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
+	const unverifiedSessionId = verifySession.get(unverifiedSessionIdKey);
+	const remember = verifySession.get(rememberMeKey);
+
+	const session = await prisma.session.findUnique({
+		where: {
+			id: unverifiedSessionId,
+		},
+		select: { expirationDate: true },
+	});
+
+	if (!session) {
+		throw await redirectWithToast('/login', {
+			type: 'error',
+			title: 'Invalid session',
+			description: 'Could not find session to verify. Please try again.',
+		});
+	}
+
+	cookieSession.set(sessionKey, unverifiedSessionId);
+	const { redirectTo } = submission.value;
+
+	const headers = new Headers();
+	headers.append(
+		'set-cookie',
+		await sessionStorage.commitSession(cookieSession, {
+			expires: remember ? session.expirationDate : undefined,
+		}),
+	);
+
+	headers.append('set-cookie', await verifySessionStorage.destroySession(verifySession));
+
+	return redirect(safeRedirect(redirectTo), { headers });
+}
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	await requireAnonymous(request);
@@ -58,25 +103,58 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 	}
 
-	const { session, rememberMe, redirectTo, email } = submission.value;
+	const { session, rememberMe, redirectTo } = submission.value;
 
-	const { username } = await prisma.user.findUnique({
-		where: { email },
-		select: { username: { select: { username: true } } },
-	});
-
-	const redirectToLink = redirectTo ? safeRedirect(redirectTo) : `/${username.username}`;
-
-	const cookieSession = await getSession(request);
-	cookieSession.set(sessionKey, session.id);
-
-	return redirect(redirectToLink, {
-		headers: {
-			'set-cookie': await sessionStorage.commitSession(cookieSession, {
-				expires: rememberMe ? session.expirationDate : undefined,
-			}),
+	const verification = await prisma.verification.findUnique({
+		where: {
+			target_type: {
+				target: session.userId,
+				type: twoFAVerificationType,
+			},
+		},
+		select: {
+			id: true,
 		},
 	});
+
+	const has2FAEnabled = Boolean(verification);
+
+	if (has2FAEnabled) {
+		const verifySession = await verifySessionStorage.getSession();
+		verifySession.set('unverified-session-id', session.id);
+		verifySession.set('remember-me', rememberMe);
+
+		const redirectUrl = getRedirectToUrl({
+			request,
+			target: session.userId,
+			type: twoFAVerificationType,
+			redirectTo,
+		});
+
+		return redirect(redirectUrl.toString(), {
+			headers: {
+				'set-cookie': await verifySessionStorage.commitSession(verifySession),
+			},
+		});
+	} else {
+		const { username } = await prisma.user.findUniqueOrThrow({
+			where: { id: session.userId },
+			select: { username: { select: { username: true } } },
+		});
+
+		const redirectToLink = redirectTo ? safeRedirect(redirectTo) : `/${username.username}`;
+
+		const cookieSession = await getSession(request);
+		cookieSession.set(sessionKey, session.id);
+
+		return redirect(redirectToLink, {
+			headers: {
+				'set-cookie': await sessionStorage.commitSession(cookieSession, {
+					expires: rememberMe ? session.expirationDate : undefined,
+				}),
+			},
+		});
+	}
 }
 
 export default function LoginRoute() {

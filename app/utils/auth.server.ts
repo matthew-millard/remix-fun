@@ -168,7 +168,7 @@ export async function login({ email, password }: { email: User['email']; passwor
 			userId: user.id,
 			expirationDate: getSessionExpirationDate(),
 		},
-		select: { id: true, expirationDate: true },
+		select: { id: true, expirationDate: true, userId: true },
 	});
 
 	return session;

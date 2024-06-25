@@ -24,7 +24,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 		},
 	});
 
-	console.log('verification', verification);
 	return json({ is2FAEnabled: Boolean(verification), username });
 }
 
@@ -65,7 +64,6 @@ export default function TwoFactorAuthRoute() {
 	const navigate = useNavigate();
 
 	const handleBackClick = () => {
-		console.log('Navigating with preventScrollReset: true');
 		navigate('../', { preventScrollReset: true });
 	};
 
