@@ -103,8 +103,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		return json({ status: 'error', submission } as const, { status: 400 });
 	}
 
-	// we'll need to update the verification type here...
-
 	await prisma.verification.update({
 		where: {
 			target_type: { type: twoFAVerifyVerificationType, target: userId },
