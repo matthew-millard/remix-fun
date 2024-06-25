@@ -7,11 +7,25 @@ import { requireUserId } from '~/utils/auth.server';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { twoFAVerifyVerificationType } from './verify';
+import { twoFAVerificationType } from './_layout';
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-	await requireUserId(request);
+	const userId = await requireUserId(request);
 	const username = params.username;
-	return json({ is2FAEnabled: false, username });
+	const verification = await prisma.verification.findUnique({
+		where: {
+			target_type: {
+				target: userId,
+				type: twoFAVerificationType,
+			},
+		},
+		select: {
+			id: true,
+		},
+	});
+
+	console.log('verification', verification);
+	return json({ is2FAEnabled: Boolean(verification), username });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -32,8 +46,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		expiresAt: new Date(Date.now() + period * 60 * 1000),
 	};
 
-	console.log('verificationData', verificationData);
-
 	await prisma.verification.upsert({
 		where: {
 			target_type: {
@@ -51,6 +63,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export default function TwoFactorAuthRoute() {
 	const { is2FAEnabled, username } = useLoaderData<typeof loader>();
 	const navigate = useNavigate();
+
+	const handleBackClick = () => {
+		console.log('Navigating with preventScrollReset: true');
+		navigate('../', { preventScrollReset: true });
+	};
+
 	return (
 		<div>
 			{is2FAEnabled ? (
@@ -61,7 +79,7 @@ export default function TwoFactorAuthRoute() {
 						</h1>
 						<p className="mx-auto mt-6 max-w-xl text-base leading-8 text-text-secondary sm:text-lg">
 							Disabling two-factor authentication will make your account less secure. You will only need your password
-							to log in.
+							to log in. If you disable 2FA, you can enable it again at any time.
 						</p>
 						<div className="mt-10 flex items-center justify-center gap-x-6">
 							<Link
@@ -72,7 +90,7 @@ export default function TwoFactorAuthRoute() {
 							</Link>
 
 							<button
-								onClick={() => navigate('../')}
+								onClick={handleBackClick}
 								className="flex flex-row items-center gap-x-1 text-sm font-semibold leading-6 text-text-notify"
 								type="button"
 							>
@@ -109,7 +127,7 @@ export default function TwoFactorAuthRoute() {
 								</button>
 							</Form>
 							<button
-								onClick={() => navigate('../')}
+								onClick={handleBackClick}
 								className="flex flex-row items-center gap-x-1 text-sm font-semibold leading-6 text-text-notify"
 								type="button"
 							>

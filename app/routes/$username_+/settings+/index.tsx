@@ -36,6 +36,7 @@ import { prisma } from '~/utils/db.server';
 import { redirectWithToast } from '~/utils/toast.server';
 import { z } from 'zod';
 import { useIsPending } from '~/hooks/useIsPending';
+import { twoFAVerificationType } from './two-factor-authentication+/_layout';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -437,12 +438,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		},
 	});
 
+	const verification = await prisma.verification.findUnique({
+		where: {
+			target_type: {
+				target: userId,
+				type: twoFAVerificationType,
+			},
+		},
+		select: {
+			id: true,
+		},
+	});
+
 	if (!user) {
 		return redirect('/login');
 	}
 
 	const data = {
 		user,
+		is2FAEnabled: Boolean(verification),
 	};
 
 	return json(data);
@@ -1077,24 +1091,43 @@ export default function SettingsRoute() {
 					</div>
 				</div>
 			</div>
-			<div className=" flex flex-col border-b border-border-tertiary  py-8">
-				<Link
-					to={`/${data.user.username.username}/settings/two-factor-authentication`}
-					className=" flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between"
-				>
-					<div>
-						<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
-						<p className="mt-1 text-sm leading-6 text-text-secondary">
-							Add additional security to your account using two-factor authentication
-						</p>
+			<div className=" flex flex-col border-b border-border-tertiary py-8">
+				{data.is2FAEnabled ? (
+					<div className=" flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
+						<div>
+							<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
+							<p className="mt-1 text-sm leading-6 text-text-secondary">
+								Disabling two-factor authentication will make your account less secure.
+							</p>
+						</div>
+						<Link to={`/${data.user.username.username}/settings/two-factor-authentication`} className=" flex self-end">
+							<button
+								type="submit"
+								className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+							>
+								Disable 2FA
+							</button>
+						</Link>
 					</div>
-					<button
-						type="submit"
-						className=" flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-					>
-						Enable Two-Factor Authentication
-					</button>
-				</Link>
+				) : (
+					<div className=" flex  flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
+						<div>
+							<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
+							<p className="mt-1 text-sm leading-6 text-text-secondary">
+								Add additional security to your account using two-factor authentication
+							</p>
+						</div>
+						<Link to={`/${data.user.username.username}/settings/two-factor-authentication`} className=" flex self-end">
+							<button
+								type="submit"
+								className=" flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+							>
+								Enable Two-Factor Authentication
+							</button>
+						</Link>
+					</div>
+				)}
+
 				<logOutOtherSessionsFetcher.Form
 					method="POST"
 					encType="multipart/form-data"
