@@ -1,3 +1,5 @@
+import { redirectToQueryParam, targetQueryParam, typeQueryParam, VerificationTypes } from '~/routes/_auth+/verify';
+
 /**
  * Does its best to get a string error message from an unknown error.
  */
@@ -67,4 +69,24 @@ export function invariant(condition: any, message: string | (() => string)): ass
 	if (!condition) {
 		throw new Error(typeof message === 'function' ? message() : message);
 	}
+}
+
+export function getRedirectToUrl({
+	request,
+	type,
+	target,
+	redirectTo,
+}: {
+	request: Request;
+	type: VerificationTypes;
+	target: string;
+	redirectTo?: string;
+}) {
+	const redirectToUrl = new URL(`${getDomainUrl(request)}/verify`);
+	redirectToUrl.searchParams.set(typeQueryParam, type);
+	redirectToUrl.searchParams.set(targetQueryParam, target);
+	if (redirectTo) {
+		redirectToUrl.searchParams.set(redirectToQueryParam, redirectTo);
+	}
+	return redirectToUrl;
 }

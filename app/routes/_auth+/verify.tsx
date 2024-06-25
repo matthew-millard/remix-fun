@@ -1,4 +1,4 @@
-import { getFormProps, getInputProps, useForm } from '@conform-to/react';
+import { getFormProps, getInputProps, type Submission, useForm } from '@conform-to/react';
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { verifyTOTP } from '@epic-web/totp';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, MetaFunction, redirect } from '@remix-run/node';
@@ -15,6 +15,8 @@ import { invariant } from '~/utils/misc';
 import EmailChangedNotification from 'packages/transactional/emails/EmailChangedNotification';
 import { redirectWithToast } from '~/utils/toast.server';
 import { twoFAVerifyVerificationType } from '../$username_+/settings+/two-factor-authentication+/verify';
+import React from 'react';
+import { handleVerification as handle2FAVerification } from './login';
 
 export const codeQueryParam = 'code';
 export const typeQueryParam = 'type';
@@ -28,7 +30,7 @@ export type VerificationTypes = z.infer<typeof verificationTypeSchema>;
 export const resetPasswordUserSessionKey = 'user';
 
 const VerifySchema = z.object({
-	[codeQueryParam]: z.string().min(6).max(6),
+	[codeQueryParam]: z.string().min(5).max(6),
 	[typeQueryParam]: verificationTypeSchema,
 	[targetQueryParam]: z.string(),
 	[redirectToQueryParam]: z.string().optional(),
@@ -127,25 +129,30 @@ async function validateRequest(request: Request, body: URLSearchParams | FormDat
 
 	const { target, type } = submission.value;
 
-	await prisma.verification.delete({
-		where: {
-			target_type: { target, type },
-		},
-	});
+	async function deleteVerification() {
+		await prisma.verification.delete({
+			where: {
+				target_type: { target, type },
+			},
+		});
+	}
 
 	switch (type) {
 		case 'signup': {
+			await deleteVerification();
 			return handleOnboardingVerification({ request, target });
 		}
 		case 'reset-password': {
+			await deleteVerification();
 			return handleResetPasswordVerification({ request, target });
 		}
 
 		case 'change-email': {
+			await deleteVerification();
 			return handleChangeEmailVerification({ request, submission });
 		}
 		case '2fa': {
-			throw new Error('Not implemented');
+			return handle2FAVerification({ request, submission });
 		}
 	}
 }
@@ -153,6 +160,7 @@ async function validateRequest(request: Request, body: URLSearchParams | FormDat
 export type VerifyFunctionArgs = {
 	request: Request;
 	target: string;
+	submission?: Submission<z.infer<typeof VerifySchema>>;
 };
 
 export async function handleResetPasswordVerification({ request, target }: VerifyFunctionArgs) {
@@ -176,7 +184,13 @@ export async function handleResetPasswordVerification({ request, target }: Verif
 	});
 }
 
-export async function handleChangeEmailVerification({ request, submission }: { request: Request; submission: any }) {
+export async function handleChangeEmailVerification({
+	request,
+	submission,
+}: {
+	request: Request;
+	submission: Submission;
+}) {
 	const verifySession = await verifySessionStorage.getSession(request.headers.get('cookie'));
 	const newEmail = verifySession.get(newEmailAddressSessionKey);
 
@@ -251,6 +265,7 @@ export async function handleOnboardingVerification({ request, target }: { reques
 export default function VerifyRoute() {
 	const lastResult = useActionData();
 	const [searchParams] = useSearchParams();
+	const type = verificationTypeSchema.parse(searchParams.get(typeQueryParam));
 
 	const [form, fields] = useForm({
 		id: 'verify-form',
@@ -268,14 +283,34 @@ export default function VerifyRoute() {
 			return parseWithZod(formData, { schema: VerifySchema });
 		},
 	});
+
+	const checkEmail = (
+		<>
+			<h3 className="text-base font-semibold leading-6 text-text-primary">Please verify your account</h3>
+			<div className="mt-2 max-w-xl text-sm text-text-secondary">
+				<p>We&apos;ve sent you a code to verify your email address</p>
+			</div>
+		</>
+	);
+
+	const headings: Record<VerificationTypes, React.ReactNode> = {
+		signup: checkEmail,
+		'reset-password': checkEmail,
+		'change-email': checkEmail,
+		'2fa': (
+			<>
+				<h3 className="text-base font-semibold leading-6 text-text-primary">Please verify your account</h3>
+				<div className="mt-2 max-w-xl text-sm text-text-secondary">
+					<p>Please enter your 2FA code to verify your identity.</p>
+				</div>
+			</>
+		),
+	};
 	return (
 		<div className=" flex h-full flex-col justify-center p-6">
 			<div className="mx-auto max-w-2xl rounded-lg bg-bg-alt shadow-lg">
 				<div className="p-6">
-					<h3 className="text-base font-semibold leading-6 text-text-primary">Please verify your account</h3>
-					<div className="mt-2 max-w-xl text-sm text-text-secondary">
-						<p>We&apos;ve sent you a code to verify your email address</p>
-					</div>
+					<div>{headings[type]}</div>
 					<Form {...getFormProps(form)} method="POST" className="mt-5 sm:flex sm:items-center">
 						<AuthenticityTokenInput />
 						<div className=" flex w-full flex-col sm:max-w-xs">
