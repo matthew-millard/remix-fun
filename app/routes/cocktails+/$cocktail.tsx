@@ -1,4 +1,4 @@
-import { CheckIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { MetaFunction } from '@remix-run/node';
 import { Link } from '@remix-run/react';
 import cocktailImageUrl from '~/assets/images/cocktails/old_fashioned.jpg';
@@ -20,15 +20,24 @@ export default function OldFashionedRoute() {
 				</div>
 
 				{/* Image */}
-				<div className="mx-auto p-6 lg:relative lg:row-span-2 lg:p-8 lg:py-28">
+				<figure className="mx-auto p-6 lg:relative lg:row-span-2 lg:p-8 lg:py-28">
 					<div className="lg:sticky lg:top-20">
 						<img
 							className="aspect-square rounded-lg object-cover shadow-xl"
 							src={cocktailImageUrl}
 							alt="old fashioned cocktail"
 						/>
+						<figcaption className="mt-3 flex text-xs text-text-secondary lg:text-sm">
+							<CameraIcon className="h-4 w-4 flex-none text-text-secondary lg:h-5 lg:w-5" aria-hidden="true" />
+							<span className="ml-2">
+								Photograph by{' '}
+								<Link to="/mattmillard" prefetch="intent">
+									<strong className="font-semibold text-text-primary">Matt Millard</strong>
+								</Link>
+							</span>
+						</figcaption>
 					</div>
-				</div>
+				</figure>
 
 				{/* Information & Recipe */}
 				<div className="p-6 lg:p-8">
