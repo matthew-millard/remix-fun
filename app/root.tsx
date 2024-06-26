@@ -142,7 +142,7 @@ export default function AppWithProviders() {
 				<HoneypotProvider {...honeypotProps}>
 					<App theme={theme}>
 						<NavBar />
-						<main className="flex-grow pt-8">
+						<main className="flex-grow lg:pt-4">
 							<Outlet />
 							{toast ? <ShowToast toast={toast} /> : null}
 						</main>
