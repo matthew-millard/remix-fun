@@ -2,6 +2,7 @@ import { CameraIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { MetaFunction } from '@remix-run/node';
 import { Link } from '@remix-run/react';
 import cocktailImageUrl from '~/assets/images/cocktails/old_fashioned.jpg';
+import { PublishedBy } from '~/components';
 
 export default function OldFashionedRoute() {
 	return (
@@ -9,10 +10,13 @@ export default function OldFashionedRoute() {
 			<div className="mx-auto grid max-w-7xl auto-rows-auto lg:grid-cols-2 lg:grid-rows-[auto] lg:gap-x-8">
 				{/* Heading */}
 				<div className=" p-6 lg:p-8">
-					<div className="">
+					<div className="flex flex-col">
+						<div className="mb-4">
+							<PublishedBy />
+						</div>
 						<p className="text-base font-semibold leading-7 text-text-notify">Cocktail</p>
 						<h1 className="mt-2 text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">Old Fashioned</h1>
-						<p className="mt-6 text-xl leading-8 text-text-secondary">
+						<p className="mt-4 text-xl leading-8 text-text-secondary">
 							In the late 19th, the American cocktail scene was awash with new drinks made with all manner of spirits,
 							bitters, fruit juices and syrups, and of course it wasn&apos;t to everybody&apos;s taste.
 						</p>
