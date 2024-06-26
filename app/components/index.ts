@@ -11,6 +11,7 @@ import DialogBox from './Dialog';
 import CoverPhoto from './CoverPhoto';
 import Button from './Button';
 import Spinner from './Spinner';
+import PublishedBy from './PublishedBy';
 
 export {
 	ErrorList,
@@ -26,4 +27,5 @@ export {
 	CoverPhoto,
 	Button,
 	Spinner,
+	PublishedBy,
 };
