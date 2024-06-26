@@ -32,7 +32,10 @@ export default function NavBar() {
 
 	return (
 		<header className="flex-none">
-			<nav className="mx-auto flex max-w-7xl items-center justify-between gap-x-6 p-6 lg:px-8" aria-label="Global">
+			<nav
+				className="mx-auto flex max-w-7xl items-center justify-between gap-x-6  px-6 pb-2 pt-4 lg:px-8"
+				aria-label="Global"
+			>
 				<div className="flex  lg:flex-1">
 					<Logo />
 				</div>
@@ -68,7 +71,7 @@ export default function NavBar() {
 					</button>
 				</div>
 			</nav>
-			<div className="mx-auto max-w-7xl px-6 pb-6 lg:px-8">
+			<div className="mx-auto max-w-7xl px-6 pb-2 lg:px-8">
 				<Breadcrumbs />
 			</div>
 			<Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
