@@ -1,10 +1,57 @@
-import { CameraIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { MetaFunction } from '@remix-run/node';
-import { Link } from '@remix-run/react';
+import { CameraIcon } from '@heroicons/react/24/outline';
+import { json, MetaFunction } from '@remix-run/node';
+import { Link, useLoaderData } from '@remix-run/react';
 import cocktailImageUrl from '~/assets/images/cocktails/old_fashioned.jpg';
-import { PublishedBy } from '~/components';
+import { CocktailRecipe, PublishedBy } from '~/components';
+
+export type Cocktail = {
+	name: string;
+	ingredients: { measurement: string; ingredient: string }[];
+	garnish: string;
+	glass: string;
+	ice: string;
+	proTip: string;
+	preparation: string;
+	image: {
+		url: string;
+		alt: string;
+		photographer: {
+			name: string;
+			url: string;
+		};
+	};
+};
+
+const cocktail: Cocktail = {
+	name: 'Old Fashioned',
+	ingredients: [
+		{ measurement: '2 oz', ingredient: 'Bourbon or rye whiskey' },
+		{ measurement: '1/4 oz', ingredient: '2:1 Demerara syrup' },
+		{ measurement: '2 dashes', ingredient: 'Angostura bitters' },
+		{ measurement: '1 dash', ingredient: "Gaz Regan's Orange bitters" },
+	],
+	garnish: 'Orange twist',
+	glass: 'Rocks glass',
+	ice: 'Block ice',
+	proTip: 'Use 2:1 (by weight) demerara syrup for a richer, more flavorful Old Fashioned.',
+	preparation:
+		'Add all the ingredients into a mixing glass, add ice and stir until well-chilled and diluted. Strain into a rocks glass filled with a large ice cube. Garnish with an orange twist.',
+	image: {
+		url: cocktailImageUrl,
+		alt: 'Old Fashioned cocktail',
+		photographer: {
+			name: 'Matt Millard',
+			url: '/mattmillard',
+		},
+	},
+};
+
+export async function loader() {
+	return json({ cocktail });
+}
 
 export default function OldFashionedRoute() {
+	const { cocktail } = useLoaderData<typeof loader>();
 	return (
 		<div className="">
 			<div className="mx-auto grid max-w-7xl auto-rows-auto lg:grid-cols-2 lg:grid-rows-[auto] lg:gap-x-8">
@@ -15,7 +62,7 @@ export default function OldFashionedRoute() {
 							<PublishedBy />
 						</div>
 						<p className="text-base font-semibold leading-7 text-text-notify">Cocktail</p>
-						<h1 className="mt-2 text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">Old Fashioned</h1>
+						<h1 className="mt-2 text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">{cocktail.name}</h1>
 						<p className="mt-4 text-xl leading-8 text-text-secondary">
 							In the late 19th, the American cocktail scene was awash with new drinks made with all manner of spirits,
 							bitters, fruit juices and syrups, and of course it wasn&apos;t to everybody&apos;s taste.
@@ -28,15 +75,15 @@ export default function OldFashionedRoute() {
 					<div className="lg:sticky lg:top-20">
 						<img
 							className="aspect-square rounded-lg object-cover shadow-xl"
-							src={cocktailImageUrl}
-							alt="old fashioned cocktail"
+							src={cocktail.image.url}
+							alt={cocktail.image.alt}
 						/>
 						<figcaption className="mt-3 flex text-xs text-text-secondary lg:text-sm">
 							<CameraIcon className="h-4 w-4 flex-none text-text-secondary lg:h-5 lg:w-5" aria-hidden="true" />
 							<span className="ml-2">
 								Photograph by{' '}
-								<Link to="/mattmillard" prefetch="intent">
-									<strong className="font-semibold text-text-primary">Matt Millard</strong>
+								<Link to={cocktail.image.photographer.url} prefetch="intent">
+									<strong className="font-semibold text-text-primary">{cocktail.image.photographer.name}</strong>
 								</Link>
 							</span>
 						</figcaption>
@@ -48,46 +95,10 @@ export default function OldFashionedRoute() {
 					<div className="w-fulltext-base leading-7 text-text-secondary lg:col-start-1 lg:row-start-1 lg:w-full">
 						<p>
 							Faucibus commodo massa rhoncus, volutpat. Dignissim sed eget risus enim. Mattis mauris semper sed amet
-							vitae sed turpis id. Id dolor praesent donec est. Odio penatibus risus viverra tellus varius sit neque
-							erat velit. Faucibus commodo massa rhoncus, volutpat. Dignissim sed eget risus enim. Mattis mauris semper
-							sed amet vitae sed turpis id.
+							vitae sed turpis id. Faucibus commodo massa rhoncus, volutpat. Dignissim sed eget risus enim. Mattis
+							mauris semper sed amet vitae sed turpis id.
 						</p>
-						<ul role="list" className="mt-8 space-y-8 text-text-secondary">
-							<li className="flex gap-x-3">
-								<CheckIcon className="mt-1 h-5 w-5 flex-none text-pink-500" aria-hidden="true" />
-								<span>
-									<strong className="font-semibold text-text-primary">Push to deploy.</strong> Lorem ipsum, dolor sit
-									amet consectetur adipisicing elit. Maiores impedit perferendis suscipit eaque, iste dolor cupiditate
-									blanditiis ratione.
-								</span>
-							</li>
-							<li className="flex gap-x-3">
-								<CheckIcon className="mt-1 h-5 w-5 flex-none text-pink-500" aria-hidden="true" />
-								<span>
-									<strong className="font-semibold text-text-primary">SSL certificates.</strong> Anim aute id magna
-									aliqua ad ad non deserunt sunt. Qui irure qui lorem cupidatat commodo.
-								</span>
-							</li>
-							<li className="flex gap-x-3">
-								<CheckIcon className="mt-1 h-5 w-5 flex-none text-pink-500" aria-hidden="true" />
-								<span>
-									<strong className="font-semibold text-text-primary">Database backups.</strong> Ac tincidunt sapien
-									vehicula erat auctor pellentesque rhoncus. Et magna sit morbi lobortis.
-								</span>
-							</li>
-						</ul>
-						<p className="mt-8">
-							Et vitae blandit facilisi magna lacus commodo. Vitae sapien duis odio id et. Id blandit molestie auctor
-							fermentum dignissim. Lacus diam tincidunt ac cursus in vel. Mauris varius vulputate et ultrices hac
-							adipiscing egestas. Iaculis convallis ac tempor et ut. Ac lorem vel integer orci.
-						</p>
-						<h2 className="mt-16 text-2xl font-bold tracking-tight text-text-primary">No server? No problem.</h2>
-						<p className="mt-6">
-							Id orci tellus laoreet id ac. Dolor, aenean leo, ac etiam consequat in. Convallis arcu ipsum urna nibh.
-							Pharetra, euismod vitae interdum mauris enim, consequat vulputate nibh. Maecenas pellentesque id sed
-							tellus mauris, ultrices mauris. Tincidunt enim cursus ridiculus mi. Pellentesque nam sed nullam sed diam
-							turpis ipsum eu a sed convallis diam.
-						</p>
+						<CocktailRecipe cocktail={cocktail} />
 					</div>
 				</div>
 			</div>
@@ -96,9 +107,9 @@ export default function OldFashionedRoute() {
 }
 
 // Meta Function
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
 	return [
-		{ title: 'Barfly | Old Fashioned' },
+		{ title: `Barfly | ${data.cocktail.name}` },
 		{
 			name: 'description',
 			content:
@@ -109,13 +120,17 @@ export const meta: MetaFunction = () => {
 
 // Handle Function
 export const handle = {
-	breadcrumb: () => (
-		<Link
-			prefetch="intent"
-			className="ml-1 text-xs text-gray-400 hover:text-gray-500  lg:ml-4 lg:text-sm"
-			to={`/login`}
-		>
-			Old Fashioned
-		</Link>
-	),
+	breadcrumb: () => {
+		return (
+			<>
+				<Link
+					prefetch="intent"
+					className="ml-1 text-xs text-gray-400 hover:text-gray-500  lg:ml-4 lg:text-sm"
+					to={`/cocktails/${cocktail.name}`.toLowerCase().split(' ').join('-')}
+				>
+					{cocktail.name}
+				</Link>
+			</>
+		);
+	},
 };
