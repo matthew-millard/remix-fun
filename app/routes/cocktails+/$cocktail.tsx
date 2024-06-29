@@ -3,9 +3,13 @@ import { json, MetaFunction } from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
 import cocktailImageUrl from '~/assets/images/cocktails/old_fashioned.jpg';
 import { CocktailRecipe, PublishedBy } from '~/components';
+import profileImageUrl from '~/assets/images/users/witek_wojaczek.jpg';
 
 export type Cocktail = {
+	type: string;
 	name: string;
+	history: string;
+	description: string;
 	ingredients: { measurement: string; ingredient: string }[];
 	garnish: string;
 	glass: string;
@@ -20,10 +24,23 @@ export type Cocktail = {
 			url: string;
 		};
 	};
+	publishedBy: {
+		author: {
+			name: string;
+			href: string;
+			imageUrl: string;
+			alt: string;
+		};
+		date: string;
+		datetime: string;
+	};
 };
 
 const cocktail: Cocktail = {
+	type: 'Cocktail',
 	name: 'Old Fashioned',
+	history: `The term "cocktail" first appeared in print in 1806, defined as a mix of spirits, sugar, water, and bitters. This simple mixture is essentially what the Old Fashioned embodies.`,
+	description: `The Old Fashioned is a well-balanced cocktail with a strong whiskey base. The bitters add a subtle complexity, complementing the sweetness of the sugar. The citrus garnish, if used, adds a refreshing aroma and a hint of brightness. The overall flavor is rich, slightly sweet, and deeply satisfying, making it a favorite for whiskey enthusiasts and cocktail purists alike.`,
 	ingredients: [
 		{ measurement: '2 oz', ingredient: 'Bourbon or rye whiskey' },
 		{ measurement: '1/4 oz', ingredient: '2:1 Demerara syrup' },
@@ -44,13 +61,23 @@ const cocktail: Cocktail = {
 			url: '/mattmillard',
 		},
 	},
+	publishedBy: {
+		author: {
+			name: 'Witek Wojaczek',
+			href: '/witekwojaczek',
+			imageUrl: profileImageUrl,
+			alt: 'Witek Wojaczek profile image',
+		},
+		date: 'Jun 26, 2024',
+		datetime: '2024-06-26',
+	},
 };
 
 export async function loader() {
 	return json({ cocktail });
 }
 
-export default function OldFashionedRoute() {
+export default function CocktailRoute() {
 	const { cocktail } = useLoaderData<typeof loader>();
 	return (
 		<div className="">
@@ -59,14 +86,11 @@ export default function OldFashionedRoute() {
 				<div className=" p-6 lg:p-8">
 					<div className="flex flex-col">
 						<div className="mb-4">
-							<PublishedBy />
+							<PublishedBy cocktail={cocktail} />
 						</div>
-						<p className="text-base font-semibold leading-7 text-text-notify">Cocktail</p>
+						<p className="text-base font-semibold leading-7 text-text-notify">{cocktail.type}</p>
 						<h1 className="mt-2 text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">{cocktail.name}</h1>
-						<p className="mt-4 text-xl leading-8 text-text-secondary">
-							In the late 19th, the American cocktail scene was awash with new drinks made with all manner of spirits,
-							bitters, fruit juices and syrups, and of course it wasn&apos;t to everybody&apos;s taste.
-						</p>
+						<p className="mt-4 text-xl leading-8 text-text-secondary">{cocktail.history}</p>
 					</div>
 				</div>
 
@@ -83,7 +107,9 @@ export default function OldFashionedRoute() {
 							<span className="ml-2">
 								Photograph by{' '}
 								<Link to={cocktail.image.photographer.url} prefetch="intent">
-									<strong className="font-semibold text-text-primary">{cocktail.image.photographer.name}</strong>
+									<strong className="text-xs font-medium text-text-primary hover:underline lg:text-sm">
+										{cocktail.image.photographer.name}
+									</strong>
 								</Link>
 							</span>
 						</figcaption>
@@ -91,13 +117,9 @@ export default function OldFashionedRoute() {
 				</figure>
 
 				{/* Information & Recipe */}
-				<div className="p-6 lg:p-8">
+				<div className="p-6 lg:px-8 lg:pb-8 lg:pt-0">
 					<div className="w-fulltext-base leading-7 text-text-secondary lg:col-start-1 lg:row-start-1 lg:w-full">
-						<p>
-							Faucibus commodo massa rhoncus, volutpat. Dignissim sed eget risus enim. Mattis mauris semper sed amet
-							vitae sed turpis id. Faucibus commodo massa rhoncus, volutpat. Dignissim sed eget risus enim. Mattis
-							mauris semper sed amet vitae sed turpis id.
-						</p>
+						<p>{cocktail.description}</p>
 						<CocktailRecipe cocktail={cocktail} />
 					</div>
 				</div>
