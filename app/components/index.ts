@@ -14,6 +14,7 @@ import Spinner from './Spinner';
 import PublishedBy from './PublishedBy';
 import CocktailRecipe from './CockailRecipe';
 import ProTip from './ProTip';
+import NewComment from './NewComment';
 
 export {
 	ErrorList,
@@ -32,4 +33,5 @@ export {
 	PublishedBy,
 	CocktailRecipe,
 	ProTip,
+	NewComment,
 };

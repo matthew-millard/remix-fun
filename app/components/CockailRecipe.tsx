@@ -5,7 +5,7 @@ export default function CocktailRecipe({ cocktail }: { cocktail: Cocktail }) {
 	return (
 		<div>
 			<h2 className="mt-12 text-2xl font-bold tracking-tight text-text-primary">Recipe</h2>
-			<ul className="mt-4 space-y-6 text-text-secondary lg:border-r lg:border-bg-alt">
+			<ul className="mt-4 space-y-6 text-text-secondary">
 				{cocktail.ingredients.map((ingredient, index) => (
 					<li key={index} className="flex gap-x-3">
 						<span className="flex gap-x-3">
