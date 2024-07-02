@@ -12,7 +12,8 @@ import CoverPhoto from './CoverPhoto';
 import Button from './Button';
 import Spinner from './Spinner';
 import PublishedBy from './PublishedBy';
-import { CocktailRecipe } from './CockailRecipe';
+import CocktailRecipe from './CockailRecipe';
+import ProTip from './ProTip';
 
 export {
 	ErrorList,
@@ -30,4 +31,5 @@ export {
 	Spinner,
 	PublishedBy,
 	CocktailRecipe,
+	ProTip,
 };

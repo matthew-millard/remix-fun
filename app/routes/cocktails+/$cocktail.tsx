@@ -14,7 +14,7 @@ export type Cocktail = {
 	garnish: string;
 	glass: string;
 	ice: string;
-	proTip: string;
+	proTips: string[];
 	preparation: string;
 	image: {
 		url: string;
@@ -50,7 +50,9 @@ const cocktail: Cocktail = {
 	garnish: 'Orange twist',
 	glass: 'Rocks glass',
 	ice: 'Block ice',
-	proTip: 'Use 2:1 (by weight) demerara syrup for a richer, more flavorful Old Fashioned.',
+	proTips: [
+		'Use 2 parts raw demerara sugar or organic cane sugar to 1 part filtered water (by weight) when making your sugar syrup.',
+	],
 	preparation:
 		'Add all the ingredients into a mixing glass, add ice and stir until well-chilled and diluted. Strain into a rocks glass filled with a large ice cube. Garnish with an orange twist.',
 	image: {

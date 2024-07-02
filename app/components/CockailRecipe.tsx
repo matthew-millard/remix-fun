@@ -1,6 +1,7 @@
 import { Cocktail } from '~/routes/cocktails+/$cocktail';
+import ProTip from './ProTip';
 
-export function CocktailRecipe({ cocktail }: { cocktail: Cocktail }) {
+export default function CocktailRecipe({ cocktail }: { cocktail: Cocktail }) {
 	return (
 		<div>
 			<h2 className="mt-12 text-2xl font-bold tracking-tight text-text-primary">Recipe</h2>
@@ -30,7 +31,9 @@ export function CocktailRecipe({ cocktail }: { cocktail: Cocktail }) {
 			</ul>
 			<h3 className="mt-12 text-2xl font-bold tracking-tight text-text-primary">Method</h3>
 			<p className="mt-3">{cocktail.preparation}</p>
-			<div></div>
+			<div className="mt-12">
+				<ProTip cocktail={cocktail} />
+			</div>
 		</div>
 	);
 }
