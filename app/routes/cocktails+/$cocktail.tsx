@@ -4,6 +4,7 @@ import { Link, useLoaderData } from '@remix-run/react';
 import cocktailImageUrl from '~/assets/images/cocktails/old_fashioned.jpg';
 import { CocktailRecipe, PublishedBy } from '~/components';
 import profileImageUrl from '~/assets/images/users/witek_wojaczek.jpg';
+import Reviews from '~/components/ui/Reviews';
 
 export type Cocktail = {
 	type: string;
@@ -83,9 +84,9 @@ export default function CocktailRoute() {
 	const { cocktail } = useLoaderData<typeof loader>();
 	return (
 		<div className="">
-			<div className="mx-auto grid max-w-7xl auto-rows-auto lg:grid-cols-2 lg:grid-rows-[auto] lg:gap-x-8">
+			<div className="mx-auto grid max-w-7xl  auto-rows-auto lg:grid-cols-2 lg:gap-x-8">
 				{/* Heading */}
-				<div className=" p-6 lg:p-8">
+				<div className="p-6 lg:col-span-2 lg:p-8">
 					<div className="flex flex-col">
 						<div className="mb-4">
 							<PublishedBy cocktail={cocktail} />
@@ -97,8 +98,8 @@ export default function CocktailRoute() {
 				</div>
 
 				{/* Image */}
-				<figure className="mx-auto p-6 lg:relative lg:row-span-2 lg:p-8 lg:py-28">
-					<div className="lg:sticky lg:top-20">
+				<figure className="mx-auto p-6 lg:col-start-2 lg:row-span-2 lg:px-8 lg:pt-0">
+					<div className="">
 						<img
 							className="aspect-square rounded-lg object-cover shadow-xl"
 							src={cocktail.image.url}
@@ -116,13 +117,19 @@ export default function CocktailRoute() {
 							</span>
 						</figcaption>
 					</div>
+					<div className="hidden lg:block">
+						<Reviews />
+					</div>
 				</figure>
 
 				{/* Information & Recipe */}
-				<div className="p-6 lg:px-8 lg:pb-8 lg:pt-0">
+				<div className="p-6 lg:col-span-1 lg:col-start-1 lg:row-start-2 lg:px-8 lg:pb-8 lg:pt-0">
 					<div className="w-fulltext-base leading-7 text-text-secondary lg:col-start-1 lg:row-start-1 lg:w-full">
 						<p>{cocktail.description}</p>
 						<CocktailRecipe cocktail={cocktail} />
+						<div className="lg:hidden">
+							<Reviews />
+						</div>
 					</div>
 				</div>
 			</div>
