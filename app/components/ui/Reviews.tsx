@@ -1,29 +1,72 @@
-import { StarIcon } from '@heroicons/react/20/solid';
+import { FlagIcon, StarIcon } from '@heroicons/react/20/solid';
 import NewComment from '../NewComment';
-import { useState } from 'react';
 
 const reviews = {
-	average: 4,
-	totalCount: 1,
+	average: 3,
+	totalCount: 5,
 	counts: [
-		{ rating: 5, count: 0 },
+		{ rating: 5, count: 1 },
 		{ rating: 4, count: 1 },
-		{ rating: 3, count: 0 },
-		{ rating: 2, count: 0 },
-		{ rating: 1, count: 0 },
+		{ rating: 3, count: 1 },
+		{ rating: 2, count: 1 },
+		{ rating: 1, count: 1 },
 	],
 	featured: [
 		{
 			id: 1,
-			rating: 4,
+			rating: 3,
 			content: `
         <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
       `,
+			reviewDate: '2 days ago',
 			author: 'Hamish Millard',
 			avatarSrc:
 				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
 		},
-		// More reviews...
+		{
+			id: 2,
+			rating: 1,
+			content: `
+        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
+      `,
+			reviewDate: '2 days ago',
+			author: 'Hamish Millard',
+			avatarSrc:
+				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
+		},
+		{
+			id: 3,
+			rating: 2,
+			content: `
+        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
+      `,
+			reviewDate: '2 days ago',
+			author: 'Hamish Millard',
+			avatarSrc:
+				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
+		},
+		{
+			id: 4,
+			rating: 5,
+			content: `
+        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
+      `,
+			reviewDate: '2 days ago',
+			author: 'Hamish Millard',
+			avatarSrc:
+				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
+		},
+		{
+			id: 5,
+			rating: 3,
+			content: `
+        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
+      `,
+			reviewDate: '2 days ago',
+			author: 'Hamish Millard',
+			avatarSrc:
+				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
+		},
 	],
 };
 
@@ -32,7 +75,6 @@ function classNames(...classes: string[]) {
 }
 // lg:grid lg:max-w-7xl lg:grid-cols-12 lg:gap-x-8 lg:px-8
 export default function Reviews() {
-	const [showComments, setShowComments] = useState(false);
 	return (
 		<div className="">
 			<div className="max-w-2xl py-12 sm:py-20">
@@ -98,47 +140,47 @@ export default function Reviews() {
 					</div>
 
 					<div className="mt-12">
-						<h3 className="text-lg font-medium text-text-primary">Share your thoughts</h3>
+						<h3 className="text-lg font-medium text-text-primary">Comments</h3>
 						<p className="mt-1 text-sm text-text-secondary">
 							If you’ve made this cocktail, share your thoughts with other barflies.
 						</p>
-
-						<button
-							type="button"
-							onClick={() => setShowComments(!showComments)}
-							className="mt-6 inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-8 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 sm:w-auto lg:w-full"
-						>
-							Write a review
-						</button>
 					</div>
 				</div>
 
-				{showComments ? <NewComment /> : null}
+				<NewComment />
 
 				<div className="mt-12 lg:col-span-7 lg:col-start-6 lg:mt-12">
 					<h3 className="sr-only">Recent reviews</h3>
 
 					<div className="flow-root">
-						<div>
+						<div className="-my-12 divide-y divide-border-secondary">
 							{reviews.featured.map(review => (
-								<div key={review.id} className="rounded-lg border border-border-secondary p-4 shadow-md">
-									<div className="flex items-center">
-										<img src={review.avatarSrc} alt={`${review.author}.`} className="h-12 w-12 rounded-full" />
-										<div className="ml-4">
-											<h4 className="text-sm font-bold text-text-primary">{review.author}</h4>
-											<div className="mt-1 flex items-center">
-												{[0, 1, 2, 3, 4].map(rating => (
-													<StarIcon
-														key={rating}
-														className={classNames(
-															review.rating > rating ? 'text-yellow-400' : 'text-gray-300',
-															'h-5 w-5 flex-shrink-0',
-														)}
-														aria-hidden="true"
-													/>
-												))}
+								<div key={review.id} className="py-12">
+									<div className="flex items-center justify-between">
+										<div className="flex">
+											<img src={review.avatarSrc} alt={`${review.author}.`} className="h-12 w-12 rounded-full" />
+											<div className="ml-4">
+												<h4 className="text-sm font-bold text-text-primary">{review.author}</h4>
+												<div className="mt-1 flex items-center">
+													{[0, 1, 2, 3, 4].map(rating => (
+														<StarIcon
+															key={rating}
+															className={classNames(
+																review.rating > rating ? 'text-yellow-400' : 'text-gray-300',
+																'h-5 w-5 flex-shrink-0',
+															)}
+															aria-hidden="true"
+														/>
+													))}
+												</div>
+												<p className="sr-only">{review.rating} out of 5 stars</p>
 											</div>
-											<p className="sr-only">{review.rating} out of 5 stars</p>
+										</div>
+										<div className="flex flex-col justify-between gap-y-3 self-end">
+											<div className="self-end">
+												<FlagIcon className="h-4 w-4 text-white" aria-hidden="true" />
+											</div>
+											<p className="text-xs text-text-secondary lg:text-sm">{review.reviewDate}</p>
 										</div>
 									</div>
 
