@@ -24,6 +24,14 @@ export async function loader({ params }: LoaderFunctionArgs) {
 			});
 			break;
 		}
+		case 'cocktail': {
+			image = await prisma.cocktailImage.findUnique({
+				where: {
+					id: imageId,
+				},
+			});
+			break;
+		}
 		default: {
 			invariantResponse(null, 'Invalid image type', { status: 400 });
 		}
