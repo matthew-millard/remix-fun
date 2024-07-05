@@ -25,6 +25,7 @@ model User {
   sessions     Session[]
   coverImage   UserCoverImage?
   roles        Role[]
+  cocktails    Cocktail[]
 }
 
 model Username {
@@ -123,4 +124,58 @@ model Role {
   updatedAt   DateTime     @updatedAt
   permissions Permission[]
   users       User[]
+}
+
+model Cocktail {
+  id          String               @id @default(cuid())
+  type        String
+  name        String               @unique
+  history     String
+  description String
+  garnish     String
+  glass       String
+  ice         String
+  tip         String
+  preparation String
+  ingredients CocktailIngredient[]
+  image       CocktailImage[]
+  author      User                 @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  authorId    String
+  tags        Tag[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model CocktailImage {
+  id             String       @id @default(cuid())
+  blob           Bytes
+  contentType    String
+  altText        String?
+  cocktail       Cocktail     @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cocktailId     String
+  photographer   Photographer @relation(fields: [photographerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  photographerId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Photographer {
+  id             String          @id @default(cuid())
+  name           String
+  href           String
+  cocktailImages CocktailImage[]
+}
+
+model CocktailIngredient {
+  id          String   @id @default(cuid())
+  name        String
+  measurement String
+  cocktail    Cocktail @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cocktailId  String
+}
+
+model Tag {
+  id        String     @id @default(cuid())
+  name      String
+  cocktails Cocktail[]
 }

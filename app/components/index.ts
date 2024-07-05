@@ -12,8 +12,6 @@ import CoverPhoto from './CoverPhoto';
 import Button from './Button';
 import Spinner from './Spinner';
 import PublishedBy from './PublishedBy';
-import CocktailRecipe from './CockailRecipe';
-import ProTip from './ProTip';
 import NewComment from './NewComment';
 
 export {
@@ -31,7 +29,5 @@ export {
 	Button,
 	Spinner,
 	PublishedBy,
-	CocktailRecipe,
-	ProTip,
 	NewComment,
 };
