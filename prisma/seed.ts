@@ -67,7 +67,7 @@ async function seed() {
 
 	console.time(`🐨 Created admin user "Matt Millard"`);
 
-	await prisma.user.create({
+	const admin = await prisma.user.create({
 		data: {
 			firstName: 'Matt',
 			lastName: 'Millard',
@@ -85,6 +85,7 @@ async function seed() {
 			},
 			cocktails: {
 				create: {
+					id: '1',
 					type: 'Cocktail',
 					name: 'Old Fashioned',
 					history: `The term "cocktail" first appeared in print in 1806, defined as a mix of spirits, sugar, water, and bitters. This simple mixture is essentially what the Old Fashioned embodies.`,
@@ -118,6 +119,29 @@ async function seed() {
 	});
 
 	console.timeEnd(`👤 Created admin user "Matt Millard"`);
+
+	console.time(`👤 Created user "Amy Millard with a review"`);
+	await prisma.user.create({
+		data: {
+			firstName: 'Islay',
+			lastName: 'Millard',
+			email: 'amyk.millard@gmail.com',
+			password: { create: createPassword('Password123!') },
+			username: { create: { username: 'islaymillard' } },
+			userLocation: { create: { city: 'Ottawa', province: 'Ontario', country: 'Canada' } },
+			about: { create: { about: 'Hi my name is Islay' } },
+			profileImage: { create: await img({ filepath: 'tests/fixtures/images/users/islay_millard.jpg' }) },
+			roles: { connectOrCreate: { where: { name: 'user' }, create: { name: 'user' } } },
+			reviews: {
+				create: {
+					rating: 3,
+					comment: 'Shite recipe. I love to make my old fashioneds with Laphroaig 16yo scotch.',
+					cocktail: { connect: { id: '1' } },
+				},
+			},
+		},
+	});
+	console.timeEnd(`👤 Created user "Amy Millard with a review"`);
 
 	console.timeEnd(`🌱 Database has been seeded`);
 }

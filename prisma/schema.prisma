@@ -26,6 +26,7 @@ model User {
   coverImage   UserCoverImage?
   roles        Role[]
   cocktails    Cocktail[]
+  reviews      Review[]
 }
 
 model Username {
@@ -144,6 +145,7 @@ model Cocktail {
   tags        Tag[]
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
+  reviews     Review[]
 }
 
 model CocktailImage {
@@ -178,4 +180,16 @@ model Tag {
   id        String     @id @default(cuid())
   name      String
   cocktails Cocktail[]
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int
+  comment    String
+  cocktail   Cocktail @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cocktailId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

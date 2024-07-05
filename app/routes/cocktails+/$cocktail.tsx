@@ -21,6 +21,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 			ingredients: true,
 			image: { include: { photographer: true } },
 			author: { include: { profileImage: true, username: true } },
+			reviews: { include: { user: { include: { profileImage: true, username: true } } } },
 		},
 	});
 
@@ -31,6 +32,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function CocktailRoute() {
 	const { cocktail } = useLoaderData<typeof loader>();
+	const reviews = cocktail.reviews;
+
+	console.log('reviews: ', reviews);
+
 	const cocktailImageUrl = `/resources/images/${cocktail.image[0].id}/cocktail`;
 
 	return (
@@ -69,7 +74,7 @@ export default function CocktailRoute() {
 						</figcaption>
 					</div>
 					<div className="hidden lg:block">
-						<Reviews />
+						<Reviews reviews={reviews} />
 					</div>
 				</figure>
 
@@ -79,7 +84,7 @@ export default function CocktailRoute() {
 						<p>{cocktail.description}</p>
 						<CocktailRecipe />
 						<div className="lg:hidden">
-							<Reviews />
+							<Reviews reviews={reviews} />
 						</div>
 					</div>
 				</div>
