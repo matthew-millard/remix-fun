@@ -12,7 +12,7 @@ import CoverPhoto from './CoverPhoto';
 import Button from './Button';
 import Spinner from './Spinner';
 import PublishedBy from './PublishedBy';
-import NewComment from './NewComment';
+import Comment from './Comment';
 
 export {
 	ErrorList,
@@ -29,5 +29,5 @@ export {
 	Button,
 	Spinner,
 	PublishedBy,
-	NewComment,
+	Comment,
 };
