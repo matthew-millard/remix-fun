@@ -1,14 +1,77 @@
+import { parseWithZod } from '@conform-to/zod';
 import { CameraIcon } from '@heroicons/react/24/outline';
 import { BoltIcon } from '@heroicons/react/24/solid';
-import { json, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
+import { ActionFunctionArgs, json, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
+import { z } from 'zod';
 import { PublishedBy } from '~/components';
 import Reviews from '~/components/ui/Reviews';
 import { requireUserId } from '~/utils/auth.server';
+import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
+import { CONTENT_MAX_LENTGH } from '~/utils/validation-schemas';
+
+// Create a zod schema to validate the form data
+export const CommentSchema = z.object({
+	comment: z
+		.string()
+		.trim()
+		.min(3, { message: 'Must be at least 3 characters' })
+		.max(CONTENT_MAX_LENTGH, { message: 'Must be 250 characters or less' }),
+});
+
+export async function action({ request }: ActionFunctionArgs) {
+	const userId = await requireUserId(request);
+	const formData = await request.formData();
+	await checkCSRF(formData, request.headers);
+
+	const intent = formData.get('intent');
+
+	switch (intent) {
+		case 'comment': {
+			return commentAction({ userId, formData });
+		}
+		default: {
+			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
+		}
+	}
+
+	async function commentAction({ userId, formData }: { userId: string; formData: FormData }) {
+		const submission = parseWithZod(formData, {
+			schema: CommentSchema,
+		});
+
+		if (submission.status !== 'success') {
+			return json(
+				submission.reply({
+					formErrors: ['Submission failed'],
+					fieldErrors: {
+						comment: ['Invalid'],
+					},
+				}),
+				{
+					status: submission.status === 'error' ? 400 : 200,
+				},
+			);
+		}
+
+		const { comment } = submission.value;
+		await prisma.review.create({
+			data: {
+				userId,
+				comment: comment,
+				rating: 5,
+				cocktailId: '1',
+			},
+		});
+
+		// Return with a toast notification
+		return { status: 200 };
+	}
+}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-	await requireUserId(request);
+	const userId = await requireUserId(request);
 	const cocktailName = new URLSearchParams(params)
 		.get('cocktail')
 		.split('-')
@@ -25,7 +88,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 		},
 	});
 
-	const data = { cocktail };
+	const user = await prisma.user.findUniqueOrThrow({
+		where: { id: userId },
+		select: {
+			id: true,
+			profileImage: { select: { id: true } },
+			username: { select: { username: true } },
+		},
+	});
+
+	const data = { cocktail, user };
 
 	return json(data);
 }
@@ -33,8 +105,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function CocktailRoute() {
 	const { cocktail } = useLoaderData<typeof loader>();
 	const reviews = cocktail.reviews;
-
-	console.log('reviews: ', reviews);
 
 	const cocktailImageUrl = `/resources/images/${cocktail.image[0].id}/cocktail`;
 
@@ -80,7 +150,7 @@ export default function CocktailRoute() {
 
 				{/* Information & Recipe */}
 				<div className="p-6 lg:col-span-1 lg:col-start-1 lg:row-start-2 lg:px-8 lg:pb-8 lg:pt-0">
-					<div className="w-fulltext-base leading-7 text-text-secondary lg:col-start-1 lg:row-start-1 lg:w-full">
+					<div className="w-fulltext-base text-text-secondary lg:col-start-1 lg:row-start-1 lg:w-full">
 						<p>{cocktail.description}</p>
 						<CocktailRecipe />
 						<div className="lg:hidden">

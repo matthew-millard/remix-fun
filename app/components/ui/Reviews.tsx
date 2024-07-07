@@ -1,76 +1,8 @@
-import { FlagIcon, StarIcon } from '@heroicons/react/20/solid';
-import NewComment from '../NewComment';
-import { useEffect, useState } from 'react';
+import { StarIcon } from '@heroicons/react/20/solid';
+import { HandThumbDownIcon, HandThumbUpIcon, FlagIcon } from '@heroicons/react/24/outline';
+import Comment from '../Comment';
+import { useMemo } from 'react';
 import { timeAgo } from '~/utils/misc';
-
-const reviewsStatic = {
-	average: 3,
-	totalCount: 5,
-	counts: [
-		{ rating: 5, count: 1 },
-		{ rating: 4, count: 1 },
-		{ rating: 3, count: 1 },
-		{ rating: 2, count: 1 },
-		{ rating: 1, count: 1 },
-	],
-	featured: [
-		{
-			id: 1,
-			rating: 3,
-			content: `
-        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
-      `,
-			reviewDate: '2 days ago',
-			author: 'Hamish Millard',
-			avatarSrc:
-				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
-		},
-		{
-			id: 2,
-			rating: 1,
-			content: `
-        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
-      `,
-			reviewDate: '2 days ago',
-			author: 'Hamish Millard',
-			avatarSrc:
-				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
-		},
-		{
-			id: 3,
-			rating: 2,
-			content: `
-        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
-      `,
-			reviewDate: '2 days ago',
-			author: 'Hamish Millard',
-			avatarSrc:
-				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
-		},
-		{
-			id: 4,
-			rating: 5,
-			content: `
-        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
-      `,
-			reviewDate: '2 days ago',
-			author: 'Hamish Millard',
-			avatarSrc:
-				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
-		},
-		{
-			id: 5,
-			rating: 3,
-			content: `
-        <p>Great recipe! I love to make my old fashioneds with Eagle Rare 12yo bourbon.</p>
-      `,
-			reviewDate: '2 days ago',
-			author: 'Hamish Millard',
-			avatarSrc:
-				'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=256&h=256&q=80',
-		},
-	],
-};
 
 type UserProfileImage = {
 	id: string;
@@ -127,22 +59,20 @@ const initialRatingsCount: Record<number, number> = {
 };
 
 export default function Reviews({ reviews }: { reviews: Reviews }) {
-	const [ratingsCount, setRatingsCount] = useState(initialRatingsCount);
-
-	useEffect(() => {
-		const calculatedRatingsCount = reviews.reduce(
+	const ratingsCount = useMemo(() => {
+		return reviews.reduce(
 			(acc, review) => {
 				acc[review.rating] += 1;
 				return acc;
 			},
 			{ ...initialRatingsCount },
 		);
-
-		setRatingsCount(calculatedRatingsCount);
 	}, [reviews]);
 
 	const totalCount = reviews.length;
-	const averageRating = reviews.reduce((acc, review) => acc + review.rating, 0) / totalCount;
+	const averageRating = useMemo(() => {
+		return reviews.reduce((acc, review) => acc + review.rating, 0) / totalCount;
+	}, [reviews, totalCount]);
 
 	return (
 		<div className="">
@@ -198,7 +128,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 										</div>
 									</dt>
 									<dd className="ml-3 w-10 text-right text-sm tabular-nums text-text-primary">
-										{Math.round((count / totalCount) * 100)}%
+										{count > 0 ? Math.round((count / totalCount) * 100) : 0}%
 									</dd>
 								</div>
 							))}
@@ -213,53 +143,65 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 					</div>
 				</div>
 
-				<NewComment />
+				<Comment />
 
 				<div className="mt-12 lg:col-span-7 lg:col-start-6 lg:mt-12">
 					<h3 className="sr-only">Recent reviews</h3>
 
 					<div className="flow-root">
-						<div className="-my-12 divide-y divide-border-secondary">
+						<div className="flex flex-col gap-y-4 ">
 							{reviews.map(review => (
-								<div key={review.id} className="py-12">
-									<div className="flex items-center justify-between">
-										<div className="flex">
+								<div key={review.id} className="rounded-lg border border-gray-700 p-4 shadow-sm">
+									<div className="flex justify-between">
+										<div className="flex items-center gap-x-4">
 											<img
 												src={`/resources/images/${review.user.profileImage.id}/profile`}
 												alt={`${review.user.firstName} ${review.user.lastName}`}
-												className="h-12 w-12 rounded-full object-cover"
+												className="h-10 w-10 rounded-full object-cover"
 											/>
-											<div className="ml-4">
-												<h4 className="text-sm font-bold text-text-primary">
-													{review.user.firstName} {review.user.lastName}
-												</h4>
-												<div className="mt-1 flex items-center">
-													{[0, 1, 2, 3, 4].map(rating => (
-														<StarIcon
-															key={rating}
-															className={classNames(
-																review.rating > rating ? 'text-yellow-400' : 'text-gray-300',
-																'h-5 w-5 flex-shrink-0',
-															)}
-															aria-hidden="true"
-														/>
-													))}
-												</div>
-												<p className="sr-only">{review.rating} out of 5 stars</p>
-											</div>
+											<h4 className="text-sm font-bold text-text-primary">
+												{review.user.firstName} {review.user.lastName}
+											</h4>
 										</div>
-										<div className="flex flex-col justify-between gap-y-3 self-end">
-											<div className="self-end">
-												<FlagIcon className="h-4 w-4 text-white" aria-hidden="true" />
-											</div>
-											<p className="text-xs text-text-secondary lg:text-sm">{timeAgo(new Date(review.createdAt))}</p>
+										{/* <div className="mt-1 flex items-center">
+											{[0, 1, 2, 3, 4].map(rating => (
+												<StarIcon
+													key={rating}
+													className={classNames(
+														review.rating > rating ? 'text-yellow-400' : 'text-gray-300',
+														'h-5 w-5 flex-shrink-0',
+													)}
+													aria-hidden="true"
+												/>
+											))}
+										</div>
+										<p className="sr-only">{review.rating} out of 5 stars</p> */}
+
+										<div className="flex flex-col justify-between  gap-y-2">
+											<button type="submit" className="self-end">
+												<FlagIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+											</button>
+											<p className="text-xs font-medium text-text-secondary lg:text-sm">
+												{timeAgo(new Date(review.createdAt))}
+											</p>
 										</div>
 									</div>
 
 									<div
-										className="mt-4 space-y-6 text-sm text-text-primary lg:text-base"
+										className="mt-4 space-y-6 break-words text-sm text-text-primary lg:text-base"
 										dangerouslySetInnerHTML={{ __html: review.comment }}
 									/>
+
+									<div className="flex">
+										<div className="mt-4 flex items-center">
+											<HandThumbUpIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+											<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
+										</div>
+										<div className="ml-4 mt-4 flex items-center">
+											<HandThumbDownIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+											<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
+										</div>
+									</div>
 								</div>
 							))}
 						</div>
