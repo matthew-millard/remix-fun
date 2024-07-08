@@ -9,6 +9,7 @@ import Reviews from '~/components/ui/Reviews';
 import { requireUserId } from '~/utils/auth.server';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
+import { redirectWithToast } from '~/utils/toast.server';
 import { CONTENT_MAX_LENTGH } from '~/utils/validation-schemas';
 
 // Create a zod schema to validate the form data
@@ -31,9 +32,47 @@ export async function action({ request }: ActionFunctionArgs) {
 		case 'comment': {
 			return commentAction({ userId, formData });
 		}
+		case 'like': {
+			console.log('like');
+			return {};
+		}
+		case 'dislike': {
+			console.log('dislike');
+			return {};
+		}
+		case 'flag': {
+			console.log('flag');
+			return {};
+		}
+		case 'delete': {
+			return deleteCommentAction({ userId, formData });
+		}
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
 		}
+	}
+
+	async function deleteCommentAction({ userId, formData }: { userId: string; formData: FormData }) {
+		const commentId = formData.get('comment-id') as string;
+
+		await prisma.$transaction(async prisma => {
+			const commentToDelete = await prisma.review.findFirst({
+				where: {
+					id: commentId,
+					userId: userId,
+				},
+			});
+
+			if (commentToDelete) {
+				await prisma.review.delete({
+					where: {
+						id: commentToDelete.id,
+					},
+				});
+			}
+		});
+
+		return {};
 	}
 
 	async function commentAction({ userId, formData }: { userId: string; formData: FormData }) {

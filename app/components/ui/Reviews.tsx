@@ -1,8 +1,11 @@
 import { StarIcon } from '@heroicons/react/20/solid';
-import { HandThumbDownIcon, HandThumbUpIcon, FlagIcon } from '@heroicons/react/24/outline';
+import { HandThumbDownIcon, HandThumbUpIcon, FlagIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Comment from '../Comment';
 import { useMemo } from 'react';
 import { timeAgo } from '~/utils/misc';
+import { useFetcher, useLoaderData } from '@remix-run/react';
+import { loader } from '~/routes/cocktails+/$cocktail';
+import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 
 type UserProfileImage = {
 	id: string;
@@ -59,6 +62,13 @@ const initialRatingsCount: Record<number, number> = {
 };
 
 export default function Reviews({ reviews }: { reviews: Reviews }) {
+	const { user: currentUser } = useLoaderData<typeof loader>();
+	const fetcher = useFetcher();
+
+	const hasPermission = useMemo(() => {
+		return reviews.some(review => review.user.id === currentUser.id);
+	}, [reviews, currentUser]);
+
 	const ratingsCount = useMemo(() => {
 		return reviews.reduce(
 			(acc, review) => {
@@ -76,7 +86,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 
 	return (
 		<div className="">
-			<div className="max-w-2xl py-12 sm:py-20">
+			<div className="max-w-2xl py-6 sm:py-20">
 				<div className="lg:col-span-4">
 					<h2 className="text-2xl font-bold tracking-tight text-text-primary">Recipe Reviews</h2>
 
@@ -192,16 +202,23 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 										dangerouslySetInnerHTML={{ __html: review.comment }}
 									/>
 
-									<div className="flex">
-										<div className="mt-4 flex items-center">
+									<fetcher.Form method="POST" className="flex">
+										<AuthenticityTokenInput />
+										{hasPermission ? <input readOnly type="hidden" value={review.id} name="comment-id" /> : null}
+										<button type="submit" name="intent" value="like" className="mt-4 flex items-center">
 											<HandThumbUpIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
 											<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
-										</div>
-										<div className="ml-4 mt-4 flex items-center">
+										</button>
+										<button type="submit" name="intent" value="dislike" className="ml-4 mt-4 flex items-center">
 											<HandThumbDownIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
 											<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
-										</div>
-									</div>
+										</button>
+										{hasPermission ? (
+											<button type="submit" name="intent" value="delete" className="ml-auto mt-4 flex items-center">
+												<TrashIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+											</button>
+										) : null}
+									</fetcher.Form>
 								</div>
 							))}
 						</div>
