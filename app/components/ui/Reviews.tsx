@@ -1,11 +1,12 @@
 import { StarIcon } from '@heroicons/react/20/solid';
-import { HandThumbDownIcon, HandThumbUpIcon, FlagIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { HandThumbDownIcon, HandThumbUpIcon, FlagIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import Comment from '../Comment';
-import { useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { timeAgo } from '~/utils/misc';
 import { useFetcher, useLoaderData } from '@remix-run/react';
 import { loader } from '~/routes/cocktails+/$cocktail';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
+import Button from '../Button';
 
 type UserProfileImage = {
 	id: string;
@@ -62,12 +63,9 @@ const initialRatingsCount: Record<number, number> = {
 };
 
 export default function Reviews({ reviews }: { reviews: Reviews }) {
+	const [editComment, setEditComment] = useState(null);
 	const { user: currentUser } = useLoaderData<typeof loader>();
 	const fetcher = useFetcher();
-
-	const hasPermission = useMemo(() => {
-		return reviews.some(review => review.user.id === currentUser.id);
-	}, [reviews, currentUser]);
 
 	const ratingsCount = useMemo(() => {
 		return reviews.reduce(
@@ -161,7 +159,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 					<div className="flow-root">
 						<div className="flex flex-col gap-y-4 ">
 							{reviews.map(review => (
-								<div key={review.id} className="rounded-lg border border-gray-700 p-4 shadow-sm">
+								<div key={review.id} className="rounded-lg border border-border-secondary p-4 shadow-md">
 									<div className="flex justify-between">
 										<div className="flex items-center gap-x-4">
 											<img
@@ -197,27 +195,56 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 										</div>
 									</div>
 
-									<div
-										className="mt-4 space-y-6 break-words text-sm text-text-primary lg:text-base"
-										dangerouslySetInnerHTML={{ __html: review.comment }}
-									/>
-
-									<fetcher.Form method="POST" className="flex">
+									<fetcher.Form method="POST" onSubmit={() => setEditComment(null)} className="flex flex-col">
 										<AuthenticityTokenInput />
-										{hasPermission ? <input readOnly type="hidden" value={review.id} name="comment-id" /> : null}
-										<button type="submit" name="intent" value="like" className="mt-4 flex items-center">
-											<HandThumbUpIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
-											<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
-										</button>
-										<button type="submit" name="intent" value="dislike" className="ml-4 mt-4 flex items-center">
-											<HandThumbDownIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
-											<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
-										</button>
-										{hasPermission ? (
-											<button type="submit" name="intent" value="delete" className="ml-auto mt-4 flex items-center">
-												<TrashIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+										<input readOnly type="hidden" defaultValue={review.id} name="comment-id" />
+										{editComment === review.id ? (
+											<textarea
+												className="mt-4 w-full resize-none space-y-6 break-words border-none bg-transparent text-sm text-text-primary lg:text-base"
+												defaultValue={review.comment}
+												name="comment"
+											/>
+										) : (
+											<div className="mt-4 w-full space-y-6 break-words text-sm text-text-primary lg:text-base">
+												{review.comment}
+											</div>
+										)}
+
+										<div className="flex">
+											<button type="submit" name="intent" value="like" className="mt-4 flex items-center">
+												<HandThumbUpIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+												<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
 											</button>
-										) : null}
+											<button type="submit" name="intent" value="dislike" className="ml-4 mt-4 flex items-center">
+												<HandThumbDownIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+												<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
+											</button>
+											<div className="ml-auto mt-4 flex items-center gap-x-4">
+												{review.user.id === currentUser.id ? (
+													editComment === review.id ? (
+														<div className="mt-2 flex justify-end gap-4">
+															<Button type="submit" label="Update" name="intent" value="update-comment" />
+															<button
+																type="button"
+																onClick={() => setEditComment(false)}
+																className="text-sm font-semibold leading-6 text-text-primary"
+															>
+																Cancel
+															</button>
+														</div>
+													) : (
+														<div className="flex gap-x-4">
+															<button type="submit" name="intent" value="delete" className="">
+																<TrashIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+															</button>
+															<button type="button" onClick={() => setEditComment(review.id)}>
+																<PencilSquareIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+															</button>
+														</div>
+													)
+												) : null}
+											</div>
+										</div>
 									</fetcher.Form>
 								</div>
 							))}

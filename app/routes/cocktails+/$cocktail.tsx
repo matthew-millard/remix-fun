@@ -9,7 +9,6 @@ import Reviews from '~/components/ui/Reviews';
 import { requireUserId } from '~/utils/auth.server';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
-import { redirectWithToast } from '~/utils/toast.server';
 import { CONTENT_MAX_LENTGH } from '~/utils/validation-schemas';
 
 // Create a zod schema to validate the form data
@@ -40,6 +39,9 @@ export async function action({ request }: ActionFunctionArgs) {
 			console.log('dislike');
 			return {};
 		}
+		case 'update-comment': {
+			return updateCommentAction({ userId, formData });
+		}
 		case 'flag': {
 			console.log('flag');
 			return {};
@@ -50,6 +52,39 @@ export async function action({ request }: ActionFunctionArgs) {
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
 		}
+	}
+
+	async function updateCommentAction({ formData }: { userId: string; formData: FormData }) {
+		const commentId = formData.get('comment-id') as string;
+		const submission = parseWithZod(formData, {
+			schema: CommentSchema,
+		});
+
+		if (submission.status !== 'success') {
+			return json(
+				submission.reply({
+					formErrors: ['Submission failed'],
+					fieldErrors: {
+						comment: ['Invalid'],
+					},
+				}),
+				{
+					status: submission.status === 'error' ? 400 : 200,
+				},
+			);
+		}
+
+		const { comment } = submission.value;
+		await prisma.review.update({
+			where: {
+				id: commentId,
+			},
+			data: {
+				comment: comment,
+			},
+		});
+
+		return {};
 	}
 
 	async function deleteCommentAction({ userId, formData }: { userId: string; formData: FormData }) {
