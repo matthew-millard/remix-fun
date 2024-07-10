@@ -12,7 +12,7 @@ import { prisma } from '~/utils/db.server';
 import { CONTENT_MAX_LENTGH } from '~/utils/validation-schemas';
 
 // Create a zod schema to validate the form data
-export const CommentSchema = z.object({
+export const ReviewSchema = z.object({
 	comment: z
 		.string()
 		.trim()
@@ -169,7 +169,7 @@ export async function action({ request }: ActionFunctionArgs) {
 	async function updateCommentAction({ formData }: { userId: string; formData: FormData }) {
 		const commentId = formData.get('comment-id') as string;
 		const submission = parseWithZod(formData, {
-			schema: CommentSchema,
+			schema: ReviewSchema,
 		});
 
 		if (submission.status !== 'success') {
@@ -237,7 +237,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	async function commentAction({ userId, formData }: { userId: string; formData: FormData }) {
 		const submission = parseWithZod(formData, {
-			schema: CommentSchema,
+			schema: ReviewSchema,
 		});
 
 		if (submission.status !== 'success') {

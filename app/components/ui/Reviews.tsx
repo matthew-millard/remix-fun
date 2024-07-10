@@ -1,12 +1,16 @@
 import { StarIcon } from '@heroicons/react/20/solid';
 import { HandThumbDownIcon, HandThumbUpIcon, FlagIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
-import Comment from '../Comment';
+import {
+	HandThumbDownIcon as HandThumbDownIconSolid,
+	HandThumbUpIcon as HandThumbUpIconSolid,
+} from '@heroicons/react/24/solid';
+
 import { useMemo, useState } from 'react';
 import { timeAgo } from '~/utils/misc';
 import { useFetcher, useLoaderData } from '@remix-run/react';
 import { loader } from '~/routes/cocktails+/$cocktail';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
-import Button from '../Button';
+import { ReviewForm, Button } from '~/components';
 
 type UserProfileImage = {
 	id: string;
@@ -77,7 +81,7 @@ const initialRatingsCount: Record<number, number> = {
 };
 
 export default function Reviews({ reviews }: { reviews: Reviews }) {
-	const [editComment, setEditComment] = useState(null);
+	const [updateReview, setUpdateReview] = useState(null);
 	const { user: currentUser } = useLoaderData<typeof loader>();
 
 	const fetcher = useFetcher();
@@ -103,7 +107,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 		<div className="">
 			<div className="max-w-2xl py-6 sm:py-20">
 				<div className="lg:col-span-4">
-					<h2 className="text-2xl font-bold tracking-tight text-text-primary">Recipe Reviews</h2>
+					<h2 className="text-2xl font-bold tracking-tight text-text-primary">Recipe Ratings</h2>
 
 					<div className="mt-3 flex items-center">
 						<div>
@@ -161,14 +165,12 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 					</div>
 
 					<div className="mt-12">
-						<h3 className="text-lg font-medium text-text-primary">Comments</h3>
-						<p className="mt-1 text-sm text-text-secondary">
-							If you’ve made this cocktail, share your thoughts with other barflies and bartenders.
-						</p>
+						<h3 className="text-lg font-medium text-text-primary">Reviews</h3>
+						<p className="mt-1 text-sm text-text-secondary">If you’ve made this cocktail recipe, leave a review.</p>
 					</div>
 				</div>
 
-				<Comment />
+				<ReviewForm />
 
 				<div className="mt-12 lg:col-span-7 lg:col-start-6 lg:mt-12">
 					<h3 className="sr-only">Recent reviews</h3>
@@ -212,10 +214,10 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 										</div>
 									</div>
 
-									<fetcher.Form method="POST" onSubmit={() => setEditComment(null)} className="flex flex-col">
+									<fetcher.Form method="POST" onSubmit={() => setUpdateReview(null)} className="flex flex-col">
 										<AuthenticityTokenInput />
 										<input readOnly type="hidden" defaultValue={review.id} name="comment-id" />
-										{editComment === review.id ? (
+										{updateReview === review.id ? (
 											<textarea
 												className="mt-4 w-full resize-none space-y-6 break-words border-none bg-transparent text-sm text-text-primary lg:text-base"
 												defaultValue={review.comment}
@@ -229,18 +231,27 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 
 										<div className="flex">
 											<button type="submit" name="intent" value="like" className="mt-4 flex items-center">
-												<HandThumbUpIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+												{review.likes.some(like => like.userId === currentUser.id) ? (
+													<HandThumbUpIconSolid className="h-4 w-4 text-yellow-400" aria-hidden="true" />
+												) : (
+													<HandThumbUpIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+												)}
 												<p className="ml-1 font-mono text-xs text-text-secondary lg:text-sm">{review.likes.length}</p>
 											</button>
 											<button type="submit" name="intent" value="dislike" className="ml-4 mt-4 flex items-center">
-												<HandThumbDownIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+												{review.dislikes.some(dislike => dislike.userId === currentUser.id) ? (
+													<HandThumbDownIconSolid className="h-4 w-4 text-yellow-400" aria-hidden="true" />
+												) : (
+													<HandThumbDownIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
+												)}
+
 												<p className="ml-1 font-mono text-xs text-text-secondary lg:text-sm">
 													{review.dislikes.length}
 												</p>
 											</button>
 											<div className="ml-auto mt-4 flex items-center gap-x-4">
 												{review.user.id === currentUser.id ? (
-													editComment === review.id ? (
+													updateReview === review.id ? (
 														<div className="mt-2 flex justify-end gap-4">
 															<Button
 																type="submit"
@@ -251,7 +262,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 															/>
 															<button
 																type="button"
-																onClick={() => setEditComment(false)}
+																onClick={() => setUpdateReview(false)}
 																className="text-sm font-semibold leading-6 text-text-primary"
 															>
 																Cancel
@@ -262,7 +273,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 															<button type="submit" name="intent" value="delete" className="">
 																<TrashIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
 															</button>
-															<button type="button" onClick={() => setEditComment(review.id)}>
+															<button type="button" onClick={() => setUpdateReview(review.id)}>
 																<PencilSquareIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
 															</button>
 														</div>

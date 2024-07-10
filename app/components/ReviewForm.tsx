@@ -2,19 +2,19 @@ import { getFormProps, getTextareaProps, useForm } from '@conform-to/react';
 import { parseWithZod } from '@conform-to/zod';
 import { useActionData, useFetcher, useLoaderData } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
-import { CommentSchema, loader } from '~/routes/cocktails+/$cocktail';
+import { ReviewSchema, loader } from '~/routes/cocktails+/$cocktail';
 import Button from './Button';
 import ErrorList from './ErrorList';
 import { useEffect, useId, useRef } from 'react';
 
-export default function Comment() {
+export default function ReviewForm() {
 	const { user } = useLoaderData<typeof loader>();
-	const commentRef = useRef<HTMLTextAreaElement>(null);
+	const reviewRef = useRef<HTMLTextAreaElement>(null);
 	const fetcher = useFetcher();
 
 	const isSubmitting = fetcher.state === 'submitting';
 
-	const [commentForm, commentFields] = useForm({
+	const [reviewForm, reviewFields] = useForm({
 		id: useId(),
 		lastResult: useActionData(),
 		shouldValidate: 'onSubmit',
@@ -23,13 +23,13 @@ export default function Comment() {
 		},
 		shouldRevalidate: 'onSubmit',
 		onValidate({ formData }) {
-			return parseWithZod(formData, { schema: CommentSchema });
+			return parseWithZod(formData, { schema: ReviewSchema });
 		},
 	});
 
 	useEffect(() => {
 		if (isSubmitting) {
-			commentRef.current.value = '';
+			reviewRef.current.value = '';
 		}
 	}, [isSubmitting]);
 
@@ -41,24 +41,19 @@ export default function Comment() {
 					alt=""
 					className="hidden h-5 w-5 flex-none rounded-full  object-cover lg:block lg:h-7 lg:w-7"
 				/>
-				<fetcher.Form
-					{...getFormProps(commentForm)}
-					encType="application/x-www-form-urlencoded"
-					method="POST"
-					className="relative flex-auto"
-				>
+				<fetcher.Form {...getFormProps(reviewForm)} method="POST" className="relative flex-auto">
 					<AuthenticityTokenInput />
 					<div className="overflow-hidden rounded-lg pb-12 shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-600">
-						<label htmlFor={commentFields.comment.id} className="sr-only">
-							Add your comment
+						<label htmlFor={reviewFields.comment.id} className="sr-only">
+							Add your review
 						</label>
 						<textarea
-							{...getTextareaProps(commentFields.comment)}
+							{...getTextareaProps(reviewFields.comment)}
 							rows={3}
 							className="block w-full resize-none border-0 bg-transparent py-3 pl-3 pr-3 text-sm text-text-primary placeholder:text-sm placeholder:text-gray-400 focus:outline-none sm:leading-6 lg:text-base lg:placeholder:text-base"
 							placeholder="Add your comment..."
-							ref={commentRef}
-							defaultValue={commentFields.comment.value}
+							ref={reviewRef}
+							defaultValue={reviewFields.comment.value}
 						/>
 					</div>
 					<div className="absolute  bottom-0 right-0 flex py-2 pl-3 pr-2">
@@ -67,9 +62,9 @@ export default function Comment() {
 				</fetcher.Form>
 			</div>
 			<div
-				className={`transition-height overflow-hidden pt-1 duration-500  ease-in-out lg:ml-10 ${commentFields.comment.errors ? 'max-h-56' : 'max-h-0'}`}
+				className={`transition-height overflow-hidden pt-1 duration-500  ease-in-out lg:ml-10 ${reviewFields.comment.errors ? 'max-h-56' : 'max-h-0'}`}
 			>
-				<ErrorList errors={commentFields.comment.errors} id={commentFields.comment.errorId} />
+				<ErrorList errors={reviewFields.comment.errors} id={reviewFields.comment.errorId} />
 			</div>
 		</div>
 	);
