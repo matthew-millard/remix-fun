@@ -32,12 +32,10 @@ export async function action({ request }: ActionFunctionArgs) {
 			return commentAction({ userId, formData });
 		}
 		case 'like': {
-			console.log('like');
-			return {};
+			return likeCommentAction({ userId, formData });
 		}
 		case 'dislike': {
-			console.log('dislike');
-			return {};
+			return dislikeCommentAction({ userId, formData });
 		}
 		case 'update-comment': {
 			return updateCommentAction({ userId, formData });
@@ -52,6 +50,120 @@ export async function action({ request }: ActionFunctionArgs) {
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
 		}
+	}
+
+	async function dislikeCommentAction({ userId, formData }: { userId: string; formData: FormData }) {
+		const reviewId = formData.get('comment-id') as string;
+
+		await prisma.$transaction(async prisma => {
+			const existingDislike = await prisma.dislike.findUnique({
+				where: {
+					userId_reviewId: {
+						userId,
+						reviewId,
+					},
+				},
+			});
+
+			const existingLike = await prisma.like.findUnique({
+				where: {
+					userId_reviewId: {
+						userId,
+						reviewId,
+					},
+				},
+			});
+
+			if (existingDislike) {
+				// Remove the dislike
+				await prisma.dislike.delete({
+					where: {
+						userId_reviewId: {
+							userId,
+							reviewId,
+						},
+					},
+				});
+			} else {
+				// Remove existing like if it exists
+				if (existingLike) {
+					await prisma.like.delete({
+						where: {
+							userId_reviewId: {
+								userId,
+								reviewId,
+							},
+						},
+					});
+				}
+				// Add a new dislike
+				await prisma.dislike.create({
+					data: {
+						userId,
+						reviewId,
+					},
+				});
+			}
+		});
+
+		return {};
+	}
+
+	async function likeCommentAction({ userId, formData }: { userId: string; formData: FormData }) {
+		const reviewId = formData.get('comment-id') as string;
+
+		await prisma.$transaction(async prisma => {
+			const existingLike = await prisma.like.findUnique({
+				where: {
+					userId_reviewId: {
+						userId,
+						reviewId,
+					},
+				},
+			});
+
+			const existingDislike = await prisma.dislike.findUnique({
+				where: {
+					userId_reviewId: {
+						userId,
+						reviewId,
+					},
+				},
+			});
+
+			if (existingLike) {
+				// Remove the like
+				await prisma.like.delete({
+					where: {
+						userId_reviewId: {
+							userId,
+							reviewId,
+						},
+					},
+				});
+			} else {
+				// Remove existing dislike if it exists
+				if (existingDislike) {
+					await prisma.dislike.delete({
+						where: {
+							userId_reviewId: {
+								userId,
+								reviewId,
+							},
+						},
+					});
+				}
+				// Add a new like
+				await prisma.like.create({
+					data: {
+						userId,
+						reviewId,
+					},
+				});
+			}
+		});
+
+		return {};
 	}
 
 	async function updateCommentAction({ formData }: { userId: string; formData: FormData }) {
@@ -81,6 +193,19 @@ export async function action({ request }: ActionFunctionArgs) {
 			},
 			data: {
 				comment: comment,
+			},
+		});
+
+		// On update, remove any existing likes or dislikes
+		await prisma.like.deleteMany({
+			where: {
+				reviewId: commentId,
+			},
+		});
+
+		await prisma.dislike.deleteMany({
+			where: {
+				reviewId: commentId,
 			},
 		});
 
@@ -158,7 +283,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 			ingredients: true,
 			image: { include: { photographer: true } },
 			author: { include: { profileImage: true, username: true } },
-			reviews: { include: { user: { include: { profileImage: true, username: true } } } },
+			reviews: { include: { user: { include: { profileImage: true, username: true } }, likes: true, dislikes: true } },
 		},
 	});
 

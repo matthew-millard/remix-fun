@@ -27,6 +27,8 @@ model User {
   roles        Role[]
   cocktails    Cocktail[]
   reviews      Review[]
+  likes        Like[]
+  dislikes     Dislike[]
 }
 
 model Username {
@@ -183,13 +185,35 @@ model Tag {
 }
 
 model Review {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   rating     Int
   comment    String
-  cocktail   Cocktail @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cocktail   Cocktail  @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   cocktailId String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  likes      Like[]
+  dislikes   Dislike[]
+}
+
+model Like {
+  id       String @id @default(cuid())
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId   String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reviewId String
+
+  @@unique([userId, reviewId])
+}
+
+model Dislike {
+  id       String @id @default(cuid())
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId   String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reviewId String
+
+  @@unique([userId, reviewId])
 }
