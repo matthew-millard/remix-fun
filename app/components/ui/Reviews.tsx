@@ -1,7 +1,7 @@
 import { StarIcon } from '@heroicons/react/20/solid';
 import { HandThumbDownIcon, HandThumbUpIcon, FlagIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import Comment from '../Comment';
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { timeAgo } from '~/utils/misc';
 import { useFetcher, useLoaderData } from '@remix-run/react';
 import { loader } from '~/routes/cocktails+/$cocktail';
@@ -38,6 +38,18 @@ type User = {
 	username: Username;
 };
 
+type Likes = {
+	id: string;
+	userId: string;
+	reviewId: string;
+};
+
+type Dislikes = {
+	id: string;
+	userId: string;
+	reviewId: string;
+};
+
 type Review = {
 	id: string;
 	cocktailId: string;
@@ -46,6 +58,8 @@ type Review = {
 	createdAt: string;
 	updatedAt: string;
 	user: User;
+	likes: Likes[];
+	dislikes: Dislikes[];
 };
 
 type Reviews = Review[];
@@ -65,7 +79,10 @@ const initialRatingsCount: Record<number, number> = {
 export default function Reviews({ reviews }: { reviews: Reviews }) {
 	const [editComment, setEditComment] = useState(null);
 	const { user: currentUser } = useLoaderData<typeof loader>();
+
 	const fetcher = useFetcher();
+
+	const isPending = fetcher.state !== 'idle';
 
 	const ratingsCount = useMemo(() => {
 		return reviews.reduce(
@@ -146,7 +163,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 					<div className="mt-12">
 						<h3 className="text-lg font-medium text-text-primary">Comments</h3>
 						<p className="mt-1 text-sm text-text-secondary">
-							If you’ve made this cocktail, share your thoughts with other barflies.
+							If you’ve made this cocktail, share your thoughts with other barflies and bartenders.
 						</p>
 					</div>
 				</div>
@@ -213,17 +230,25 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 										<div className="flex">
 											<button type="submit" name="intent" value="like" className="mt-4 flex items-center">
 												<HandThumbUpIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
-												<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
+												<p className="ml-1 font-mono text-xs text-text-secondary lg:text-sm">{review.likes.length}</p>
 											</button>
 											<button type="submit" name="intent" value="dislike" className="ml-4 mt-4 flex items-center">
 												<HandThumbDownIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
-												<p className="ml-1 text-xs font-medium text-text-secondary lg:text-sm">0</p>
+												<p className="ml-1 font-mono text-xs text-text-secondary lg:text-sm">
+													{review.dislikes.length}
+												</p>
 											</button>
 											<div className="ml-auto mt-4 flex items-center gap-x-4">
 												{review.user.id === currentUser.id ? (
 													editComment === review.id ? (
 														<div className="mt-2 flex justify-end gap-4">
-															<Button type="submit" label="Update" name="intent" value="update-comment" />
+															<Button
+																type="submit"
+																label="Update"
+																isPending={isPending}
+																name="intent"
+																value="update-comment"
+															/>
 															<button
 																type="button"
 																onClick={() => setEditComment(false)}
