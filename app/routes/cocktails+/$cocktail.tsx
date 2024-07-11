@@ -20,19 +20,24 @@ export const deleteReviewActionIntent = 'delete-review';
 export const reviewIdInput = 'review-id-input';
 export const updateReviewInput = 'update-review-input';
 
+type ReviewActionArgs = {
+	userId: string;
+	formData: FormData;
+};
+
 export const ReviewSchema = z.object({
 	review: z
-		.string()
+		.string({ required_error: 'Review must not be empty.' })
 		.trim()
-		.min(3, { message: 'Must be at least 3 characters' })
-		.max(CONTENT_MAX_LENTGH, { message: 'Must be 250 characters or less' }),
+		.min(3, { message: 'Must be 3 or more characters long' })
+		.max(CONTENT_MAX_LENTGH, { message: 'Must be 250 or fewer characters long' }),
 });
 export const UpdateReviewSchema = z.object({
 	['update-review-input']: z
-		.string()
+		.string({ required_error: 'Review must not be empty.' })
 		.trim()
-		.min(3, { message: 'Must be at least 3 characters' })
-		.max(CONTENT_MAX_LENTGH, { message: 'Must be 250 characters or less' }),
+		.min(3, { message: 'Must be 3 or more characters long' })
+		.max(CONTENT_MAX_LENTGH, { message: 'Must be 250 or fewer characters long' }),
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -56,8 +61,7 @@ export async function action({ request }: ActionFunctionArgs) {
 			return updateReviewAction({ userId, formData });
 		}
 		case flagReviewActionIntent: {
-			console.log('flag');
-			return {};
+			return flagReviewAction({ userId, formData });
 		}
 		case deleteReviewActionIntent: {
 			return deleteReviewAction({ userId, formData });
@@ -67,7 +71,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		}
 	}
 
-	async function dislikeReviewAction({ userId, formData }: { userId: string; formData: FormData }) {
+	async function dislikeReviewAction({ userId, formData }: ReviewActionArgs) {
 		const reviewId = formData.get(reviewIdInput) as string;
 
 		await prisma.$transaction(async prisma => {
@@ -124,7 +128,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return {};
 	}
 
-	async function likeReviewAction({ userId, formData }: { userId: string; formData: FormData }) {
+	async function likeReviewAction({ userId, formData }: ReviewActionArgs) {
 		const reviewId = formData.get(reviewIdInput) as string;
 
 		await prisma.$transaction(async prisma => {
@@ -181,7 +185,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return {};
 	}
 
-	async function updateReviewAction({ formData }: { userId: string; formData: FormData }) {
+	async function updateReviewAction({ formData }: ReviewActionArgs) {
 		const reviewId = formData.get(reviewIdInput) as string;
 		const submission = parseWithZod(formData, {
 			schema: UpdateReviewSchema,
@@ -220,7 +224,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return {};
 	}
 
-	async function deleteReviewAction({ userId, formData }: { userId: string; formData: FormData }) {
+	async function deleteReviewAction({ userId, formData }: ReviewActionArgs) {
 		const reviewId = formData.get(reviewIdInput) as string;
 
 		await prisma.$transaction(async prisma => {
@@ -243,7 +247,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return {};
 	}
 
-	async function postReviewAction({ userId, formData }: { userId: string; formData: FormData }) {
+	async function postReviewAction({ userId, formData }: ReviewActionArgs) {
 		const submission = await parseWithZod(formData, {
 			async: true,
 			schema: ReviewSchema.transform(async (data, ctx) => {
@@ -284,6 +288,37 @@ export async function action({ request }: ActionFunctionArgs) {
 		// Return with a toast notification
 		return { status: 200 };
 	}
+
+	async function flagReviewAction({ userId, formData }: ReviewActionArgs) {
+		const reviewId = formData.get(reviewIdInput) as string;
+		// Check if the review has already been flagged by a user
+
+		await prisma.$transaction(async prisma => {
+			const hasBeenFlagged = await prisma.flagReview.findUnique({
+				where: {
+					reviewId,
+				},
+			});
+
+			if (hasBeenFlagged && hasBeenFlagged.userId === userId) {
+				// Allows the user to remove their flag
+				await prisma.flagReview.delete({
+					where: {
+						reviewId,
+					},
+				});
+			} else if (!hasBeenFlagged) {
+				await prisma.flagReview.create({
+					data: {
+						reviewId,
+						userId,
+					},
+				});
+			}
+		});
+
+		return {};
+	}
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -300,7 +335,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 			ingredients: true,
 			image: { include: { photographer: true } },
 			author: { include: { profileImage: true, username: true } },
-			reviews: { include: { user: { include: { profileImage: true, username: true } }, likes: true, dislikes: true } },
+			reviews: {
+				include: {
+					user: { include: { profileImage: true, username: true } },
+					likes: true,
+					dislikes: true,
+					flaggedAsInappropriate: true,
+				},
+			},
 		},
 	});
 
