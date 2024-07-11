@@ -11,9 +11,24 @@ import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { CONTENT_MAX_LENTGH } from '~/utils/validation-schemas';
 
-// Create a zod schema to validate the form data
+export const postReviewActionIntent = 'post-review';
+export const likeReviewActionIntent = 'like-review';
+export const dislikeReviewActionIntent = 'dislike-review';
+export const updateReviewActionIntent = 'update-review';
+export const flagReviewActionIntent = 'flag-review';
+export const deleteReviewActionIntent = 'delete-review';
+export const reviewIdInput = 'review-id-input';
+export const updateReviewInput = 'update-review-input';
+
 export const ReviewSchema = z.object({
-	comment: z
+	review: z
+		.string()
+		.trim()
+		.min(3, { message: 'Must be at least 3 characters' })
+		.max(CONTENT_MAX_LENTGH, { message: 'Must be 250 characters or less' }),
+});
+export const UpdateReviewSchema = z.object({
+	['update-review-input']: z
 		.string()
 		.trim()
 		.min(3, { message: 'Must be at least 3 characters' })
@@ -28,32 +43,32 @@ export async function action({ request }: ActionFunctionArgs) {
 	const intent = formData.get('intent');
 
 	switch (intent) {
-		case 'comment': {
-			return commentAction({ userId, formData });
+		case postReviewActionIntent: {
+			return postReviewAction({ userId, formData });
 		}
-		case 'like': {
-			return likeCommentAction({ userId, formData });
+		case likeReviewActionIntent: {
+			return likeReviewAction({ userId, formData });
 		}
-		case 'dislike': {
-			return dislikeCommentAction({ userId, formData });
+		case dislikeReviewActionIntent: {
+			return dislikeReviewAction({ userId, formData });
 		}
-		case 'update-comment': {
-			return updateCommentAction({ userId, formData });
+		case updateReviewActionIntent: {
+			return updateReviewAction({ userId, formData });
 		}
-		case 'flag': {
+		case flagReviewActionIntent: {
 			console.log('flag');
 			return {};
 		}
-		case 'delete': {
-			return deleteCommentAction({ userId, formData });
+		case deleteReviewActionIntent: {
+			return deleteReviewAction({ userId, formData });
 		}
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
 		}
 	}
 
-	async function dislikeCommentAction({ userId, formData }: { userId: string; formData: FormData }) {
-		const reviewId = formData.get('comment-id') as string;
+	async function dislikeReviewAction({ userId, formData }: { userId: string; formData: FormData }) {
+		const reviewId = formData.get(reviewIdInput) as string;
 
 		await prisma.$transaction(async prisma => {
 			const existingDislike = await prisma.dislike.findUnique({
@@ -109,8 +124,8 @@ export async function action({ request }: ActionFunctionArgs) {
 		return {};
 	}
 
-	async function likeCommentAction({ userId, formData }: { userId: string; formData: FormData }) {
-		const reviewId = formData.get('comment-id') as string;
+	async function likeReviewAction({ userId, formData }: { userId: string; formData: FormData }) {
+		const reviewId = formData.get(reviewIdInput) as string;
 
 		await prisma.$transaction(async prisma => {
 			const existingLike = await prisma.like.findUnique({
@@ -166,18 +181,20 @@ export async function action({ request }: ActionFunctionArgs) {
 		return {};
 	}
 
-	async function updateCommentAction({ formData }: { userId: string; formData: FormData }) {
-		const commentId = formData.get('comment-id') as string;
+	async function updateReviewAction({ formData }: { userId: string; formData: FormData }) {
+		const reviewId = formData.get(reviewIdInput) as string;
 		const submission = parseWithZod(formData, {
-			schema: ReviewSchema,
+			schema: UpdateReviewSchema,
 		});
+
+		console.log('submission: ', submission);
 
 		if (submission.status !== 'success') {
 			return json(
 				submission.reply({
 					formErrors: ['Submission failed'],
 					fieldErrors: {
-						comment: ['Invalid'],
+						review: ['Invalid'],
 					},
 				}),
 				{
@@ -186,47 +203,48 @@ export async function action({ request }: ActionFunctionArgs) {
 			);
 		}
 
-		const { comment } = submission.value;
+		const { 'update-review-input': updatedReview } = submission.value;
+
 		await prisma.review.update({
 			where: {
-				id: commentId,
+				id: reviewId,
 			},
 			data: {
-				comment: comment,
+				review: updatedReview,
 			},
 		});
 
 		// On update, remove any existing likes or dislikes
 		await prisma.like.deleteMany({
 			where: {
-				reviewId: commentId,
+				reviewId,
 			},
 		});
 
 		await prisma.dislike.deleteMany({
 			where: {
-				reviewId: commentId,
+				reviewId,
 			},
 		});
 
 		return {};
 	}
 
-	async function deleteCommentAction({ userId, formData }: { userId: string; formData: FormData }) {
-		const commentId = formData.get('comment-id') as string;
+	async function deleteReviewAction({ userId, formData }: { userId: string; formData: FormData }) {
+		const reviewId = formData.get(reviewIdInput) as string;
 
 		await prisma.$transaction(async prisma => {
-			const commentToDelete = await prisma.review.findFirst({
+			const reviewToDelete = await prisma.review.findFirst({
 				where: {
-					id: commentId,
-					userId: userId,
+					id: reviewId,
+					userId,
 				},
 			});
 
-			if (commentToDelete) {
+			if (reviewToDelete) {
 				await prisma.review.delete({
 					where: {
-						id: commentToDelete.id,
+						id: reviewToDelete.id,
 					},
 				});
 			}
@@ -235,9 +253,26 @@ export async function action({ request }: ActionFunctionArgs) {
 		return {};
 	}
 
-	async function commentAction({ userId, formData }: { userId: string; formData: FormData }) {
-		const submission = parseWithZod(formData, {
-			schema: ReviewSchema,
+	async function postReviewAction({ userId, formData }: { userId: string; formData: FormData }) {
+		const submission = await parseWithZod(formData, {
+			async: true,
+			schema: ReviewSchema.transform(async (data, ctx) => {
+				const hasReviewed = await prisma.review.findFirst({
+					where: {
+						userId,
+					},
+				});
+
+				if (hasReviewed) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						path: ['review'],
+						message: 'You have already reviewed this cocktail. Please either update or delete your existing review.',
+					});
+				}
+
+				return data;
+			}),
 		});
 
 		if (submission.status !== 'success') {
@@ -245,7 +280,7 @@ export async function action({ request }: ActionFunctionArgs) {
 				submission.reply({
 					formErrors: ['Submission failed'],
 					fieldErrors: {
-						comment: ['Invalid'],
+						review: ['Invalid'],
 					},
 				}),
 				{
@@ -254,11 +289,11 @@ export async function action({ request }: ActionFunctionArgs) {
 			);
 		}
 
-		const { comment } = submission.value;
+		const { review } = submission.value;
 		await prisma.review.create({
 			data: {
 				userId,
-				comment: comment,
+				review,
 				rating: 5,
 				cocktailId: '1',
 			},

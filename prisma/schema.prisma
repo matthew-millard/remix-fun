@@ -187,7 +187,7 @@ model Tag {
 model Review {
   id         String    @id @default(cuid())
   rating     Int
-  comment    String
+  review     String
   cocktail   Cocktail  @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   cocktailId String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)

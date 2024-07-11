@@ -8,7 +8,15 @@ import {
 import { useMemo, useState } from 'react';
 import { timeAgo } from '~/utils/misc';
 import { useFetcher, useLoaderData } from '@remix-run/react';
-import { loader } from '~/routes/cocktails+/$cocktail';
+import {
+	deleteReviewActionIntent,
+	dislikeReviewActionIntent,
+	likeReviewActionIntent,
+	loader,
+	reviewIdInput,
+	updateReviewActionIntent,
+	updateReviewInput,
+} from '~/routes/cocktails+/$cocktail';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { ReviewForm, Button } from '~/components';
 
@@ -57,7 +65,7 @@ type Dislikes = {
 type Review = {
 	id: string;
 	cocktailId: string;
-	comment: string;
+	review: string;
 	rating: number;
 	createdAt: string;
 	updatedAt: string;
@@ -216,21 +224,26 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 
 									<fetcher.Form method="POST" onSubmit={() => setUpdateReview(null)} className="flex flex-col">
 										<AuthenticityTokenInput />
-										<input readOnly type="hidden" defaultValue={review.id} name="comment-id" />
+										<input readOnly type="hidden" defaultValue={review.id} name={reviewIdInput} />
 										{updateReview === review.id ? (
 											<textarea
 												className="mt-4 w-full resize-none space-y-6 break-words border-none bg-transparent text-sm text-text-primary lg:text-base"
-												defaultValue={review.comment}
-												name="comment"
+												defaultValue={review.review}
+												name={updateReviewInput}
 											/>
 										) : (
 											<div className="mt-4 w-full space-y-6 break-words text-sm text-text-primary lg:text-base">
-												{review.comment}
+												{review.review}
 											</div>
 										)}
 
 										<div className="flex">
-											<button type="submit" name="intent" value="like" className="mt-4 flex items-center">
+											<button
+												type="submit"
+												name="intent"
+												value={likeReviewActionIntent}
+												className="mt-4 flex items-center"
+											>
 												{review.likes.some(like => like.userId === currentUser.id) ? (
 													<HandThumbUpIconSolid className="h-4 w-4 text-yellow-400" aria-hidden="true" />
 												) : (
@@ -238,7 +251,12 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 												)}
 												<p className="ml-1 font-mono text-xs text-text-secondary lg:text-sm">{review.likes.length}</p>
 											</button>
-											<button type="submit" name="intent" value="dislike" className="ml-4 mt-4 flex items-center">
+											<button
+												type="submit"
+												name="intent"
+												value={dislikeReviewActionIntent}
+												className="ml-4 mt-4 flex items-center"
+											>
 												{review.dislikes.some(dislike => dislike.userId === currentUser.id) ? (
 													<HandThumbDownIconSolid className="h-4 w-4 text-yellow-400" aria-hidden="true" />
 												) : (
@@ -258,7 +276,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 																label="Update"
 																isPending={isPending}
 																name="intent"
-																value="update-comment"
+																value={updateReviewActionIntent}
 															/>
 															<button
 																type="button"
@@ -270,7 +288,7 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 														</div>
 													) : (
 														<div className="flex gap-x-4">
-															<button type="submit" name="intent" value="delete" className="">
+															<button type="submit" name="intent" value={deleteReviewActionIntent} className="">
 																<TrashIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
 															</button>
 															<button type="button" onClick={() => setUpdateReview(review.id)}>
