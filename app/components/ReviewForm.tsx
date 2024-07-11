@@ -1,34 +1,30 @@
 import { getFormProps, getTextareaProps, useForm } from '@conform-to/react';
-import { parseWithZod } from '@conform-to/zod';
-import { useActionData, useFetcher, useLoaderData } from '@remix-run/react';
+import { getZodConstraint, parseWithZod } from '@conform-to/zod';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { ReviewSchema, loader, postReviewActionIntent } from '~/routes/cocktails+/$cocktail';
 import Button from './Button';
 import ErrorList from './ErrorList';
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
+import { useIsPending } from '~/hooks/useIsPending';
 
 export default function ReviewForm() {
 	const { user } = useLoaderData<typeof loader>();
+	const lastResult = useActionData();
 	const reviewRef = useRef<HTMLTextAreaElement>(null);
-	const fetcher = useFetcher();
 
-	const isSubmitting = fetcher.state === 'submitting';
+	const isPending = useIsPending({ formIntent: postReviewActionIntent, formMethod: 'POST' });
 
 	const [reviewForm, reviewFields] = useForm({
 		id: useId(),
-		lastResult: useActionData(),
+		lastResult,
+		constraint: getZodConstraint(ReviewSchema),
 		shouldValidate: 'onSubmit',
 		shouldRevalidate: 'onSubmit',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: ReviewSchema });
 		},
 	});
-
-	useEffect(() => {
-		if (isSubmitting) {
-			reviewRef.current.value = '';
-		}
-	}, [isSubmitting]);
 
 	return (
 		<div className="mt-6 flex flex-col">
@@ -38,7 +34,7 @@ export default function ReviewForm() {
 					alt=""
 					className="hidden h-5 w-5 flex-none rounded-full  object-cover lg:block lg:h-7 lg:w-7"
 				/>
-				<fetcher.Form {...getFormProps(reviewForm)} method="POST" className="relative flex-auto">
+				<Form {...getFormProps(reviewForm)} method="POST" className="relative flex-auto">
 					<AuthenticityTokenInput />
 					<div className="overflow-hidden rounded-lg pb-12 shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-600">
 						<label htmlFor={reviewFields.review.id} className="sr-only">
@@ -53,15 +49,9 @@ export default function ReviewForm() {
 						/>
 					</div>
 					<div className="absolute  bottom-0 right-0 flex py-2 pl-3 pr-2">
-						<Button
-							label="Comment"
-							type="submit"
-							name="intent"
-							value={postReviewActionIntent}
-							isPending={fetcher.state !== 'idle'}
-						/>
+						<Button label="Comment" type="submit" name="intent" value={postReviewActionIntent} isPending={isPending} />
 					</div>
-				</fetcher.Form>
+				</Form>
 			</div>
 			<div
 				className={`transition-height overflow-hidden pt-1 duration-500  ease-in-out lg:ml-10 ${reviewFields.review.errors ? 'max-h-56' : 'max-h-0'}`}
