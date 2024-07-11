@@ -5,9 +5,9 @@ import {
 	HandThumbUpIcon as HandThumbUpIconSolid,
 } from '@heroicons/react/24/solid';
 
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { timeAgo } from '~/utils/misc';
-import { useFetcher, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import {
 	deleteReviewActionIntent,
 	dislikeReviewActionIntent,
@@ -16,9 +16,13 @@ import {
 	reviewIdInput,
 	updateReviewActionIntent,
 	updateReviewInput,
+	UpdateReviewSchema,
 } from '~/routes/cocktails+/$cocktail';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
-import { ReviewForm, Button } from '~/components';
+import { ReviewForm, Button, ErrorList } from '~/components';
+import { useIsPending } from '~/hooks/useIsPending';
+import { getFormProps, getTextareaProps, useForm } from '@conform-to/react';
+import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 
 type UserProfileImage = {
 	id: string;
@@ -90,11 +94,21 @@ const initialRatingsCount: Record<number, number> = {
 
 export default function Reviews({ reviews }: { reviews: Reviews }) {
 	const [updateReview, setUpdateReview] = useState(null);
+
 	const { user: currentUser } = useLoaderData<typeof loader>();
 
-	const fetcher = useFetcher();
+	const [updateReviewForm, updateReviewFields] = useForm({
+		id: useId(),
+		lastResult: useActionData(),
+		constraint: getZodConstraint(UpdateReviewSchema),
+		shouldValidate: 'onSubmit',
+		shouldRevalidate: 'onSubmit',
+		onValidate({ formData }) {
+			return parseWithZod(formData, { schema: UpdateReviewSchema });
+		},
+	});
 
-	const isPending = fetcher.state !== 'idle';
+	const isPending = useIsPending({ formIntent: updateReviewActionIntent, formMethod: 'POST' });
 
 	const ratingsCount = useMemo(() => {
 		return reviews.reduce(
@@ -222,11 +236,17 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 										</div>
 									</div>
 
-									<fetcher.Form method="POST" onSubmit={() => setUpdateReview(null)} className="flex flex-col">
+									<Form
+										{...getFormProps(updateReviewForm)}
+										method="POST"
+										onSubmit={() => setUpdateReview(null)}
+										className="flex flex-col"
+									>
 										<AuthenticityTokenInput />
 										<input readOnly type="hidden" defaultValue={review.id} name={reviewIdInput} />
 										{updateReview === review.id ? (
 											<textarea
+												{...getTextareaProps(updateReviewFields['update-review-input'])}
 												className="mt-4 w-full resize-none space-y-6 break-words border-none bg-transparent text-sm text-text-primary lg:text-base"
 												defaultValue={review.review}
 												name={updateReviewInput}
@@ -299,7 +319,15 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 												) : null}
 											</div>
 										</div>
-									</fetcher.Form>
+									</Form>
+									<div
+										className={`transition-height overflow-hidden pt-1 duration-500  ease-in-out  ${updateReviewFields['update-review-input'].errors ? 'max-h-56' : 'max-h-0'}`}
+									>
+										<ErrorList
+											errors={updateReviewFields['update-review-input'].errors}
+											id={updateReviewFields['update-review-input'].errorId}
+										/>
+									</div>
 								</div>
 							))}
 						</div>
