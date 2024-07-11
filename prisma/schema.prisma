@@ -11,24 +11,25 @@ datasource db {
 }
 
 model User {
-  id           String            @id @default(cuid())
-  email        String            @unique
-  firstName    String
-  lastName     String
-  profileImage UserProfileImage?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  password     Password?
-  username     Username?
-  about        About?
-  userLocation UserLocation?
-  sessions     Session[]
-  coverImage   UserCoverImage?
-  roles        Role[]
-  cocktails    Cocktail[]
-  reviews      Review[]
-  likes        Like[]
-  dislikes     Dislike[]
+  id             String            @id @default(cuid())
+  email          String            @unique
+  firstName      String
+  lastName       String
+  profileImage   UserProfileImage?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  password       Password?
+  username       Username?
+  about          About?
+  userLocation   UserLocation?
+  sessions       Session[]
+  coverImage     UserCoverImage?
+  roles          Role[]
+  cocktails      Cocktail[]
+  reviews        Review[]
+  likes          Like[]
+  dislikes       Dislike[]
+  flaggedReviews FlagReview[]
 }
 
 model Username {
@@ -185,17 +186,18 @@ model Tag {
 }
 
 model Review {
-  id         String    @id @default(cuid())
-  rating     Int
-  review     String
-  cocktail   Cocktail  @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  cocktailId String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId     String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  likes      Like[]
-  dislikes   Dislike[]
+  id                     String      @id @default(cuid())
+  rating                 Int
+  review                 String
+  cocktail               Cocktail    @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cocktailId             String
+  user                   User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId                 String
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+  likes                  Like[]
+  dislikes               Dislike[]
+  flaggedAsInappropriate FlagReview?
 }
 
 model Like {
@@ -214,6 +216,17 @@ model Dislike {
   userId   String
   review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   reviewId String
+
+  @@unique([userId, reviewId])
+}
+
+model FlagReview {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reviewId  String   @unique
+  createdAt DateTime @default(now())
 
   @@unique([userId, reviewId])
 }

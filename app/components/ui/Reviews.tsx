@@ -3,6 +3,7 @@ import { HandThumbDownIcon, HandThumbUpIcon, FlagIcon, TrashIcon, PencilSquareIc
 import {
 	HandThumbDownIcon as HandThumbDownIconSolid,
 	HandThumbUpIcon as HandThumbUpIconSolid,
+	FlagIcon as FlagIconSolid,
 } from '@heroicons/react/24/solid';
 
 import { useId, useMemo, useState } from 'react';
@@ -11,6 +12,7 @@ import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import {
 	deleteReviewActionIntent,
 	dislikeReviewActionIntent,
+	flagReviewActionIntent,
 	likeReviewActionIntent,
 	loader,
 	reviewIdInput,
@@ -76,6 +78,14 @@ type Review = {
 	user: User;
 	likes: Likes[];
 	dislikes: Dislikes[];
+	flaggedAsInappropriate: FlagReview | null;
+};
+
+type FlagReview = {
+	id: string;
+	userId: string;
+	reviewId: string;
+	createdAt: string;
 };
 
 type Reviews = Review[];
@@ -226,14 +236,20 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 										</div>
 										<p className="sr-only">{review.rating} out of 5 stars</p> */}
 
-										<div className="flex flex-col justify-between  gap-y-2">
-											<button type="submit" className="self-end">
-												<FlagIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+										<Form method="POST" className="flex flex-col justify-between  gap-y-2">
+											<AuthenticityTokenInput />
+											<input readOnly type="hidden" defaultValue={review.id} name={reviewIdInput} />
+											<button type="submit" name="intent" value={flagReviewActionIntent} className="self-end">
+												{review.flaggedAsInappropriate ? (
+													<FlagIconSolid className="h-4 w-4 text-red-500" aria-hidden="true" />
+												) : (
+													<FlagIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+												)}
 											</button>
 											<p className="text-xs font-medium text-text-secondary lg:text-sm">
 												{timeAgo(new Date(review.createdAt))}
 											</p>
-										</div>
+										</Form>
 									</div>
 
 									<Form
