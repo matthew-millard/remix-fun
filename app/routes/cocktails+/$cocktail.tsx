@@ -187,8 +187,6 @@ export async function action({ request }: ActionFunctionArgs) {
 			schema: UpdateReviewSchema,
 		});
 
-		console.log('submission: ', submission);
-
 		if (submission.status !== 'success') {
 			return json(
 				submission.reply({
@@ -276,17 +274,9 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 
 		if (submission.status !== 'success') {
-			return json(
-				submission.reply({
-					formErrors: ['Submission failed'],
-					fieldErrors: {
-						review: ['Invalid'],
-					},
-				}),
-				{
-					status: submission.status === 'error' ? 400 : 200,
-				},
-			);
+			return json(submission.reply(), {
+				status: submission.status === 'error' ? 400 : 200,
+			});
 		}
 
 		const { review } = submission.value;
