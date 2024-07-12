@@ -72,7 +72,6 @@ type Review = {
 	id: string;
 	cocktailId: string;
 	review: string;
-	rating: number;
 	createdAt: string;
 	updatedAt: string;
 	user: User;
@@ -90,6 +89,17 @@ type FlagReview = {
 
 type Reviews = Review[];
 
+type Rating = {
+	id: string;
+	rating: number;
+	userId: string;
+	cocktailId: string;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type Ratings = Rating[];
+
 function classNames(...classes: string[]) {
 	return classes.filter(Boolean).join(' ');
 }
@@ -102,9 +112,8 @@ const initialRatingsCount: Record<number, number> = {
 	5: 0,
 };
 
-export default function Reviews({ reviews }: { reviews: Reviews }) {
+export default function Reviews({ reviews, ratings }: { reviews: Reviews; ratings: Ratings }) {
 	const [updateReview, setUpdateReview] = useState(null);
-
 	const { user: currentUser } = useLoaderData<typeof loader>();
 
 	const [updateReviewForm, updateReviewFields] = useForm({
@@ -121,23 +130,23 @@ export default function Reviews({ reviews }: { reviews: Reviews }) {
 	const isPending = useIsPending({ formIntent: updateReviewActionIntent, formMethod: 'POST' });
 
 	const ratingsCount = useMemo(() => {
-		return reviews.reduce(
-			(acc, review) => {
-				acc[review.rating] += 1;
+		return ratings.reduce(
+			(acc, ratings) => {
+				acc[ratings.rating] += 1;
 				return acc;
 			},
 			{ ...initialRatingsCount },
 		);
-	}, [reviews]);
+	}, [ratings]);
 
-	const totalCount = reviews.length;
+	const totalCount = ratings.length;
 	const averageRating = useMemo(() => {
-		return reviews.reduce((acc, review) => acc + review.rating, 0) / totalCount;
-	}, [reviews, totalCount]);
+		return ratings.reduce((acc, ratings) => acc + ratings.rating, 0) / totalCount;
+	}, [ratings, totalCount]);
 
 	return (
 		<div className="">
-			<div className="max-w-2xl py-6 sm:py-20">
+			<div className="max-w-2xl py-6 sm:py-12">
 				<div className="lg:col-span-4">
 					<h2 className="text-2xl font-bold tracking-tight text-text-primary">Recipe Ratings</h2>
 

@@ -4,7 +4,7 @@ import { BoltIcon } from '@heroicons/react/24/solid';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
 import { z } from 'zod';
-import { PublishedBy } from '~/components';
+import { PublishedBy, StarRatingForm, StarRatingInput } from '~/components';
 import Reviews from '~/components/ui/Reviews';
 import { requireUserId } from '~/utils/auth.server';
 import { checkCSRF } from '~/utils/csrf.server';
@@ -19,6 +19,7 @@ export const flagReviewActionIntent = 'flag-review';
 export const deleteReviewActionIntent = 'delete-review';
 export const reviewIdInput = 'review-id-input';
 export const updateReviewInput = 'update-review-input';
+export const submitRatingActionIntent = 'submit-rating';
 
 type ReviewActionArgs = {
 	userId: string;
@@ -45,6 +46,8 @@ export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
 	await checkCSRF(formData, request.headers);
 
+	console.log('formData: ', formData);
+
 	const intent = formData.get('intent');
 
 	switch (intent) {
@@ -65,6 +68,9 @@ export async function action({ request }: ActionFunctionArgs) {
 		}
 		case deleteReviewActionIntent: {
 			return deleteReviewAction({ userId, formData });
+		}
+		case submitRatingActionIntent: {
+			return submitRatingAction({ userId, formData });
 		}
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
@@ -280,7 +286,6 @@ export async function action({ request }: ActionFunctionArgs) {
 			data: {
 				userId,
 				review,
-				rating: 5,
 				cocktailId: '1',
 			},
 		});
@@ -319,6 +324,45 @@ export async function action({ request }: ActionFunctionArgs) {
 
 		return {};
 	}
+
+	async function submitRatingAction({ userId, formData }: ReviewActionArgs) {
+		console.log('formData: ', formData);
+
+		const rating = formData.get('rating') as string;
+		const cocktailId = formData.get('cocktailId') as string;
+
+		await prisma.$transaction(async prisma => {
+			const existingRating = await prisma.rating.findUnique({
+				where: {
+					userId_cocktailId: {
+						userId,
+						cocktailId,
+					},
+				},
+			});
+			console.log('existingRating: ', existingRating);
+
+			if (existingRating) {
+				await prisma.rating.delete({
+					where: {
+						userId_cocktailId: {
+							userId,
+							cocktailId,
+						},
+					},
+				});
+			} else {
+				await prisma.rating.create({
+					data: {
+						userId,
+						cocktailId,
+						rating: Number(rating),
+					},
+				});
+			}
+		});
+		return {};
+	}
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -343,6 +387,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 					flaggedAsInappropriate: true,
 				},
 			},
+			ratings: true,
 		},
 	});
 
@@ -363,6 +408,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function CocktailRoute() {
 	const { cocktail } = useLoaderData<typeof loader>();
 	const reviews = cocktail.reviews;
+	const ratings = cocktail.ratings;
+	console.log('ratings: ', ratings);
+	const cocktailId = cocktail.id;
 
 	const cocktailImageUrl = `/resources/images/${cocktail.image[0].id}/cocktail`;
 
@@ -401,8 +449,11 @@ export default function CocktailRoute() {
 							</span>
 						</figcaption>
 					</div>
+					<div className="mt-12">
+						<StarRatingForm cocktailId={cocktailId} ratings={ratings} />
+					</div>
 					<div className="hidden lg:block">
-						<Reviews reviews={reviews} />
+						<Reviews reviews={reviews} ratings={ratings} />
 					</div>
 				</figure>
 
@@ -412,7 +463,7 @@ export default function CocktailRoute() {
 						<p>{cocktail.description}</p>
 						<CocktailRecipe />
 						<div className="lg:hidden">
-							<Reviews reviews={reviews} />
+							<Reviews reviews={reviews} ratings={ratings} />
 						</div>
 					</div>
 				</div>
