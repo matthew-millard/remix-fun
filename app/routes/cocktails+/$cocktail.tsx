@@ -4,7 +4,7 @@ import { BoltIcon } from '@heroicons/react/24/solid';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
 import { z } from 'zod';
-import { PublishedBy, StarRatingForm, StarRatingInput } from '~/components';
+import { PublishedBy, StarRatingForm } from '~/components';
 import Reviews from '~/components/ui/Reviews';
 import { requireUserId } from '~/utils/auth.server';
 import { checkCSRF } from '~/utils/csrf.server';
@@ -26,6 +26,12 @@ type ReviewActionArgs = {
 	formData: FormData;
 };
 
+export type UserData = {
+	id: string;
+	profileImage: { id: string };
+	username: { username: string };
+};
+
 export const ReviewSchema = z.object({
 	review: z
 		.string({ required_error: 'Review must not be empty.' })
@@ -45,8 +51,6 @@ export async function action({ request }: ActionFunctionArgs) {
 	const userId = await requireUserId(request);
 	const formData = await request.formData();
 	await checkCSRF(formData, request.headers);
-
-	console.log('formData: ', formData);
 
 	const intent = formData.get('intent');
 
@@ -326,8 +330,6 @@ export async function action({ request }: ActionFunctionArgs) {
 	}
 
 	async function submitRatingAction({ userId, formData }: ReviewActionArgs) {
-		console.log('formData: ', formData);
-
 		const rating = formData.get('rating') as string;
 		const cocktailId = formData.get('cocktailId') as string;
 
@@ -340,7 +342,6 @@ export async function action({ request }: ActionFunctionArgs) {
 					},
 				},
 			});
-			console.log('existingRating: ', existingRating);
 
 			if (existingRating) {
 				await prisma.rating.delete({
@@ -406,10 +407,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function CocktailRoute() {
-	const { cocktail } = useLoaderData<typeof loader>();
+	const { cocktail, user } = useLoaderData<typeof loader>();
 	const reviews = cocktail.reviews;
 	const ratings = cocktail.ratings;
-	console.log('ratings: ', ratings);
 	const cocktailId = cocktail.id;
 
 	const cocktailImageUrl = `/resources/images/${cocktail.image[0].id}/cocktail`;
@@ -450,10 +450,10 @@ export default function CocktailRoute() {
 						</figcaption>
 					</div>
 					<div className="mt-12">
-						<StarRatingForm cocktailId={cocktailId} ratings={ratings} />
+						<StarRatingForm cocktailId={cocktailId} ratings={ratings} userId={user.id} />
 					</div>
 					<div className="hidden lg:block">
-						<Reviews reviews={reviews} ratings={ratings} />
+						<Reviews reviews={reviews} ratings={ratings} user={user} />
 					</div>
 				</figure>
 
@@ -463,7 +463,7 @@ export default function CocktailRoute() {
 						<p>{cocktail.description}</p>
 						<CocktailRecipe />
 						<div className="lg:hidden">
-							<Reviews reviews={reviews} ratings={ratings} />
+							<Reviews reviews={reviews} ratings={ratings} user={user} />
 						</div>
 					</div>
 				</div>

@@ -8,17 +8,17 @@ import {
 
 import { useId, useMemo, useState } from 'react';
 import { timeAgo } from '~/utils/misc';
-import { Form, useActionData, useLoaderData } from '@remix-run/react';
+import { Form, useActionData } from '@remix-run/react';
 import {
 	deleteReviewActionIntent,
 	dislikeReviewActionIntent,
 	flagReviewActionIntent,
 	likeReviewActionIntent,
-	loader,
 	reviewIdInput,
 	updateReviewActionIntent,
 	updateReviewInput,
 	UpdateReviewSchema,
+	UserData,
 } from '~/routes/cocktails+/$cocktail';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { ReviewForm, Button, ErrorList } from '~/components';
@@ -112,9 +112,10 @@ const initialRatingsCount: Record<number, number> = {
 	5: 0,
 };
 
-export default function Reviews({ reviews, ratings }: { reviews: Reviews; ratings: Ratings }) {
+export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; ratings: Ratings; user: UserData }) {
 	const [updateReview, setUpdateReview] = useState(null);
-	const { user: currentUser } = useLoaderData<typeof loader>();
+	const [pendingId, setPendingId] = useState(null);
+	const currentUserId = user.id;
 
 	const [updateReviewForm, updateReviewFields] = useForm({
 		id: useId(),
@@ -128,6 +129,10 @@ export default function Reviews({ reviews, ratings }: { reviews: Reviews; rating
 	});
 
 	const isPending = useIsPending({ formIntent: updateReviewActionIntent, formMethod: 'POST' });
+	const flagIsPending = useIsPending({ formIntent: flagReviewActionIntent, formMethod: 'POST' });
+	const deleteIsPending = useIsPending({ formIntent: deleteReviewActionIntent, formMethod: 'POST' });
+	const likeIsPending = useIsPending({ formIntent: likeReviewActionIntent, formMethod: 'POST' });
+	const dislikeIsPending = useIsPending({ formIntent: dislikeReviewActionIntent, formMethod: 'POST' });
 
 	const ratingsCount = useMemo(() => {
 		return ratings.reduce(
@@ -207,11 +212,11 @@ export default function Reviews({ reviews, ratings }: { reviews: Reviews; rating
 
 					<div className="mt-12">
 						<h3 className="text-lg font-medium text-text-primary">Reviews</h3>
-						<p className="mt-1 text-sm text-text-secondary">If you’ve made this cocktail recipe, leave a review.</p>
+						<p className="mt-1 text-sm text-text-secondary">Tried this cocktail recipe? Share your thoughts with us!</p>
 					</div>
 				</div>
 
-				<ReviewForm />
+				<ReviewForm user={user} />
 
 				<div className="mt-12 lg:col-span-7 lg:col-start-6 lg:mt-12">
 					<h3 className="sr-only">Recent reviews</h3>
@@ -245,10 +250,20 @@ export default function Reviews({ reviews, ratings }: { reviews: Reviews; rating
 										</div>
 										<p className="sr-only">{review.rating} out of 5 stars</p> */}
 
-										<Form method="POST" className="flex flex-col justify-between  gap-y-2">
+										<Form
+											method="POST"
+											onSubmit={() => setPendingId(review.id)}
+											className="flex flex-col justify-between  gap-y-2"
+										>
 											<AuthenticityTokenInput />
 											<input readOnly type="hidden" defaultValue={review.id} name={reviewIdInput} />
-											<button type="submit" name="intent" value={flagReviewActionIntent} className="self-end">
+											<button
+												type="submit"
+												name="intent"
+												value={flagReviewActionIntent}
+												disabled={flagIsPending && pendingId === review.id}
+												className="self-end disabled:cursor-not-allowed disabled:opacity-50"
+											>
 												{review.flaggedAsInappropriate ? (
 													<FlagIconSolid className="h-4 w-4 text-red-500" aria-hidden="true" />
 												) : (
@@ -264,7 +279,10 @@ export default function Reviews({ reviews, ratings }: { reviews: Reviews; rating
 									<Form
 										{...getFormProps(updateReviewForm)}
 										method="POST"
-										onSubmit={() => setUpdateReview(null)}
+										onSubmit={() => {
+											setUpdateReview(null);
+											setPendingId(review.id);
+										}}
 										className="flex flex-col"
 									>
 										<AuthenticityTokenInput />
@@ -287,9 +305,10 @@ export default function Reviews({ reviews, ratings }: { reviews: Reviews; rating
 												type="submit"
 												name="intent"
 												value={likeReviewActionIntent}
-												className="mt-4 flex items-center"
+												disabled={likeIsPending && pendingId === review.id}
+												className="mt-4 flex items-center disabled:cursor-not-allowed disabled:opacity-50"
 											>
-												{review.likes.some(like => like.userId === currentUser.id) ? (
+												{review.likes.some(like => like.userId === currentUserId) ? (
 													<HandThumbUpIconSolid className="h-4 w-4 text-yellow-400" aria-hidden="true" />
 												) : (
 													<HandThumbUpIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
@@ -300,9 +319,10 @@ export default function Reviews({ reviews, ratings }: { reviews: Reviews; rating
 												type="submit"
 												name="intent"
 												value={dislikeReviewActionIntent}
-												className="ml-4 mt-4 flex items-center"
+												disabled={dislikeIsPending && pendingId === review.id}
+												className="ml-4 mt-4 flex items-center disabled:cursor-not-allowed disabled:opacity-50"
 											>
-												{review.dislikes.some(dislike => dislike.userId === currentUser.id) ? (
+												{review.dislikes.some(dislike => dislike.userId === currentUserId) ? (
 													<HandThumbDownIconSolid className="h-4 w-4 text-yellow-400" aria-hidden="true" />
 												) : (
 													<HandThumbDownIcon className="h-4 w-4  text-text-secondary" aria-hidden="true" />
@@ -313,7 +333,7 @@ export default function Reviews({ reviews, ratings }: { reviews: Reviews; rating
 												</p>
 											</button>
 											<div className="ml-auto mt-4 flex items-center gap-x-4">
-												{review.user.id === currentUser.id ? (
+												{review.user.id === currentUserId ? (
 													updateReview === review.id ? (
 														<div className="mt-2 flex justify-end gap-4">
 															<Button
@@ -333,7 +353,13 @@ export default function Reviews({ reviews, ratings }: { reviews: Reviews; rating
 														</div>
 													) : (
 														<div className="flex gap-x-4">
-															<button type="submit" name="intent" value={deleteReviewActionIntent} className="">
+															<button
+																type="submit"
+																name="intent"
+																disabled={deleteIsPending && pendingId === review.id}
+																value={deleteReviewActionIntent}
+																className="disabled:cursor-not-allowed disabled:opacity-50"
+															>
 																<TrashIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
 															</button>
 															<button type="button" onClick={() => setUpdateReview(review.id)}>

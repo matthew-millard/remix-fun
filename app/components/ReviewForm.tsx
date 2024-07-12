@@ -1,15 +1,14 @@
 import { getFormProps, getTextareaProps, useForm } from '@conform-to/react';
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
-import { Form, useActionData, useLoaderData } from '@remix-run/react';
+import { Form, useActionData } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
-import { ReviewSchema, loader, postReviewActionIntent } from '~/routes/cocktails+/$cocktail';
+import { ReviewSchema, UserData, postReviewActionIntent } from '~/routes/cocktails+/$cocktail';
 import Button from './Button';
 import ErrorList from './ErrorList';
 import { useId, useRef } from 'react';
 import { useIsPending } from '~/hooks/useIsPending';
 
-export default function ReviewForm() {
-	const { user } = useLoaderData<typeof loader>();
+export default function ReviewForm({ user }: { user: UserData }) {
 	const lastResult = useActionData();
 	const reviewRef = useRef<HTMLTextAreaElement>(null);
 
