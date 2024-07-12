@@ -13,6 +13,7 @@ import Button from './Button';
 import Spinner from './Spinner';
 import PublishedBy from './PublishedBy';
 import ReviewForm from './ReviewForm';
+import StarRatingForm from './StarRatingForm';
 
 export {
 	ErrorList,
@@ -30,4 +31,5 @@ export {
 	Spinner,
 	PublishedBy,
 	ReviewForm,
+	StarRatingForm,
 };

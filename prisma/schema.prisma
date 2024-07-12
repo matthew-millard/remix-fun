@@ -30,6 +30,7 @@ model User {
   likes          Like[]
   dislikes       Dislike[]
   flaggedReviews FlagReview[]
+  ratings        Rating[]
 }
 
 model Username {
@@ -149,6 +150,20 @@ model Cocktail {
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   reviews     Review[]
+  ratings     Rating[]
+}
+
+model Rating {
+  id         String   @id @default(cuid())
+  rating     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId     String
+  cocktail   Cocktail @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cocktailId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, cocktailId])
 }
 
 model CocktailImage {
@@ -187,7 +202,6 @@ model Tag {
 
 model Review {
   id                     String      @id @default(cuid())
-  rating                 Int
   review                 String
   cocktail               Cocktail    @relation(fields: [cocktailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   cocktailId             String
