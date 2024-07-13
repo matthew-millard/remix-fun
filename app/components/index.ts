@@ -14,6 +14,7 @@ import Spinner from './Spinner';
 import PublishedBy from './PublishedBy';
 import ReviewForm from './ReviewForm';
 import StarRatingForm from './StarRatingForm';
+import Tooltip from './Tooltip';
 
 export {
 	ErrorList,
@@ -32,4 +33,5 @@ export {
 	PublishedBy,
 	ReviewForm,
 	StarRatingForm,
+	Tooltip,
 };

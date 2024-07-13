@@ -21,10 +21,11 @@ import {
 	UserData,
 } from '~/routes/cocktails+/$cocktail';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
-import { ReviewForm, Button, ErrorList } from '~/components';
+import { ReviewForm, Button, ErrorList, Tooltip } from '~/components';
 import { useIsPending } from '~/hooks/useIsPending';
 import { getFormProps, getTextareaProps, useForm } from '@conform-to/react';
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
+import { tooltipId } from '../Tooltip';
 
 type UserProfileImage = {
 	id: string;
@@ -307,6 +308,8 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 												value={likeReviewActionIntent}
 												disabled={likeIsPending && pendingId === review.id}
 												className="mt-4 flex items-center disabled:cursor-not-allowed disabled:opacity-50"
+												data-tooltip-id={tooltipId}
+												data-tooltip-content="Like this review"
 											>
 												{review.likes.some(like => like.userId === currentUserId) ? (
 													<HandThumbUpIconSolid className="h-4 w-4 text-yellow-400" aria-hidden="true" />
@@ -315,12 +318,15 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 												)}
 												<p className="ml-1 font-mono text-xs text-text-secondary lg:text-sm">{review.likes.length}</p>
 											</button>
+											<Tooltip />
 											<button
 												type="submit"
 												name="intent"
 												value={dislikeReviewActionIntent}
 												disabled={dislikeIsPending && pendingId === review.id}
 												className="ml-4 mt-4 flex items-center disabled:cursor-not-allowed disabled:opacity-50"
+												data-tooltip-id={tooltipId}
+												data-tooltip-content="Dislike this review"
 											>
 												{review.dislikes.some(dislike => dislike.userId === currentUserId) ? (
 													<HandThumbDownIconSolid className="h-4 w-4 text-yellow-400" aria-hidden="true" />
@@ -332,6 +338,7 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 													{review.dislikes.length}
 												</p>
 											</button>
+											<Tooltip />
 											<div className="ml-auto mt-4 flex items-center gap-x-4">
 												{review.user.id === currentUserId ? (
 													updateReview === review.id ? (
@@ -342,7 +349,12 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 																isPending={isPending}
 																name="intent"
 																value={updateReviewActionIntent}
+																dataAttributes={{
+																	'data-tooltip-id': tooltipId,
+																	'data-tooltip-content': 'Update this review',
+																}}
 															/>
+															<Tooltip />
 															<button
 																type="button"
 																onClick={() => setUpdateReview(false)}
