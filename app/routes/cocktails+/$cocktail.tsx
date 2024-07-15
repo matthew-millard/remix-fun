@@ -196,6 +196,7 @@ export async function action({ request }: ActionFunctionArgs) {
 	}
 
 	async function updateReviewAction({ formData }: ReviewActionArgs) {
+		console.log('formData: ', formData);
 		const reviewId = formData.get(reviewIdInput) as string;
 		const submission = parseWithZod(formData, {
 			schema: UpdateReviewSchema,
