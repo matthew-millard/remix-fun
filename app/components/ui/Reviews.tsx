@@ -23,7 +23,7 @@ import {
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { ReviewForm, Button, ErrorList, Tooltip } from '~/components';
 import { useIsPending } from '~/hooks/useIsPending';
-import { getFormProps, getTextareaProps, useForm } from '@conform-to/react';
+import { getFormProps, useForm } from '@conform-to/react';
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { tooltipId } from '../Tooltip';
 
@@ -117,6 +117,7 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 	const [updateReview, setUpdateReview] = useState(null);
 	const [pendingId, setPendingId] = useState(null);
 	const currentUserId = user.id;
+	console.log('re-render');
 
 	const [updateReviewForm, updateReviewFields] = useForm({
 		id: useId(),
@@ -290,7 +291,6 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 										<input readOnly type="hidden" defaultValue={review.id} name={reviewIdInput} />
 										{updateReview === review.id ? (
 											<textarea
-												{...getTextareaProps(updateReviewFields['update-review-input'])}
 												className="mt-4 w-full resize-none space-y-6 break-words border-none bg-transparent text-sm text-text-primary lg:text-base"
 												defaultValue={review.review}
 												name={updateReviewInput}
@@ -349,12 +349,8 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 																isPending={isPending}
 																name="intent"
 																value={updateReviewActionIntent}
-																dataAttributes={{
-																	'data-tooltip-id': tooltipId,
-																	'data-tooltip-content': 'Update this review',
-																}}
 															/>
-															<Tooltip />
+
 															<button
 																type="button"
 																onClick={() => setUpdateReview(false)}
@@ -384,7 +380,11 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 										</div>
 									</Form>
 									<div
-										className={`transition-height overflow-hidden pt-1 duration-500  ease-in-out  ${updateReviewFields['update-review-input'].errors ? 'max-h-56' : 'max-h-0'}`}
+										className={`transition-height overflow-hidden pt-1 duration-500 ease-in-out ${
+											updateReviewFields['update-review-input'].errors && pendingId === review.id
+												? 'max-h-56'
+												: 'max-h-0'
+										}`}
 									>
 										<ErrorList
 											errors={updateReviewFields['update-review-input'].errors}
