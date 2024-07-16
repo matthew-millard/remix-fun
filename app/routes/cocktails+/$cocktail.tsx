@@ -479,27 +479,28 @@ export function CocktailRecipe() {
 	return (
 		<div>
 			<h2 className="mt-12 text-2xl font-bold tracking-tight text-text-primary">Recipe</h2>
-			<ul className="mt-4 space-y-6 text-text-secondary">
-				{cocktail.ingredients.map((ingredient, index) => (
-					<li key={index} className="flex gap-x-3">
-						<span className="flex gap-x-3">
-							<strong className="font-semibold text-text-notify">{ingredient.measurement}</strong>
-							<strong className="font-semibold text-text-primary">{ingredient.name}</strong>
+			<ul className="mt-3 space-y-6 text-text-primary">
+				{cocktail.ingredients.map(ingredient => (
+					<li key={ingredient.id} className="flex">
+						<span className="flex gap-x-2">
+							<strong>&#8226;</strong>
+							<strong>{ingredient.measurement}</strong>
+							<strong className="font-light">{ingredient.name}</strong>
 						</span>
 					</li>
 				))}
-				<div className="flex flex-col gap-y-1 text-sm lg:flex-row lg:gap-x-6">
+				<div className="flex flex-col gap-y-3 lg:flex-row lg:justify-between">
 					<li className="flex gap-x-2">
-						<strong className="text-pink-500">Garnish</strong>
-						<strong className="text-text-primary">{cocktail.garnish}</strong>
+						<strong>Garnish</strong>
+						<strong className="font-light">{cocktail.garnish}</strong>
 					</li>
 					<li className="flex gap-x-2">
-						<strong className="text-pink-500">Glass</strong>
-						<strong className=" text-text-primary">{cocktail.glass}</strong>
+						<strong>Glass</strong>
+						<strong className="font-light">{cocktail.glass}</strong>
 					</li>
 					<li className="flex gap-x-2">
-						<strong className="text-pink-500">Ice</strong>
-						<strong className="text-text-primary">{cocktail.ice}</strong>
+						<strong>Ice</strong>
+						<strong className="font-light">{cocktail.ice}</strong>
 					</li>
 				</div>
 			</ul>
