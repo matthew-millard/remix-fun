@@ -117,7 +117,6 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 	const [updateReview, setUpdateReview] = useState(null);
 	const [pendingId, setPendingId] = useState(null);
 	const currentUserId = user.id;
-	console.log('re-render');
 
 	const [updateReviewForm, updateReviewFields] = useForm({
 		id: useId(),
