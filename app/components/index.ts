@@ -15,6 +15,7 @@ import PublishedBy from './PublishedBy';
 import ReviewForm from './ReviewForm';
 import StarRatingForm from './StarRatingForm';
 import Tooltip from './Tooltip';
+import MeasurementToggle from './MeasurementToggle';
 
 export {
 	ErrorList,
@@ -34,4 +35,5 @@ export {
 	ReviewForm,
 	StarRatingForm,
 	Tooltip,
+	MeasurementToggle,
 };

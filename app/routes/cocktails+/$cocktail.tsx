@@ -3,8 +3,9 @@ import { CameraIcon } from '@heroicons/react/24/outline';
 import { BoltIcon } from '@heroicons/react/24/solid';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
-import { PublishedBy, StarRatingForm } from '~/components';
+import { PublishedBy, StarRatingForm, MeasurementToggle } from '~/components';
 import Reviews from '~/components/ui/Reviews';
 import { requireUserId } from '~/utils/auth.server';
 import { checkCSRF } from '~/utils/csrf.server';
@@ -20,6 +21,9 @@ export const deleteReviewActionIntent = 'delete-review';
 export const reviewIdInput = 'review-id-input';
 export const updateReviewInput = 'update-review-input';
 export const submitRatingActionIntent = 'submit-rating';
+
+// localstorage variables
+export const BARFLY_PREFERRED_MEASUREMENT = 'barfly-preferred-measurement';
 
 type ReviewActionArgs = {
 	userId: string;
@@ -476,15 +480,79 @@ export default function CocktailRoute() {
 export function CocktailRecipe() {
 	const { cocktail } = useLoaderData<typeof loader>();
 
+	const [preferredMeasurement, setPreferredMeasurement] = useState('oz');
+
+	useEffect(() => {
+		const preferredMeasurement = localStorage.getItem(BARFLY_PREFERRED_MEASUREMENT);
+		if (preferredMeasurement) {
+			setPreferredMeasurement(preferredMeasurement);
+		}
+	}, [preferredMeasurement]);
+
+	function convertMeasurementToMilliliters(measurement: string) {
+		switch (measurement) {
+			case '1/4 oz':
+				return '7.5 ml';
+			case '1/2 oz':
+				return '15 ml';
+			case '3/4 oz':
+				return '22.5 ml';
+
+			case '1 oz':
+				return '30 ml';
+
+			case '1 1/2 oz':
+				return '45 ml';
+
+			case '2 oz':
+				return '60 ml';
+
+			case '2 1/2 oz':
+				return '75 ml';
+
+			case '3 oz':
+				return '90 ml';
+
+			case '4 oz':
+				return '120 ml';
+
+			case '5 oz':
+				return '150 ml';
+
+			default:
+				return measurement;
+		}
+	}
+
+	function handleMeasurementToggle() {
+		if (preferredMeasurement === 'oz') {
+			localStorage.setItem(BARFLY_PREFERRED_MEASUREMENT, 'ml');
+			setPreferredMeasurement('ml');
+		} else {
+			localStorage.setItem(BARFLY_PREFERRED_MEASUREMENT, 'oz');
+			setPreferredMeasurement('oz');
+		}
+	}
+
 	return (
 		<div>
-			<h2 className="mt-12 text-2xl font-bold tracking-tight text-text-primary">Recipe</h2>
+			<div className="flex items-end justify-between">
+				<h2 className="mt-12 pb-1 text-2xl font-bold tracking-tight text-text-primary">Recipe</h2>
+				<MeasurementToggle
+					handleMeasurementToggle={handleMeasurementToggle}
+					preferredMeasurement={preferredMeasurement}
+				/>
+			</div>
 			<ul className="mt-3 space-y-6 text-text-primary">
 				{cocktail.ingredients.map(ingredient => (
 					<li key={ingredient.id} className="flex">
 						<span className="flex gap-x-2">
 							<strong>&#8226;</strong>
-							<strong>{ingredient.measurement}</strong>
+							<strong>
+								{preferredMeasurement === 'oz'
+									? ingredient.measurement
+									: convertMeasurementToMilliliters(ingredient.measurement)}
+							</strong>
 							<strong className="font-light">{ingredient.name}</strong>
 						</span>
 					</li>
