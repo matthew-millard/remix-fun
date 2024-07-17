@@ -9,7 +9,7 @@ import {
 	Transition,
 	TransitionChild,
 } from '@headlessui/react';
-import { ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
+import { ChevronRightIcon, MagnifyingGlassIcon, StarIcon } from '@heroicons/react/20/solid';
 import { UsersIcon } from '@heroicons/react/24/outline';
 import { Link, useFetcher, useNavigate, useSearchParams } from '@remix-run/react';
 import { useEffect, useId, useState } from 'react';
@@ -19,6 +19,16 @@ import { ActionData } from '~/root';
 
 function classNames(...classes: string[]) {
 	return classes.filter(Boolean).join(' ');
+}
+
+// Type guard to check if an option is a User
+function isUser(option: User | Cocktail): option is User {
+	return (option as User).username !== undefined;
+}
+
+// Type guard to check if an option is a Cocktail
+function isCocktail(option: User | Cocktail): option is Cocktail {
+	return (option as Cocktail).name !== undefined;
 }
 
 export interface User {
@@ -32,20 +42,28 @@ export interface User {
 	createdAt: Date;
 }
 
+export interface Cocktail {
+	id: string;
+	name: string;
+	imageId: string | null;
+	createdAt: Date;
+	averageRating: number | null;
+}
+
 interface SearchProps {
 	isOpen: boolean;
 	closeSearch: () => void;
-	status?: 'idle' | 'loading' | 'success' | 'error';
 	autoFocus?: boolean;
 	autoSubmit?: boolean;
 }
 
-export default function Search({ isOpen, closeSearch, status, autoFocus = true, autoSubmit = true }: SearchProps) {
+export default function Search({ isOpen, closeSearch, autoFocus = true, autoSubmit = true }: SearchProps) {
 	const navigate = useNavigate();
 	const fetcher = useFetcher<ActionData>();
 	const data = fetcher.data;
-	const searchResults = data?.searchResults || { filteredUsers: [] };
+	const searchResults = data?.searchResults || { filteredUsers: [], filteredCocktails: [] };
 	const filteredUsers = searchResults.filteredUsers;
+	const filteredCocktails = searchResults.filteredCocktails;
 
 	const isPending = fetcher.state !== 'idle';
 
@@ -59,6 +77,21 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = true, 
 	}, 400);
 
 	const [profileImageUrls, setProfileImageUrls] = useState<Record<string, string | null>>({});
+	const [cocktailImageUrls, setCocktailImageUrls] = useState<Record<string, string | null>>({});
+
+	useEffect(() => {
+		if (filteredCocktails.length > 0) {
+			const urls: Record<string, string | null> = {};
+			filteredCocktails.forEach(cocktail => {
+				if (cocktail.imageId) {
+					urls[cocktail.id] = `/resources/images/${cocktail.imageId}/cocktail`;
+				} else {
+					urls[cocktail.id] = null;
+				}
+			});
+			setCocktailImageUrls(urls);
+		}
+	}, [filteredCocktails]);
 
 	useEffect(() => {
 		if (filteredUsers.length > 0) {
@@ -102,9 +135,13 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = true, 
 						leaveTo="opacity-0 scale-95"
 					>
 						<DialogPanel className="mx-auto max-w-3xl transform divide-y divide-border-tertiary overflow-hidden rounded-md bg-bg-secondary shadow-2xl ring-1 ring-inset ring-border-tertiary transition-all  ">
-							<Combobox<User>
-								onChange={(user: User) => {
-									navigate(`/${user.username}`);
+							<Combobox<User | Cocktail>
+								onChange={(item: User | Cocktail) => {
+									if ('username' in item) {
+										navigate(`/${item.username}`);
+									} else {
+										navigate(`/cocktails/${item.name}`.replace(/\s+/g, '-').toLowerCase());
+									}
 									closeSearch();
 								}}
 								onClose={() => setQuery('')}
@@ -129,14 +166,14 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = true, 
 												id={id}
 												defaultValue={searchParams.get('query') ?? ''}
 												autoFocus={autoFocus}
-												className=" h-12 w-full rounded-t-md border-0  bg-transparent pl-11 pr-4 text-text-primary placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 focus:ring-offset-0 sm:text-sm"
+												className=" h-12 w-full rounded-md border-0  bg-transparent pl-11 pr-4 text-text-primary placeholder:text-gray-400  focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 focus:ring-offset-0 sm:text-sm"
 												placeholder="Barflies, bars, cocktails..."
 												onChange={event => setQuery(event.target.value)}
 												onBlur={() => setQuery('')}
 											/>
 										</div>
 
-										{filteredUsers.length > 0 && (
+										{filteredUsers.length > 0 || filteredCocktails.length > 0 ? (
 											<ComboboxOptions
 												as="div"
 												static
@@ -149,7 +186,7 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = true, 
 														activeOption && 'sm:h-96',
 													)}
 												>
-													<h2 className="mb-4 mt-2 text-xs font-semibold text-text-secondary">Recent searches</h2>
+													<h2 className="mb-4 mt-2 text-xs font-semibold text-text-secondary">Search results</h2>
 
 													<div className="-mx-2 text-sm text-text-secondary">
 														{filteredUsers.map(user => (
@@ -188,59 +225,152 @@ export default function Search({ isOpen, closeSearch, status, autoFocus = true, 
 																)}
 															</ComboboxOption>
 														))}
+
+														{filteredCocktails.map(cocktail => (
+															<ComboboxOption
+																as="div"
+																key={cocktail.name}
+																value={cocktail}
+																className={({ focus }) =>
+																	classNames(
+																		'flex cursor-default select-none items-center rounded-md p-2',
+																		focus && 'bg-bg-alt text-text-primary',
+																	)
+																}
+															>
+																{({ focus }) => (
+																	<>
+																		<span className="flex h-8 w-8 overflow-hidden rounded-full bg-gray-200">
+																			{cocktailImageUrls[cocktail.id] ? (
+																				<img
+																					src={cocktailImageUrls[cocktail.id]}
+																					alt="Cocktail"
+																					className="h-full w-full object-cover"
+																				/>
+																			) : (
+																				<MagnifyingGlassIcon
+																					className="h-full w-full text-gray-400"
+																					aria-hidden="true"
+																				/>
+																			)}
+																		</span>
+																		<span className="ml-3 flex-auto truncate">{cocktail.name}</span>
+																		{focus && (
+																			<ChevronRightIcon
+																				className="ml-3 h-5 w-5 flex-none text-gray-400"
+																				aria-hidden="true"
+																			/>
+																		)}
+																	</>
+																)}
+															</ComboboxOption>
+														))}
 													</div>
 												</div>
 
 												{activeOption && (
 													<div className="hidden h-96 w-1/2 flex-none flex-col divide-y divide-border-tertiary overflow-y-auto sm:flex">
 														<div className="flex flex-col items-center p-6 text-center">
-															<span className="flex h-20 w-20 overflow-hidden rounded-full bg-gray-200 ">
-																{profileImageUrls[activeOption.id] ? (
-																	<img
-																		src={profileImageUrls[activeOption.id]}
-																		alt="Profile"
-																		className="h-full w-full object-cover"
-																	/>
-																) : (
-																	<UsersIcon className="h-full w-full text-gray-400" aria-hidden="true" />
-																)}
-															</span>
-															<h2 className="mt-3 font-semibold text-text-primary">
-																{activeOption.firstName} {activeOption.lastName}
-															</h2>
-															<p className="text-sm leading-6 text-gray-500">{activeOption.username}</p>
+															{isUser(activeOption) ? (
+																<>
+																	<span className="flex h-20 w-20 overflow-hidden rounded-full bg-gray-200 ">
+																		{profileImageUrls[activeOption.id] ? (
+																			<img
+																				src={profileImageUrls[activeOption.id]}
+																				alt="Profile"
+																				className="h-full w-full object-cover"
+																			/>
+																		) : (
+																			<UsersIcon className="h-full w-full text-gray-400" aria-hidden="true" />
+																		)}
+																	</span>
+																	<h2 className="mt-3 font-semibold text-text-primary">
+																		{activeOption.firstName} {activeOption.lastName}
+																	</h2>
+																	<p className="text-sm leading-6 text-gray-500">{activeOption.username}</p>
+																</>
+															) : isCocktail(activeOption) ? (
+																<>
+																	<span className="flex h-20 w-20 overflow-hidden rounded-full bg-gray-200 ">
+																		{cocktailImageUrls[activeOption.id] ? (
+																			<img
+																				src={cocktailImageUrls[activeOption.id]}
+																				alt="Cocktail"
+																				className="h-full w-full object-cover"
+																			/>
+																		) : (
+																			<MagnifyingGlassIcon className="h-full w-full text-gray-400" aria-hidden="true" />
+																		)}
+																	</span>
+																	<h2 className="mt-3 font-semibold text-text-primary">{activeOption.name}</h2>
+																	<div className="mt-1 flex items-center">
+																		{[0, 1, 2, 3, 4].map(rating => (
+																			<StarIcon
+																				key={rating}
+																				className={classNames(
+																					activeOption.averageRating > rating ? 'text-yellow-400' : 'text-gray-300',
+																					'h-5 w-5 flex-shrink-0',
+																				)}
+																				aria-hidden="true"
+																			/>
+																		))}
+																	</div>
+																	<p className="sr-only">{activeOption.averageRating} out of 5 stars</p>
+																</>
+															) : null}
 														</div>
 														<div className="flex flex-auto flex-col justify-between p-6">
 															<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm text-text-secondary">
-																<dt className="col-end-1 font-semibold text-text-primary">Location</dt>
-																<dd>{activeOption.userLocation}</dd>
-																<dt className="col-end-1 font-semibold text-text-primary">Member since</dt>
+																{isUser(activeOption) ? (
+																	<>
+																		<dt className="col-end-1 font-semibold text-text-primary">Location</dt>
+																		<dd>{activeOption.userLocation}</dd>
+																		<dt className="col-end-1 font-semibold text-text-primary">Member since</dt>
 
-																<dd>
-																	{new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long' }).format(
-																		new Date(activeOption.createdAt),
-																	)}
-																</dd>
+																		<dd>
+																			{new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long' }).format(
+																				new Date(activeOption.createdAt),
+																			)}
+																		</dd>
+																	</>
+																) : // <>
+																// 	<dt className="col-end-1 font-semibold text-text-primary">Created on</dt>
+																// 	<dd>
+																// 		{new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long' }).format(
+																// 			new Date(activeOption.createdAt),
+																// 		)}
+																// 	</dd>
+																// </>
+																null}
 															</dl>
-															<Link
-																to={`/${activeOption.username}`}
-																onClick={closeSearch}
-																className="mt-6 flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-															>
-																View profile
-															</Link>
+															{isUser(activeOption) ? (
+																<Link
+																	to={`/${activeOption.username}`}
+																	onClick={closeSearch}
+																	className="mt-6 flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+																>
+																	View profile
+																</Link>
+															) : (
+																<Link
+																	to={`/cocktails/${activeOption.name.replace(/\s+/g, '-').toLowerCase()}`}
+																	onClick={closeSearch}
+																	className="mt-6 flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+																>
+																	View Recipe
+																</Link>
+															)}
 														</div>
 													</div>
 												)}
 											</ComboboxOptions>
-										)}
-
-										{query !== '' && filteredUsers.length === 0 && (
+										) : null}
+										{query !== '' && filteredUsers.length === 0 && filteredCocktails.length === 0 && (
 											<div className="px-6 py-14 text-center text-sm sm:px-14">
-												<UsersIcon className="mx-auto h-6 w-6 text-gray-400" aria-hidden="true" />
-												<p className="mt-4 font-semibold text-text-primary">No people found</p>
+												<MagnifyingGlassIcon className="mx-auto h-6 w-6 text-gray-400" aria-hidden="true" />
+												<p className="mt-4 font-semibold text-text-primary">No results found</p>
 												<p className="mt-2 text-gray-500">
-													We couldn’t find anything with that term. Please try again.
+													Sorry, we couldn&apos;t find any matches. Please refine your search.
 												</p>
 											</div>
 										)}

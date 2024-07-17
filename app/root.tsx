@@ -10,7 +10,7 @@ import tailwindStylesheet from '~/tailwind.css';
 import globalStylesheet from '~/styles/global.css';
 import { ThemeProvider, Theme } from '~/utils/theme-provider';
 import { getThemeSession } from './utils/theme.server';
-import { Link, Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
+import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
 import { NavBar, Footer } from './components';
 import clsx from 'clsx';
 import { GeneralErrorBoundary } from './components/ErrorBoundary';
@@ -24,7 +24,7 @@ import { prisma } from './utils/db.server';
 import { getUserId } from './utils/auth.server';
 import { getToast, type Toast } from './utils/toast.server';
 import { combineHeaders } from './utils/misc';
-import { searchUsersByQuery, UsersSchema } from './utils/searchByQuery';
+import { CocktailsSchema, searchByQuery, UsersSchema } from './utils/searchByQuery';
 import { z } from 'zod';
 
 export type LoaderData = {
@@ -43,7 +43,10 @@ export type LoaderData = {
 };
 
 export type ActionData = {
-	searchResults: { filteredUsers: z.infer<typeof UsersSchema> } | null;
+	searchResults: {
+		filteredUsers: z.infer<typeof UsersSchema>;
+		filteredCocktails?: z.infer<typeof CocktailsSchema>;
+	} | null;
 };
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -52,7 +55,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	let searchResults = null;
 	if (query && query.trim() !== '') {
-		searchResults = await searchUsersByQuery(query);
+		searchResults = await searchByQuery(query);
 	}
 
 	const data: ActionData = {
