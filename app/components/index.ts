@@ -16,6 +16,9 @@ import ReviewForm from './ReviewForm';
 import StarRatingForm from './StarRatingForm';
 import Tooltip from './Tooltip';
 import MeasurementToggle from './MeasurementToggle';
+import LinkWithPrefetch from './LinkWithPrefetch';
+import InputField from './InputField';
+import SubmitButton from './SubmitButton';
 
 export {
 	ErrorList,
@@ -36,4 +39,7 @@ export {
 	StarRatingForm,
 	Tooltip,
 	MeasurementToggle,
+	InputField,
+	LinkWithPrefetch,
+	SubmitButton,
 };
