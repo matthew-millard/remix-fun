@@ -5,7 +5,7 @@ type PrefetchableLinkProps = LinkProps & {
 };
 
 type LinkWithPrefetchProps = PrefetchableLinkProps & {
-	className: string;
+	className?: string;
 };
 
 export default function LinkWithPrefetch({ text, className, ...LinkProps }: LinkWithPrefetchProps) {
@@ -18,7 +18,7 @@ export default function LinkWithPrefetch({ text, className, ...LinkProps }: Link
 
 function PrefetchableLink({ text, ...LinkProps }: PrefetchableLinkProps) {
 	return (
-		<Link {...LinkProps} className="text-sm font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
+		<Link {...LinkProps} className="text-sm font-semibold leading-6 text-indigo-500 hover:text-indigo-400">
 			{text}
 		</Link>
 	);

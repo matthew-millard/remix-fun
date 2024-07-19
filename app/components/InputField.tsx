@@ -1,10 +1,10 @@
 type LabelProps = {
-	label: 'Email address' | 'First name' | 'Last Name' | 'Password' | 'Confirm Password';
+	label: 'Email address' | 'Username' | 'First name' | 'Last name' | 'Password' | 'Confirm password' | 'Remember me';
 	htmlFor: string;
 };
 
 type InputProps = {
-	autoFocus: boolean;
+	autoFocus?: boolean;
 	fieldAttributes: React.InputHTMLAttributes<HTMLInputElement>;
 };
 
@@ -34,7 +34,7 @@ export default function InputField({ htmlFor, label, fieldAttributes, autoFocus,
 	);
 }
 
-function Label({ label, htmlFor }: LabelProps) {
+export function Label({ label, htmlFor }: LabelProps) {
 	return (
 		<label htmlFor={htmlFor} className="block text-sm font-medium leading-6 text-text-primary">
 			{label}
