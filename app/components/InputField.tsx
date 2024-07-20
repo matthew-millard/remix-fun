@@ -8,14 +8,13 @@ type InputProps = {
 	fieldAttributes: React.InputHTMLAttributes<HTMLInputElement>;
 };
 
-type InputErrorsProps = {
+export type InputErrorsProps = {
 	errors?: string[] | null;
 	errorId: string;
 };
 
 type InputErrorProps = {
 	error: string;
-	key: number;
 };
 
 type InputFieldProps = LabelProps & InputProps & InputErrorsProps;
@@ -52,7 +51,7 @@ function Input({ fieldAttributes, autoFocus = false }: InputProps) {
 	);
 }
 
-function InputErrors({ errors, errorId }: InputErrorsProps) {
+export function InputErrors({ errors, errorId }: InputErrorsProps) {
 	return errors?.length ? (
 		<ul className="flex flex-col gap-1" id={errorId}>
 			{errors.map((error, i) => (
@@ -62,9 +61,9 @@ function InputErrors({ errors, errorId }: InputErrorsProps) {
 	) : null;
 }
 
-function InputError({ error, key }: InputErrorProps) {
+export function InputError({ error }: InputErrorProps) {
 	return (
-		<li key={key} style={{ fontSize: '10px' }} className="text-foreground-destructive  text-red-500">
+		<li style={{ fontSize: '10px' }} className="text-foreground-destructive  text-red-500">
 			{error}
 		</li>
 	);

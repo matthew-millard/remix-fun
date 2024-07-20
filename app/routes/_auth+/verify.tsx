@@ -2,10 +2,10 @@ import { getFormProps, getInputProps, type Submission, useForm } from '@conform-
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { verifyTOTP } from '@epic-web/totp';
 import { ActionFunctionArgs, json, LoaderFunctionArgs, MetaFunction, redirect } from '@remix-run/node';
-import { Form, useActionData, useSearchParams } from '@remix-run/react';
+import { Form, useActionData, useNavigation, useSearchParams, useSubmit } from '@remix-run/react';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
 import { z } from 'zod';
-import { AlertToast, ErrorList } from '~/components';
+import { OTP, SrOnlyLabel, SubmitButton } from '~/components';
 import { checkCSRF } from '~/utils/csrf.server';
 import { prisma } from '~/utils/db.server';
 import { verifySessionStorage } from '~/utils/verification.server';
@@ -15,9 +15,9 @@ import { invariant } from '~/utils/misc';
 import EmailChangedNotification from 'packages/transactional/emails/EmailChangedNotification';
 import { redirectWithToast } from '~/utils/toast.server';
 import { twoFAVerifyVerificationType } from '../$username_+/settings+/two-factor-authentication+/verify';
-import React from 'react';
+import React, { useRef } from 'react';
 import { handleVerification as handle2FAVerification } from './login';
-
+import { InputErrors } from '~/components/InputField';
 export const codeQueryParam = 'code';
 export const typeQueryParam = 'type';
 export const targetQueryParam = 'target';
@@ -30,7 +30,7 @@ export type VerificationTypes = z.infer<typeof verificationTypeSchema>;
 export const resetPasswordUserSessionKey = 'user';
 
 const VerifySchema = z.object({
-	[codeQueryParam]: z.string().min(5).max(6),
+	[codeQueryParam]: z.string().min(5).max(5),
 	[typeQueryParam]: verificationTypeSchema,
 	[targetQueryParam]: z.string(),
 	[redirectToQueryParam]: z.string().optional(),
@@ -56,6 +56,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
 	checkCSRF(formData, request.headers);
+
 	return validateRequest(request, formData);
 }
 
@@ -266,13 +267,17 @@ export default function VerifyRoute() {
 	const lastResult = useActionData();
 	const [searchParams] = useSearchParams();
 	const type = verificationTypeSchema.parse(searchParams.get(typeQueryParam));
+	const navigate = useNavigation();
+	const isSubmitting = navigate.state === 'submitting';
+	const submit = useSubmit();
+	const submitButtonRef = useRef<HTMLButtonElement | null>(null);
 
 	const [form, fields] = useForm({
 		id: 'verify-form',
 		constraint: getZodConstraint(VerifySchema),
-		shouldValidate: 'onBlur',
+		shouldValidate: 'onSubmit',
 		lastResult,
-		shouldRevalidate: 'onInput',
+		shouldRevalidate: 'onSubmit',
 		defaultValue: {
 			[codeQueryParam]: searchParams.get(codeQueryParam) ?? '',
 			[typeQueryParam]: searchParams.get(typeQueryParam) ?? '',
@@ -306,51 +311,60 @@ export default function VerifyRoute() {
 			</>
 		),
 	};
-	return (
-		<div className=" flex h-full flex-col justify-center p-6">
-			<div className="mx-auto max-w-2xl rounded-lg bg-bg-alt shadow-lg">
-				<div className="p-6">
-					<div>{headings[type]}</div>
-					<Form {...getFormProps(form)} method="POST" className="mt-5 sm:flex sm:items-center">
-						<AuthenticityTokenInput />
-						<div className=" flex w-full flex-col sm:max-w-xs">
-							<div className="flex flex-col sm:flex-row ">
-								<label htmlFor={fields[codeQueryParam].id} className="sr-only">
-									One-Time Password
-								</label>
-								<input
-									{...getInputProps(fields[codeQueryParam], { type: 'text' })}
-									className="block w-full rounded-md border-0 px-2 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-									placeholder="Please enter your 6 digit code"
-									// eslint-disable-next-line jsx-a11y/no-autofocus
-									autoFocus
-								/>
-								<input {...getInputProps(fields[typeQueryParam], { type: 'hidden' })} />
-								<input {...getInputProps(fields[targetQueryParam], { type: 'hidden' })} />
-								<input {...getInputProps(fields[redirectToQueryParam], { type: 'hidden' })} />
 
-								<button
-									type="submit"
-									className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:ml-3 sm:mt-0 sm:w-auto"
-								>
-									Submit
-								</button>
-							</div>
-							<div
-								className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${fields[codeQueryParam].errors ? 'max-h-56' : 'max-h-0'}`}
-							>
-								<ErrorList errors={fields[codeQueryParam].errors} id={fields[codeQueryParam].errorId} />
+	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		const form = event.currentTarget;
+		const otpInputs = form.querySelectorAll<HTMLInputElement>('[data-otp-input]');
+		const combinedCode = Array.from(otpInputs)
+			.map(input => input.value)
+			.join('');
+
+		const formData = new FormData();
+		formData.set(codeQueryParam, combinedCode);
+
+		const csrfToken = form.querySelector<HTMLInputElement>('input[name="csrf"]').value;
+		formData.set('csrf', csrfToken);
+
+		const type = form.querySelector<HTMLInputElement>('input[name="type"]').value;
+		formData.set(typeQueryParam, type);
+
+		const target = form.querySelector<HTMLInputElement>('input[name="target"]').value;
+		formData.set(targetQueryParam, target);
+
+		submit(formData, { method: 'POST' });
+	}
+	return (
+		<main className="flex min-h-[calc(100vh-100px)] flex-1 flex-col items-center px-6 py-20 lg:min-h-[calc(100vh-125px)] lg:justify-center">
+			<div className="w-full max-w-sm lg:-mt-28">
+				<div>{headings[type]}</div>
+				<Form {...getFormProps(form)} method="POST" onSubmit={handleSubmit} className="mt-6 flex justify-center">
+					<AuthenticityTokenInput />
+					<div className=" flex w-full flex-col">
+						<div className="flex flex-col">
+							<SrOnlyLabel htmlFor={fields[codeQueryParam].id}>One-Time Password</SrOnlyLabel>
+
+							<OTP
+								length={5}
+								fieldAttributes={{ ...getInputProps(fields[codeQueryParam], { type: 'text' }) }}
+								submitButtonRef={submitButtonRef}
+							/>
+
+							<input {...getInputProps(fields[typeQueryParam], { type: 'hidden' })} />
+							<input {...getInputProps(fields[targetQueryParam], { type: 'hidden' })} />
+							<input {...getInputProps(fields[redirectToQueryParam], { type: 'hidden' })} />
+
+							<div className="relative mt-6">
+								<SubmitButton text="Submit" isSubmitting={isSubmitting} ref={submitButtonRef} />
+								<div className="absolute -bottom-5">
+									<InputErrors errors={fields[codeQueryParam].errors} errorId={fields[codeQueryParam].errorId} />
+								</div>
 							</div>
 						</div>
-					</Form>
-					<div
-						className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${form.errors ? 'max-h-56' : 'max-h-0'}`}
-					>
-						<AlertToast errors={form.errors} id={form.errorId} />
 					</div>
-				</div>
+				</Form>
 			</div>
-		</div>
+		</main>
 	);
 }
 

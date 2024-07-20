@@ -19,6 +19,8 @@ import MeasurementToggle from './MeasurementToggle';
 import LinkWithPrefetch from './LinkWithPrefetch';
 import InputField from './InputField';
 import SubmitButton from './SubmitButton';
+import OTP from './OTP';
+import SrOnlyLabel from './SrOnlyLabel';
 
 export {
 	ErrorList,
@@ -42,4 +44,6 @@ export {
 	InputField,
 	LinkWithPrefetch,
 	SubmitButton,
+	OTP,
+	SrOnlyLabel,
 };

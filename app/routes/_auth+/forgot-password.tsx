@@ -63,7 +63,7 @@ export async function action({ request }: ActionFunctionArgs) {
 	});
 
 	const { otp, secret, algorithm, charSet, digits, period } = generateTOTP({
-		digits: 6,
+		digits: 5,
 		algorithm: 'SHA256',
 		period: 15 * 60, // 15 minutes
 		charSet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
