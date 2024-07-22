@@ -21,6 +21,7 @@ import InputField from './InputField';
 import SubmitButton from './SubmitButton';
 import OTP from './OTP';
 import SrOnlyLabel from './SrOnlyLabel';
+import RememberMe from './RememberMe';
 
 export {
 	ErrorList,
@@ -46,4 +47,5 @@ export {
 	SubmitButton,
 	OTP,
 	SrOnlyLabel,
+	RememberMe,
 };
