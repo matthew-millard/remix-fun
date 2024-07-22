@@ -1,5 +1,13 @@
 type LabelProps = {
-	label: 'Email address' | 'Username' | 'First name' | 'Last name' | 'Password' | 'Confirm password' | 'Remember me';
+	label:
+		| 'Email address'
+		| 'Username'
+		| 'First name'
+		| 'Last name'
+		| 'Password'
+		| 'Confirm password'
+		| 'Remember me'
+		| 'Update username';
 	htmlFor: string;
 };
 
