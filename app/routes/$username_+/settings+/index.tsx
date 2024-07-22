@@ -15,7 +15,7 @@ import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
-import { Button, DialogBox, ErrorList, ImageChooser, Spinner } from '~/components';
+import { Button, DialogBox, ErrorList, ImageChooser, InputField, Spinner, SubmitButton } from '~/components';
 import {
 	PersonalInfoSchema,
 	ACCEPTED_FILE_TYPES,
@@ -37,6 +37,8 @@ import { redirectWithToast } from '~/utils/toast.server';
 import { z } from 'zod';
 import { useIsPending } from '~/hooks/useIsPending';
 import { twoFAVerificationType } from './two-factor-authentication+/_layout';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
+import { Input } from '@headlessui/react';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -474,7 +476,7 @@ export default function SettingsRoute() {
 	const sessionCount = data.user._count.sessions - 1;
 	const { user } = data;
 
-	const isUsernamePending = useIsPending({
+	const isUsernameSubmitting = useIsPending({
 		formIntent: usernameUpdateActionIntent,
 	});
 
@@ -608,37 +610,36 @@ export default function SettingsRoute() {
 								{...getFormProps(usernameForm)}
 								method="POST"
 								encType="multipart/form-data"
-								className="sm:col-span-4"
+								className="grid gap-y-3 sm:col-span-4"
 								preventScrollReset={true}
 							>
 								<AuthenticityTokenInput />
 								<HoneypotInputs />
-								<label
-									htmlFor={usernameFields.username.id}
-									className="block text-sm font-medium leading-6 text-text-primary"
-								>
-									Username
-								</label>
-								<div className="mt-2 flex flex-wrap gap-4">
-									<div className="flex flex-1 rounded-md bg-bg-secondary ring-1 ring-inset ring-border-tertiary focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
-										<span className="flex select-none items-center pl-3 text-gray-500 sm:text-sm">barfly.ca/</span>
-										<input
-											{...getInputProps(usernameFields.username, { type: 'text' })}
-											className="flex-1 border-0 bg-transparent py-1.5 pl-1 text-text-primary focus:ring-0 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-										/>
+								<div>
+									<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+										<UserCircleIcon height={32} strokeWidth={1} color="#a9adc1" />
+										<h2 className="ml-4">Username</h2>
 									</div>
-									<Button
-										label="Update"
-										type="submit"
+									<p className="mt-2 text-sm leading-6 text-text-secondary">
+										Update your username associated with you account.
+									</p>
+								</div>
+
+								<InputField
+									fieldAttributes={{ ...getInputProps(usernameFields.username, { type: 'text' }) }}
+									label="Username"
+									htmlFor={usernameFields.username.id}
+									errors={usernameFields.username.errors}
+									errorId={usernameFields.username.errorId}
+								/>
+								<div>
+									<SubmitButton
 										name="intent"
 										value={usernameUpdateActionIntent}
-										isPending={isUsernamePending}
+										text="Update username"
+										isSubmitting={isUsernameSubmitting}
+										width="w-auto"
 									/>
-								</div>
-								<div
-									className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${usernameFields.username.errors ? 'max-h-56' : 'max-h-0'}`}
-								>
-									<ErrorList errors={usernameFields.username.errors} id={usernameFields.username.errorId} />
 								</div>
 							</Form>
 
@@ -1204,7 +1205,7 @@ export default function SettingsRoute() {
 
 export const meta: MetaFunction = () => {
 	return [
-		{ title: 'Barfly | Settings' },
+		{ title: 'Settings | Barfly ' },
 		{
 			name: 'description',
 			content: 'Update your account settings, profile information, and more.',

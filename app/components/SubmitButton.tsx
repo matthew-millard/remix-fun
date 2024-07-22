@@ -1,20 +1,29 @@
 import { forwardRef } from 'react';
+import classNames from '~/utils/classNames';
 
 type SubmitButtonProps = {
 	text: string;
 	isSubmitting: boolean;
+	name?: string;
+	value?: string;
+	width?: string;
 	ref?: React.Ref<HTMLButtonElement>;
 };
 
 const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(function SubmitButton(
-	{ text, isSubmitting },
+	{ text, isSubmitting, name, value, width },
 	ref,
 ) {
 	return (
 		<button
 			type="submit"
-			className="flex w-full justify-center rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+			className={classNames(
+				width ? width : 'w-full',
+				'flex justify-center rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
+			)}
 			disabled={isSubmitting}
+			name={name}
+			value={value}
 			ref={ref}
 		>
 			{isSubmitting ? <SubmittingState /> : text}
