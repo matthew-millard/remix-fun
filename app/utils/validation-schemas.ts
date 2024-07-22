@@ -22,6 +22,8 @@ export const PasswordSchema = z
 	.regex(/[\W_]/, { message: 'Password must contain at least one special character' })
 	.regex(/[0-9]/, { message: 'Password must contain at least one number' });
 
+export const LoginPasswordSchema = z.string();
+
 export const FirstNameSchema = z
 	.string()
 	.trim()
