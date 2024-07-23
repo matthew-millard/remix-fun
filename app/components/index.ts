@@ -22,6 +22,7 @@ import SubmitButton from './SubmitButton';
 import OTP from './OTP';
 import SrOnlyLabel from './SrOnlyLabel';
 import RememberMe from './RememberMe';
+import TextareaInput from './TextareaInput';
 
 export {
 	ErrorList,
@@ -48,4 +49,5 @@ export {
 	OTP,
 	SrOnlyLabel,
 	RememberMe,
+	TextareaInput,
 };

@@ -1,19 +1,14 @@
+import classNames from '~/utils/classNames';
+
 type LabelProps = {
-	label:
-		| 'Email address'
-		| 'Username'
-		| 'First name'
-		| 'Last name'
-		| 'Password'
-		| 'Confirm password'
-		| 'Remember me'
-		| 'Update username';
+	label: string;
 	htmlFor: string;
 };
 
 type InputProps = {
 	autoFocus?: boolean;
 	fieldAttributes: React.InputHTMLAttributes<HTMLInputElement>;
+	additionalClasses?: AdditionalClasses;
 };
 
 export type InputErrorsProps = {
@@ -25,14 +20,27 @@ type InputErrorProps = {
 	error: string;
 };
 
+type AdditionalClasses = {
+	backgroundColor?: string;
+	textColor?: string;
+};
+
 type InputFieldProps = LabelProps & InputProps & InputErrorsProps;
 
-export default function InputField({ htmlFor, label, fieldAttributes, autoFocus, errors, errorId }: InputFieldProps) {
+export default function InputField({
+	htmlFor,
+	label,
+	fieldAttributes,
+	autoFocus,
+	errors,
+	errorId,
+	additionalClasses = {},
+}: InputFieldProps) {
 	return (
 		<div>
 			<Label htmlFor={htmlFor} label={label} />
 			<div className="mt-1">
-				<Input fieldAttributes={fieldAttributes} autoFocus={autoFocus} />
+				<Input fieldAttributes={fieldAttributes} autoFocus={autoFocus} additionalClasses={additionalClasses} />
 			</div>
 			<div className="mt-1">
 				<InputErrors errors={errors} errorId={errorId} />
@@ -49,14 +57,14 @@ export function Label({ label, htmlFor }: LabelProps) {
 	);
 }
 
-function Input({ fieldAttributes, autoFocus = false }: InputProps) {
-	return (
-		<input
-			{...fieldAttributes}
-			className="block w-full rounded-md border-0 px-2 py-1.5  shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 aria-[invalid]:ring-red-500 sm:text-sm sm:leading-6"
-			autoFocus={autoFocus}
-		/>
+function Input({ fieldAttributes, autoFocus = false, additionalClasses }: InputProps) {
+	const combinedClasses = classNames(
+		additionalClasses.backgroundColor,
+		additionalClasses.textColor,
+		'block w-full rounded-md  px-2 py-1.5  shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 aria-[invalid]:ring-red-500 sm:text-sm sm:leading-6',
 	);
+
+	return <input {...fieldAttributes} className={combinedClasses} autoFocus={autoFocus} />;
 }
 
 export function InputErrors({ errors, errorId }: InputErrorsProps) {
