@@ -15,7 +15,17 @@ import { checkCSRF } from '~/utils/csrf.server';
 import { checkHoneypot } from '~/utils/honeypot.server';
 import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
-import { Button, DialogBox, ErrorList, ImageChooser, InputField, Spinner, SubmitButton } from '~/components';
+import {
+	Button,
+	DialogBox,
+	ErrorList,
+	ImageChooser,
+	InputField,
+	Spinner,
+	SrOnlyLabel,
+	SubmitButton,
+	TextareaInput,
+} from '~/components';
 import {
 	PersonalInfoSchema,
 	ACCEPTED_FILE_TYPES,
@@ -37,8 +47,8 @@ import { redirectWithToast } from '~/utils/toast.server';
 import { z } from 'zod';
 import { useIsPending } from '~/hooks/useIsPending';
 import { twoFAVerificationType } from './two-factor-authentication+/_layout';
-import { UserCircleIcon } from '@heroicons/react/24/outline';
-import { Input } from '@headlessui/react';
+import { IdentificationIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { Input, Textarea } from '@headlessui/react';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -480,6 +490,8 @@ export default function SettingsRoute() {
 		formIntent: usernameUpdateActionIntent,
 	});
 
+	const isAboutSubmitting = aboutFetcher.state === 'submitting';
+
 	const [usernameForm, usernameFields] = useForm({
 		id: 'username-form',
 		lastResult: useActionData(),
@@ -596,511 +608,512 @@ export default function SettingsRoute() {
 	}
 
 	return (
-		<div className="mx-auto max-w-3xl">
-			<div>
-				<div className="space-y-12">
-					<div className="border-b border-border-tertiary pb-4">
-						<h2 className="text-base font-semibold leading-7 text-text-primary">Profile</h2>
-						<p className="mt-1 text-sm leading-6 text-text-secondary">
-							This information will be displayed publicly so be careful what you share.
+		// <h2 className="text-base font-semibold leading-7 text-text-primary">Profile</h2>
+		// <p className="mt-1 text-sm leading-6 text-text-secondary">
+		// 	This information will be displayed publicly so be careful what you share.
+		// </p>
+		<div className="relative mx-auto mt-8 max-w-[40rem] space-y-16 divide-y divide-border-tertiary">
+			{/* Username */}
+			<section>
+				<Form {...getFormProps(usernameForm)} method="POST" encType="multipart/form-data" preventScrollReset={true}>
+					<AuthenticityTokenInput />
+					<HoneypotInputs />
+					<div>
+						<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+							<UserCircleIcon height={32} strokeWidth={1} color="#a9adc1" />
+							<h2 className="ml-4">Username</h2>
+						</div>
+						<p className="mt-3 text-sm leading-6 text-text-secondary">
+							Update your username associated with you account.
 						</p>
+					</div>
 
-						<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-							<Form
-								{...getFormProps(usernameForm)}
-								method="POST"
-								encType="multipart/form-data"
-								className="grid gap-y-3 sm:col-span-4"
-								preventScrollReset={true}
+					<div className="mt-8">
+						<InputField
+							fieldAttributes={{ ...getInputProps(usernameFields.username, { type: 'text' }) }}
+							label="Username"
+							htmlFor={usernameFields.username.id}
+							errors={usernameFields.username.errors}
+							errorId={usernameFields.username.errorId}
+							additionalClasses={{
+								backgroundColor: 'bg-bg-secondary',
+								textColor: 'text-text-primary',
+							}}
+						/>
+					</div>
+					<div className="mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+						<SubmitButton
+							name="intent"
+							value={usernameUpdateActionIntent}
+							text="Update"
+							isSubmitting={isUsernameSubmitting}
+							width="w-auto"
+						/>
+					</div>
+				</Form>
+			</section>
+
+			{/* About me */}
+			<section className="pt-16">
+				<aboutFetcher.Form
+					{...getFormProps(aboutForm)}
+					method="POST"
+					encType="multipart/form-data"
+					preventScrollReset={true}
+				>
+					<AuthenticityTokenInput />
+					<HoneypotInputs />
+					<div>
+						<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+							<IdentificationIcon height={32} strokeWidth={1} color="#a9adc1" />
+							<h2 className="ml-4">About me</h2>
+						</div>
+						<p className="mt-3 text-sm leading-6 text-text-secondary">Write a few sentences about yourself.</p>
+					</div>
+					<div className="mt-3">
+						<SrOnlyLabel htmlFor={aboutFields.about.id}>About</SrOnlyLabel>
+						<TextareaInput
+							fieldAttributes={getTextareaProps(aboutFields.about)}
+							rows={5}
+							errors={aboutFields.about.errors}
+							errorId={aboutFields.about.errorId}
+						/>
+					</div>
+					<div className="mt-6">
+						<h3 className="text-sm font-semibold leading-6 text-text-primary">Current About Me</h3>
+						<p className="mt-1 text-sm leading-6 text-text-secondary">
+							{data?.user?.about?.about || 'No information provided.'}
+						</p>
+					</div>
+
+					<div className="mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+						<SubmitButton
+							name="intent"
+							value={aboutUpdateActionIntent}
+							text="Update"
+							isSubmitting={isAboutSubmitting}
+							width="w-auto"
+						/>
+					</div>
+				</aboutFetcher.Form>
+			</section>
+
+			<profileFetcher.Form
+				{...getFormProps(profileForm)}
+				method="POST"
+				encType="multipart/form-data"
+				className="col-span-full "
+				preventScrollReset={true}
+			>
+				<AuthenticityTokenInput />
+				<HoneypotInputs />
+				<p className="block text-sm font-medium leading-6 text-text-primary">Photo</p>
+				<div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+					<span className="flex h-32 w-32 overflow-hidden rounded-full">
+						{profileImagePreviewUrl ? (
+							<img
+								src={profileImagePreviewUrl}
+								alt="Profile preview"
+								className="h-32 w-32 overflow-hidden rounded-full object-cover"
+							/>
+						) : (
+							<ImageChooser imageUrl={profileImageUrl} />
+						)}
+					</span>
+					<label
+						htmlFor={profileFields.profile.id}
+						className="flex min-w-20 justify-center rounded-md bg-bg-alt px-3 py-2 text-sm font-semibold text-text-primary shadow-sm hover:bg-bg-secondary"
+					>
+						{profileFetcher.state === 'idle' ? 'Change' : <Spinner />}
+					</label>
+					<input
+						{...getInputProps(profileFields.profile, { type: 'file' })}
+						className="sr-only hidden"
+						accept={ACCEPTED_FILE_TYPES}
+						size={MAX_UPLOAD_SIZE}
+						disabled={profileFetcher.state !== 'idle'}
+						onChange={e => {
+							const file = e.currentTarget.files?.[0];
+							if (file) {
+								const reader = new FileReader();
+								reader.onload = event => {
+									setProfileImagePreviewUrl(event.target?.result?.toString() ?? null);
+								};
+								reader.readAsDataURL(file);
+							}
+
+							// Submit the form when a file is selected
+							const submitter = e.target.form.querySelector('button[type="submit"]') as HTMLButtonElement;
+							e.target.form.requestSubmit(submitter);
+						}}
+					/>
+					<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
+					<div
+						className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${profileFields.profile.errors ? 'max-h-56' : 'max-h-0'}`}
+					>
+						<ErrorList errors={profileFields.profile.errors} id={profileFields.profile.errorId} />
+					</div>
+				</div>
+				<div className="hidden ">
+					<Button
+						label="Update"
+						type="submit"
+						name="intent"
+						value={profileUpdateActionIntent}
+						isPending={profileFetcher.state !== 'idle'}
+					/>
+				</div>
+			</profileFetcher.Form>
+
+			<coverFetcher.Form
+				{...getFormProps(coverForm)}
+				className="col-span-full"
+				method="POST"
+				encType="multipart/form-data"
+				preventScrollReset={true}
+			>
+				<AuthenticityTokenInput />
+				<HoneypotInputs />
+
+				<label htmlFor="cover-photo" className="block  text-sm font-medium leading-6 text-text-primary">
+					Cover photo
+				</label>
+				<div className="relative mt-2 flex justify-center overflow-hidden rounded-lg border border-dashed border-border-tertiary bg-transparent px-6 py-10">
+					{coverImagePreviewUrl ? (
+						<img
+							src={coverImagePreviewUrl}
+							alt={'Cover preview'}
+							className="absolute top-0 -z-10 h-full w-full object-cover "
+						/>
+					) : coverImageUrl ? (
+						<img
+							src={coverImageUrl}
+							alt={'Cover preview'}
+							className="absolute top-0 -z-10 h-full w-full object-cover "
+						/>
+					) : null}
+
+					<div className="text-center ">
+						<PhotoIcon className="mx-auto h-12 w-12 text-text-secondary" aria-hidden="true" />
+						<div className="mt-4 flex text-sm leading-6 text-gray-600">
+							<label
+								htmlFor={coverFields.cover.id}
+								className="relative cursor-pointer rounded-md px-1 font-semibold text-indigo-600 focus-within:outline-1 focus-within:ring-1 focus-within:ring-indigo-600 focus-within:ring-offset-1 hover:text-indigo-500"
 							>
-								<AuthenticityTokenInput />
-								<HoneypotInputs />
-								<div>
-									<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
-										<UserCircleIcon height={32} strokeWidth={1} color="#a9adc1" />
-										<h2 className="ml-4">Username</h2>
-									</div>
-									<p className="mt-2 text-sm leading-6 text-text-secondary">
-										Update your username associated with you account.
-									</p>
-								</div>
-
-								<InputField
-									fieldAttributes={{ ...getInputProps(usernameFields.username, { type: 'text' }) }}
-									label="Username"
-									htmlFor={usernameFields.username.id}
-									errors={usernameFields.username.errors}
-									errorId={usernameFields.username.errorId}
+								<span>Upload a file</span>
+								<input
+									{...getInputProps(coverFields.cover, { type: 'file' })}
+									accept={ACCEPTED_FILE_TYPES}
+									size={MAX_UPLOAD_SIZE}
+									onChange={e => {
+										const file = e.currentTarget.files?.[0];
+										if (file) {
+											const reader = new FileReader();
+											reader.onload = event => {
+												setCoverImagePreviewUrl(event.target?.result?.toString() ?? null);
+											};
+											reader.readAsDataURL(file);
+										}
+									}}
+									className="sr-only"
 								/>
-								<div>
-									<SubmitButton
-										name="intent"
-										value={usernameUpdateActionIntent}
-										text="Update username"
-										isSubmitting={isUsernameSubmitting}
-										width="w-auto"
-									/>
-								</div>
-							</Form>
+							</label>
+							<p className="pl-1">or drag and drop</p>
+						</div>
+						<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
+					</div>
+				</div>
+				<div
+					className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${coverFields.cover.errors ? 'max-h-56' : 'max-h-0'}`}
+				>
+					<ErrorList errors={coverFields.cover.errors} id={coverFields.cover.errorId} />
+				</div>
+				<div className="mt-2 flex w-full justify-start">
+					<Button
+						label="Save"
+						type="submit"
+						name="intent"
+						value={coverImageUpdateActionIntent}
+						isPending={coverFetcher.state !== 'idle'}
+						disabled={!coverImagePreviewUrl || Boolean(coverFields.cover.errors) || coverFetcher.state !== 'idle'}
+					/>
+				</div>
+			</coverFetcher.Form>
 
-							<aboutFetcher.Form
-								{...getFormProps(aboutForm)}
-								method="POST"
-								encType="multipart/form-data"
-								className="col-span-full"
-								preventScrollReset={true}
+			<Form
+				{...getFormProps(personalInfoForm)}
+				method="POST"
+				encType="multipart/form-data"
+				className="border-b border-border-tertiary pb-12"
+			>
+				<AuthenticityTokenInput />
+				<HoneypotInputs />
+				<h2 className="text-base font-semibold leading-7 text-text-primary">Personal Information</h2>
+				<p className="mt-1 text-sm leading-6 text-text-secondary">
+					Use a permanent address where you can receive mail.
+				</p>
+
+				<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+					<div className="sm:col-span-3">
+						<label
+							htmlFor={personalInfoFields.firstName.id}
+							className="block text-sm font-medium leading-6 text-text-primary"
+						>
+							First name
+						</label>
+						<div className="mt-2">
+							<input
+								{...getInputProps(personalInfoFields.firstName, { type: 'text' })}
+								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
+							/>
+							<div
+								className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
 							>
-								<AuthenticityTokenInput />
-								<HoneypotInputs />
-								<label htmlFor={aboutFields.about.id} className="block text-sm font-medium leading-6 text-text-primary">
-									About
-								</label>
-								<div className="mt-2">
-									<textarea
-										{...getTextareaProps(aboutFields.about)}
-										rows={3}
-										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-									/>
-									<div
-										className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${aboutFields.about.errors ? 'max-h-56' : 'max-h-0'}`}
-									>
-										<ErrorList errors={aboutFields.about.errors} id={aboutFields.about.errorId} />
-									</div>
-								</div>
-								<p className="mt-2 text-sm leading-6 text-text-secondary">Write a few sentences about yourself.</p>
-								<div className="flex w-full justify-end">
-									<Button
-										label="Update"
-										type="submit"
-										name="intent"
-										value={aboutUpdateActionIntent}
-										isPending={aboutFetcher.state !== 'idle'}
-									/>
-								</div>
-							</aboutFetcher.Form>
+								<ErrorList errors={personalInfoFields.firstName.errors} id={personalInfoFields.firstName.errorId} />
+							</div>
 						</div>
 					</div>
 
-					<profileFetcher.Form
-						{...getFormProps(profileForm)}
-						method="POST"
-						encType="multipart/form-data"
-						className="col-span-full "
-						preventScrollReset={true}
-					>
-						<AuthenticityTokenInput />
-						<HoneypotInputs />
-						<p className="block text-sm font-medium leading-6 text-text-primary">Photo</p>
-						<div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-							<span className="flex h-32 w-32 overflow-hidden rounded-full">
-								{profileImagePreviewUrl ? (
-									<img
-										src={profileImagePreviewUrl}
-										alt="Profile preview"
-										className="h-32 w-32 overflow-hidden rounded-full object-cover"
-									/>
-								) : (
-									<ImageChooser imageUrl={profileImageUrl} />
-								)}
-							</span>
-							<label
-								htmlFor={profileFields.profile.id}
-								className="flex min-w-20 justify-center rounded-md bg-bg-alt px-3 py-2 text-sm font-semibold text-text-primary shadow-sm hover:bg-bg-secondary"
-							>
-								{profileFetcher.state === 'idle' ? 'Change' : <Spinner />}
-							</label>
-							<input
-								{...getInputProps(profileFields.profile, { type: 'file' })}
-								className="sr-only hidden"
-								accept={ACCEPTED_FILE_TYPES}
-								size={MAX_UPLOAD_SIZE}
-								disabled={profileFetcher.state !== 'idle'}
-								onChange={e => {
-									const file = e.currentTarget.files?.[0];
-									if (file) {
-										const reader = new FileReader();
-										reader.onload = event => {
-											setProfileImagePreviewUrl(event.target?.result?.toString() ?? null);
-										};
-										reader.readAsDataURL(file);
-									}
-
-									// Submit the form when a file is selected
-									const submitter = e.target.form.querySelector('button[type="submit"]') as HTMLButtonElement;
-									e.target.form.requestSubmit(submitter);
-								}}
-							/>
-							<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
-							<div
-								className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${profileFields.profile.errors ? 'max-h-56' : 'max-h-0'}`}
-							>
-								<ErrorList errors={profileFields.profile.errors} id={profileFields.profile.errorId} />
-							</div>
-						</div>
-						<div className="hidden ">
-							<Button
-								label="Update"
-								type="submit"
-								name="intent"
-								value={profileUpdateActionIntent}
-								isPending={profileFetcher.state !== 'idle'}
-							/>
-						</div>
-					</profileFetcher.Form>
-
-					<coverFetcher.Form
-						{...getFormProps(coverForm)}
-						className="col-span-full"
-						method="POST"
-						encType="multipart/form-data"
-						preventScrollReset={true}
-					>
-						<AuthenticityTokenInput />
-						<HoneypotInputs />
-
-						<label htmlFor="cover-photo" className="block  text-sm font-medium leading-6 text-text-primary">
-							Cover photo
-						</label>
-						<div className="relative mt-2 flex justify-center overflow-hidden rounded-lg border border-dashed border-border-tertiary bg-transparent px-6 py-10">
-							{coverImagePreviewUrl ? (
-								<img
-									src={coverImagePreviewUrl}
-									alt={'Cover preview'}
-									className="absolute top-0 -z-10 h-full w-full object-cover "
-								/>
-							) : coverImageUrl ? (
-								<img
-									src={coverImageUrl}
-									alt={'Cover preview'}
-									className="absolute top-0 -z-10 h-full w-full object-cover "
-								/>
-							) : null}
-
-							<div className="text-center ">
-								<PhotoIcon className="mx-auto h-12 w-12 text-text-secondary" aria-hidden="true" />
-								<div className="mt-4 flex text-sm leading-6 text-gray-600">
-									<label
-										htmlFor={coverFields.cover.id}
-										className="relative cursor-pointer rounded-md px-1 font-semibold text-indigo-600 focus-within:outline-1 focus-within:ring-1 focus-within:ring-indigo-600 focus-within:ring-offset-1 hover:text-indigo-500"
-									>
-										<span>Upload a file</span>
-										<input
-											{...getInputProps(coverFields.cover, { type: 'file' })}
-											accept={ACCEPTED_FILE_TYPES}
-											size={MAX_UPLOAD_SIZE}
-											onChange={e => {
-												const file = e.currentTarget.files?.[0];
-												if (file) {
-													const reader = new FileReader();
-													reader.onload = event => {
-														setCoverImagePreviewUrl(event.target?.result?.toString() ?? null);
-													};
-													reader.readAsDataURL(file);
-												}
-											}}
-											className="sr-only"
-										/>
-									</label>
-									<p className="pl-1">or drag and drop</p>
-								</div>
-								<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
-							</div>
-						</div>
-						<div
-							className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${coverFields.cover.errors ? 'max-h-56' : 'max-h-0'}`}
+					<div className="sm:col-span-3">
+						<label
+							htmlFor={personalInfoFields.lastName.id}
+							className="block text-sm font-medium leading-6 text-text-primary"
 						>
-							<ErrorList errors={coverFields.cover.errors} id={coverFields.cover.errorId} />
-						</div>
-						<div className="mt-2 flex w-full justify-start">
-							<Button
-								label="Save"
-								type="submit"
-								name="intent"
-								value={coverImageUpdateActionIntent}
-								isPending={coverFetcher.state !== 'idle'}
-								disabled={!coverImagePreviewUrl || Boolean(coverFields.cover.errors) || coverFetcher.state !== 'idle'}
+							Last name
+						</label>
+						<div className="mt-2">
+							<input
+								{...getInputProps(personalInfoFields.lastName, { type: 'text' })}
+								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
 							/>
-						</div>
-					</coverFetcher.Form>
-
-					<Form
-						{...getFormProps(personalInfoForm)}
-						method="POST"
-						encType="multipart/form-data"
-						className="border-b border-border-tertiary pb-12"
-					>
-						<AuthenticityTokenInput />
-						<HoneypotInputs />
-						<h2 className="text-base font-semibold leading-7 text-text-primary">Personal Information</h2>
-						<p className="mt-1 text-sm leading-6 text-text-secondary">
-							Use a permanent address where you can receive mail.
-						</p>
-
-						<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-							<div className="sm:col-span-3">
-								<label
-									htmlFor={personalInfoFields.firstName.id}
-									className="block text-sm font-medium leading-6 text-text-primary"
-								>
-									First name
-								</label>
-								<div className="mt-2">
-									<input
-										{...getInputProps(personalInfoFields.firstName, { type: 'text' })}
-										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-									/>
-									<div
-										className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
-									>
-										<ErrorList errors={personalInfoFields.firstName.errors} id={personalInfoFields.firstName.errorId} />
-									</div>
-								</div>
-							</div>
-
-							<div className="sm:col-span-3">
-								<label
-									htmlFor={personalInfoFields.lastName.id}
-									className="block text-sm font-medium leading-6 text-text-primary"
-								>
-									Last name
-								</label>
-								<div className="mt-2">
-									<input
-										{...getInputProps(personalInfoFields.lastName, { type: 'text' })}
-										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-									/>
-									<div
-										className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${personalInfoFields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
-									>
-										<ErrorList errors={personalInfoFields.lastName.errors} id={personalInfoFields.lastName.errorId} />
-									</div>
-								</div>
-							</div>
-
-							<div className="sm:col-span-3">
-								<label
-									htmlFor={personalInfoFields.email.id}
-									className="block text-sm font-medium leading-6 text-text-primary"
-								>
-									Email address
-								</label>
-
-								<div className="mt-2 self-end">
-									<input
-										{...getInputProps(personalInfoFields.email, { type: 'email' })}
-										disabled
-										className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6"
-									></input>
-								</div>
-							</div>
-							<div className="flex sm:col-span-3">
-								<Link
-									to={`/${data.user.username.username}/settings/change-email`}
-									className="self-end text-text-notify"
-								>
-									<button
-										type="button"
-										className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-									>
-										Change Email
-									</button>
-								</Link>
-							</div>
-
-							<div className="sm:col-span-2 sm:col-start-1">
-								<label
-									htmlFor={personalInfoFields.country.id}
-									className="block text-sm font-medium leading-6 text-text-primary"
-								>
-									Country
-								</label>
-								<div className="mt-2">
-									<select
-										{...getSelectProps(personalInfoFields.country)}
-										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-									>
-										<option value={'Canada'}>Canada</option>
-									</select>
-									<div
-										className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.country.errors ? 'max-h-56' : 'max-h-0'}`}
-									>
-										<ErrorList errors={personalInfoFields.country.errors} id={personalInfoFields.country.errorId} />
-									</div>
-								</div>
-							</div>
-
-							<div className="sm:col-span-2">
-								<label
-									htmlFor={personalInfoFields.province.id}
-									className="block text-sm font-medium leading-6 text-text-primary"
-								>
-									Province
-								</label>
-								<div className="mt-2">
-									<select
-										{...getSelectProps(personalInfoFields.province)}
-										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-										value={selectedProvince}
-										onChange={e => handleProvinceChange(e.target.value)}
-									>
-										<option value="">-- Select Province --</option>
-										{Object.keys(canadaData).map(province => (
-											<option key={province} value={province}>
-												{province.replace(/([A-Z])/g, ' $1').trim()}
-											</option>
-										))}
-									</select>
-									<div
-										className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${personalInfoFields.province.errors ? 'max-h-56' : 'max-h-0'}`}
-									>
-										<ErrorList errors={personalInfoFields.province.errors} id={personalInfoFields.province.errorId} />
-									</div>
-								</div>
-							</div>
-
-							<div className="sm:col-span-2 sm:col-start-1">
-								<label
-									htmlFor={personalInfoFields.city.id}
-									className="block text-sm font-medium leading-6 text-text-primary"
-								>
-									City
-								</label>
-								<div className="mt-2">
-									<select
-										{...getSelectProps(personalInfoFields.city)}
-										className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-										value={selectedCity}
-										onChange={e => handleCityChange(e.target.value)}
-									>
-										<option value="">-- Select City --</option>
-										{selectedProvince &&
-											(canadaData[selectedProvince as keyof typeof canadaData] as string[]).map(city => (
-												<option key={city} value={city}>
-													{city}
-												</option>
-											))}
-									</select>
-									<div
-										className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.city.errors ? 'max-h-56' : 'max-h-0'}`}
-									>
-										<ErrorList errors={personalInfoFields.city.errors} id={personalInfoFields.city.errorId} />
-									</div>
-								</div>
+							<div
+								className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${personalInfoFields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
+							>
+								<ErrorList errors={personalInfoFields.lastName.errors} id={personalInfoFields.lastName.errorId} />
 							</div>
 						</div>
-						<div className="mt-6 flex items-center justify-end gap-x-6">
-							<button type="button" className="text-sm font-semibold leading-6 text-text-primary">
-								Cancel
+					</div>
+
+					<div className="sm:col-span-3">
+						<label
+							htmlFor={personalInfoFields.email.id}
+							className="block text-sm font-medium leading-6 text-text-primary"
+						>
+							Email address
+						</label>
+
+						<div className="mt-2 self-end">
+							<input
+								{...getInputProps(personalInfoFields.email, { type: 'email' })}
+								disabled
+								className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6"
+							></input>
+						</div>
+					</div>
+					<div className="flex sm:col-span-3">
+						<Link to={`/${data.user.username.username}/settings/change-email`} className="self-end text-text-notify">
+							<button
+								type="button"
+								className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+							>
+								Change Email
 							</button>
-							<Button type="submit" name="intent" label="Save Changes" value={perosnalInfoUpdateActionIntent} />
+						</Link>
+					</div>
+
+					<div className="sm:col-span-2 sm:col-start-1">
+						<label
+							htmlFor={personalInfoFields.country.id}
+							className="block text-sm font-medium leading-6 text-text-primary"
+						>
+							Country
+						</label>
+						<div className="mt-2">
+							<select
+								{...getSelectProps(personalInfoFields.country)}
+								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
+							>
+								<option value={'Canada'}>Canada</option>
+							</select>
+							<div
+								className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.country.errors ? 'max-h-56' : 'max-h-0'}`}
+							>
+								<ErrorList errors={personalInfoFields.country.errors} id={personalInfoFields.country.errorId} />
+							</div>
 						</div>
-					</Form>
+					</div>
 
-					<div className="border-b border-border-tertiary pb-12">
-						<h2 className="text-base font-semibold leading-7 text-text-primary">Notifications</h2>
-						<p className="mt-1 text-sm leading-6 text-text-secondary">
-							We&apos;ll always let you know about important changes, but you pick what else you want to hear about.
-						</p>
+					<div className="sm:col-span-2">
+						<label
+							htmlFor={personalInfoFields.province.id}
+							className="block text-sm font-medium leading-6 text-text-primary"
+						>
+							Province
+						</label>
+						<div className="mt-2">
+							<select
+								{...getSelectProps(personalInfoFields.province)}
+								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
+								value={selectedProvince}
+								onChange={e => handleProvinceChange(e.target.value)}
+							>
+								<option value="">-- Select Province --</option>
+								{Object.keys(canadaData).map(province => (
+									<option key={province} value={province}>
+										{province.replace(/([A-Z])/g, ' $1').trim()}
+									</option>
+								))}
+							</select>
+							<div
+								className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${personalInfoFields.province.errors ? 'max-h-56' : 'max-h-0'}`}
+							>
+								<ErrorList errors={personalInfoFields.province.errors} id={personalInfoFields.province.errorId} />
+							</div>
+						</div>
+					</div>
 
-						<div className="mt-10 space-y-10">
-							<fieldset>
-								<legend className="text-sm font-semibold leading-6 text-text-primary">By Email</legend>
-								<div className="mt-6 space-y-6">
-									<div className="relative flex gap-x-3">
-										<div className="flex h-6 items-center">
-											<input
-												id="comments"
-												name="comments"
-												type="checkbox"
-												className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-											/>
-										</div>
-										<div className="text-sm leading-6">
-											<label htmlFor="comments" className="font-medium text-text-primary">
-												Comments
-											</label>
-											<p className="text-text-secondary">Get notified when someones posts a comment on a posting.</p>
-										</div>
-									</div>
-									<div className="relative flex gap-x-3">
-										<div className="flex h-6 items-center">
-											<input
-												id="candidates"
-												name="candidates"
-												type="checkbox"
-												className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-											/>
-										</div>
-										<div className="text-sm leading-6">
-											<label htmlFor="candidates" className="font-medium text-text-primary">
-												Candidates
-											</label>
-											<p className="text-text-secondary">Get notified when a candidate applies for a job.</p>
-										</div>
-									</div>
-									<div className="relative flex gap-x-3">
-										<div className="flex h-6 items-center">
-											<input
-												id="offers"
-												name="offers"
-												type="checkbox"
-												className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-											/>
-										</div>
-										<div className="text-sm leading-6">
-											<label htmlFor="offers" className="font-medium text-text-primary">
-												Offers
-											</label>
-											<p className="text-text-secondary">Get notified when a candidate accepts or rejects an offer.</p>
-										</div>
-									</div>
-								</div>
-							</fieldset>
-							<fieldset>
-								<legend className="text-sm font-semibold leading-6 text-text-primary">Push Notifications</legend>
-								<p className="mt-1 text-sm leading-6 text-text-secondary">
-									These are delivered via SMS to your mobile phone.
-								</p>
-								<div className="mt-6 space-y-6">
-									<div className="flex items-center gap-x-3">
-										<input
-											id="push-everything"
-											name="push-notifications"
-											type="radio"
-											className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-										/>
-										<label htmlFor="push-everything" className="block text-sm font-medium leading-6 text-text-primary">
-											Everything
-										</label>
-									</div>
-									<div className="flex items-center gap-x-3">
-										<input
-											id="push-email"
-											name="push-notifications"
-											type="radio"
-											className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-										/>
-										<label htmlFor="push-email" className="block text-sm font-medium leading-6 text-text-primary">
-											Same as email
-										</label>
-									</div>
-									<div className="flex items-center gap-x-3">
-										<input
-											id="push-nothing"
-											name="push-notifications"
-											type="radio"
-											className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-										/>
-										<label htmlFor="push-nothing" className="block text-sm font-medium leading-6 text-text-primary">
-											No push notifications
-										</label>
-									</div>
-								</div>
-							</fieldset>
+					<div className="sm:col-span-2 sm:col-start-1">
+						<label
+							htmlFor={personalInfoFields.city.id}
+							className="block text-sm font-medium leading-6 text-text-primary"
+						>
+							City
+						</label>
+						<div className="mt-2">
+							<select
+								{...getSelectProps(personalInfoFields.city)}
+								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
+								value={selectedCity}
+								onChange={e => handleCityChange(e.target.value)}
+							>
+								<option value="">-- Select City --</option>
+								{selectedProvince &&
+									(canadaData[selectedProvince as keyof typeof canadaData] as string[]).map(city => (
+										<option key={city} value={city}>
+											{city}
+										</option>
+									))}
+							</select>
+							<div
+								className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.city.errors ? 'max-h-56' : 'max-h-0'}`}
+							>
+								<ErrorList errors={personalInfoFields.city.errors} id={personalInfoFields.city.errorId} />
+							</div>
 						</div>
 					</div>
 				</div>
+				<div className="mt-6 flex items-center justify-end gap-x-6">
+					<button type="button" className="text-sm font-semibold leading-6 text-text-primary">
+						Cancel
+					</button>
+					<Button type="submit" name="intent" label="Save Changes" value={perosnalInfoUpdateActionIntent} />
+				</div>
+			</Form>
+
+			<div className="border-b border-border-tertiary pb-12">
+				<h2 className="text-base font-semibold leading-7 text-text-primary">Notifications</h2>
+				<p className="mt-1 text-sm leading-6 text-text-secondary">
+					We&apos;ll always let you know about important changes, but you pick what else you want to hear about.
+				</p>
+
+				<div className="mt-10 space-y-10">
+					<fieldset>
+						<legend className="text-sm font-semibold leading-6 text-text-primary">By Email</legend>
+						<div className="mt-6 space-y-6">
+							<div className="relative flex gap-x-3">
+								<div className="flex h-6 items-center">
+									<input
+										id="comments"
+										name="comments"
+										type="checkbox"
+										className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
+									/>
+								</div>
+								<div className="text-sm leading-6">
+									<label htmlFor="comments" className="font-medium text-text-primary">
+										Comments
+									</label>
+									<p className="text-text-secondary">Get notified when someones posts a comment on a posting.</p>
+								</div>
+							</div>
+							<div className="relative flex gap-x-3">
+								<div className="flex h-6 items-center">
+									<input
+										id="candidates"
+										name="candidates"
+										type="checkbox"
+										className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
+									/>
+								</div>
+								<div className="text-sm leading-6">
+									<label htmlFor="candidates" className="font-medium text-text-primary">
+										Candidates
+									</label>
+									<p className="text-text-secondary">Get notified when a candidate applies for a job.</p>
+								</div>
+							</div>
+							<div className="relative flex gap-x-3">
+								<div className="flex h-6 items-center">
+									<input
+										id="offers"
+										name="offers"
+										type="checkbox"
+										className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
+									/>
+								</div>
+								<div className="text-sm leading-6">
+									<label htmlFor="offers" className="font-medium text-text-primary">
+										Offers
+									</label>
+									<p className="text-text-secondary">Get notified when a candidate accepts or rejects an offer.</p>
+								</div>
+							</div>
+						</div>
+					</fieldset>
+					<fieldset>
+						<legend className="text-sm font-semibold leading-6 text-text-primary">Push Notifications</legend>
+						<p className="mt-1 text-sm leading-6 text-text-secondary">
+							These are delivered via SMS to your mobile phone.
+						</p>
+						<div className="mt-6 space-y-6">
+							<div className="flex items-center gap-x-3">
+								<input
+									id="push-everything"
+									name="push-notifications"
+									type="radio"
+									className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
+								/>
+								<label htmlFor="push-everything" className="block text-sm font-medium leading-6 text-text-primary">
+									Everything
+								</label>
+							</div>
+							<div className="flex items-center gap-x-3">
+								<input
+									id="push-email"
+									name="push-notifications"
+									type="radio"
+									className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
+								/>
+								<label htmlFor="push-email" className="block text-sm font-medium leading-6 text-text-primary">
+									Same as email
+								</label>
+							</div>
+							<div className="flex items-center gap-x-3">
+								<input
+									id="push-nothing"
+									name="push-notifications"
+									type="radio"
+									className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
+								/>
+								<label htmlFor="push-nothing" className="block text-sm font-medium leading-6 text-text-primary">
+									No push notifications
+								</label>
+							</div>
+						</div>
+					</fieldset>
+				</div>
 			</div>
+
 			<div className=" flex flex-col border-b border-border-tertiary py-8">
 				{data.is2FAEnabled ? (
 					<div className=" flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
