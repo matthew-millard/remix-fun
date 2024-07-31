@@ -19,9 +19,8 @@ import {
 	Button,
 	DialogBox,
 	ErrorList,
-	ImageChooser,
+	ImageUploader,
 	InputField,
-	Spinner,
 	SrOnlyLabel,
 	SubmitButton,
 	TextareaInput,
@@ -47,8 +46,7 @@ import { redirectWithToast } from '~/utils/toast.server';
 import { z } from 'zod';
 import { useIsPending } from '~/hooks/useIsPending';
 import { twoFAVerificationType } from './two-factor-authentication+/_layout';
-import { IdentificationIcon, UserCircleIcon } from '@heroicons/react/24/outline';
-import { Input, Textarea } from '@headlessui/react';
+import { CameraIcon, IdentificationIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -57,7 +55,8 @@ type ProfileActionArgs = {
 };
 
 const signOutOfOtherDevicesActionIntent = 'sign-out-other-devices';
-const profileUpdateActionIntent = 'update-profile';
+export const profileUpdateActionIntent = 'update-profile';
+export const deleteProfileActionIntent = 'delete-profile';
 export const coverImageUpdateActionIntent = 'update-cover-image';
 const usernameUpdateActionIntent = 'update-username';
 const aboutUpdateActionIntent = 'update-about';
@@ -88,6 +87,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 		case profileUpdateActionIntent: {
 			return profileUpdateAction({ request, userId, formData });
+		}
+		case deleteProfileActionIntent: {
+			return deleteProfileUpdateAction({ request, userId, formData });
 		}
 		case signOutOfOtherDevicesActionIntent: {
 			return signOutOfOtherDevicesAction({ request, userId, formData });
@@ -268,6 +270,33 @@ async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 		title: 'Profile image updated',
 		type: 'success',
 		description: 'Your profile image has been updated successfully.',
+	});
+}
+
+async function deleteProfileUpdateAction({ userId }: ProfileActionArgs) {
+	const user = await prisma.$transaction(async prisma => {
+		// Delete the user's profile image
+		await prisma.userProfileImage.delete({
+			where: { userId },
+		});
+
+		// Retrieve the user's username
+		const user = await prisma.user.findUnique({
+			where: { id: userId },
+			select: { username: true },
+		});
+
+		if (!user) {
+			throw new Error('User not found');
+		}
+
+		return user;
+	});
+
+	return redirectWithToast(`/${user.username.username}/settings`, {
+		title: 'Profile image deleted',
+		type: 'success',
+		description: 'Your profile image has been deleted.',
 	});
 }
 
@@ -476,9 +505,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function SettingsRoute() {
 	const data = useLoaderData<typeof loader>();
-
+	console.log('Client side render', data.user?.profileImage?.id);
 	const aboutFetcher = useFetcher();
-	const profileFetcher = useFetcher();
 	const coverFetcher = useFetcher();
 	// const personalInformationFetcher = useFetcher();
 	const logOutOtherSessionsFetcher = useFetcher();
@@ -491,6 +519,9 @@ export default function SettingsRoute() {
 	});
 
 	const isAboutSubmitting = aboutFetcher.state === 'submitting';
+	const isProfileSubmitting = useIsPending({
+		formIntent: profileUpdateActionIntent,
+	});
 
 	const [usernameForm, usernameFields] = useForm({
 		id: 'username-form',
@@ -564,8 +595,6 @@ export default function SettingsRoute() {
 
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-	const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
-	const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null);
 	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 	const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<string | null>(null);
 
@@ -577,14 +606,6 @@ export default function SettingsRoute() {
 		description: `Are you sure you want to delete your account? All of your data will be permanently removed.
 		This action cannot be undone.`,
 	};
-
-	useEffect(() => {
-		if (data.user?.profileImage?.id) {
-			setProfileImageUrl(`/resources/images/${data.user.profileImage.id}/profile`);
-		} else {
-			setProfileImageUrl(null); // reset to null if no profile image is availble
-		}
-	}, [data.user?.profileImage?.id]);
 
 	useEffect(() => {
 		if (data.user?.coverImage?.id) {
@@ -698,72 +719,38 @@ export default function SettingsRoute() {
 				</aboutFetcher.Form>
 			</section>
 
-			<profileFetcher.Form
-				{...getFormProps(profileForm)}
-				method="POST"
-				encType="multipart/form-data"
-				className="col-span-full "
-				preventScrollReset={true}
-			>
-				<AuthenticityTokenInput />
-				<HoneypotInputs />
-				<p className="block text-sm font-medium leading-6 text-text-primary">Photo</p>
-				<div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-					<span className="flex h-32 w-32 overflow-hidden rounded-full">
-						{profileImagePreviewUrl ? (
-							<img
-								src={profileImagePreviewUrl}
-								alt="Profile preview"
-								className="h-32 w-32 overflow-hidden rounded-full object-cover"
-							/>
-						) : (
-							<ImageChooser imageUrl={profileImageUrl} />
-						)}
-					</span>
-					<label
-						htmlFor={profileFields.profile.id}
-						className="flex min-w-20 justify-center rounded-md bg-bg-alt px-3 py-2 text-sm font-semibold text-text-primary shadow-sm hover:bg-bg-secondary"
-					>
-						{profileFetcher.state === 'idle' ? 'Change' : <Spinner />}
-					</label>
-					<input
-						{...getInputProps(profileFields.profile, { type: 'file' })}
-						className="sr-only hidden"
-						accept={ACCEPTED_FILE_TYPES}
-						size={MAX_UPLOAD_SIZE}
-						disabled={profileFetcher.state !== 'idle'}
-						onChange={e => {
-							const file = e.currentTarget.files?.[0];
-							if (file) {
-								const reader = new FileReader();
-								reader.onload = event => {
-									setProfileImagePreviewUrl(event.target?.result?.toString() ?? null);
-								};
-								reader.readAsDataURL(file);
-							}
-
-							// Submit the form when a file is selected
-							const submitter = e.target.form.querySelector('button[type="submit"]') as HTMLButtonElement;
-							e.target.form.requestSubmit(submitter);
-						}}
-					/>
-					<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
-					<div
-						className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${profileFields.profile.errors ? 'max-h-56' : 'max-h-0'}`}
-					>
-						<ErrorList errors={profileFields.profile.errors} id={profileFields.profile.errorId} />
+			{/* Profile Picture Upload */}
+			<section className="pt-16">
+				<div>
+					<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+						<CameraIcon height={32} strokeWidth={1} color="#a9adc1" />
+						<h2 className="ml-4">Profile Picture</h2>
 					</div>
+					<p className="mt-3 text-sm leading-6 text-text-secondary">
+						Upload a picture of yourself to use as your profile picture.
+						<br /> PNG, JPG, GIF up to 3MB
+					</p>
 				</div>
-				<div className="hidden ">
-					<Button
-						label="Update"
-						type="submit"
-						name="intent"
-						value={profileUpdateActionIntent}
-						isPending={profileFetcher.state !== 'idle'}
+				<Form
+					{...getFormProps(profileForm)}
+					method="POST"
+					encType="multipart/form-data"
+					preventScrollReset={true}
+					className="mt-6"
+				>
+					<AuthenticityTokenInput />
+					<HoneypotInputs />
+
+					<ImageUploader
+						fieldAttributes={{ ...getInputProps(profileFields.profile, { type: 'file' }) }}
+						isSubmitting={isProfileSubmitting}
+						htmlFor={profileFields.profile.id}
+						profileImageId={data.user?.profileImage?.id}
+						errors={profileFields.profile.errors}
+						errorId={profileFields.profile.errorId}
 					/>
-				</div>
-			</profileFetcher.Form>
+				</Form>
+			</section>
 
 			<coverFetcher.Form
 				{...getFormProps(coverForm)}

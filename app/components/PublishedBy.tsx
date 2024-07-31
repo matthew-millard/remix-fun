@@ -6,7 +6,7 @@ export default function PublishedBy() {
 	const { cocktail } = useLoaderData<typeof loader>();
 
 	const authorName = cocktail.author.firstName + ' ' + cocktail.author.lastName;
-	const profileImageURL = `/resources/images/${cocktail.author.profileImage.id}/profile`;
+	const profileImageURL = `/resources/images/${cocktail.author.profileImage?.id}/profile`;
 
 	return (
 		<div className="flex items-center">

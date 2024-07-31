@@ -23,7 +23,7 @@ import OTP from './OTP';
 import SrOnlyLabel from './SrOnlyLabel';
 import RememberMe from './RememberMe';
 import TextareaInput from './TextareaInput';
-
+import ImageUploader from './ImageUploader';
 export {
 	ErrorList,
 	Avatar,
@@ -50,4 +50,5 @@ export {
 	SrOnlyLabel,
 	RememberMe,
 	TextareaInput,
+	ImageUploader,
 };

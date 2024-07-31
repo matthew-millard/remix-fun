@@ -29,7 +29,7 @@ export default function ReviewForm({ user }: { user: UserData }) {
 		<div className="mt-6 flex flex-col">
 			<div className="flex gap-x-3">
 				<img
-					src={`/resources/images/${user.profileImage.id}/profile`}
+					src={`/resources/images/${user.profileImage?.id}/profile`}
 					alt=""
 					className="hidden h-5 w-5 flex-none rounded-full  object-cover lg:block lg:h-7 lg:w-7"
 				/>

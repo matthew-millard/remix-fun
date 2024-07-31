@@ -1,6 +1,6 @@
 export default function ImagePlaceholder() {
 	return (
-		<div role="status" className="flex h-full w-full  animate-pulse items-center ">
+		<div role="status" className="flex h-full w-full   items-center ">
 			<div className="flex h-full  w-full items-center justify-center rounded bg-gray-300 dark:bg-gray-700 ">
 				<svg
 					className="h-10 w-10 text-gray-200 dark:text-gray-600"
