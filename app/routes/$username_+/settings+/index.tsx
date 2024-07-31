@@ -551,12 +551,12 @@ export default function SettingsRoute() {
 
 	const [profileForm, profileFields] = useForm({
 		id: 'profile-form',
-		shouldValidate: 'onInput',
-		shouldRevalidate: 'onInput',
+		shouldValidate: 'onSubmit',
+		// shouldRevalidate: 'onSubmit',
 		lastResult: useActionData(),
-		onValidate({ formData }) {
-			return parseWithZod(formData, { schema: z.object({ profile: UploadImageSchema }) });
-		},
+		// onValidate({ formData }) {
+		// 	return parseWithZod(formData, { schema: z.object({ profile: UploadImageSchema }) });
+		// },
 	});
 
 	const [coverForm, coverFields] = useForm({
