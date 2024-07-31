@@ -7,11 +7,12 @@ type SubmitButtonProps = {
 	name?: string;
 	value?: string;
 	width?: string;
+	backgroundColor?: string;
 	ref?: React.Ref<HTMLButtonElement>;
 };
 
 const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(function SubmitButton(
-	{ text, isSubmitting, name, value, width },
+	{ text, isSubmitting, name, value, width, backgroundColor },
 	ref,
 ) {
 	return (
@@ -19,7 +20,8 @@ const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(function S
 			type="submit"
 			className={classNames(
 				width ? width : 'w-full',
-				'flex justify-center rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
+				backgroundColor ? backgroundColor : 'bg-indigo-500 hover:bg-indigo-400',
+				'flex justify-center rounded-md  px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
 			)}
 			disabled={isSubmitting}
 			name={name}

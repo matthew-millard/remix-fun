@@ -229,7 +229,7 @@ export default function Reviews({ reviews, ratings, user }: { reviews: Reviews; 
 									<div className="flex justify-between">
 										<div className="flex items-center gap-x-4">
 											<img
-												src={`/resources/images/${review.user.profileImage.id}/profile`}
+												src={`/resources/images/${review.user.profileImage?.id}/profile`}
 												alt={`${review.user.firstName} ${review.user.lastName}`}
 												className="h-10 w-10 rounded-full object-cover"
 											/>
