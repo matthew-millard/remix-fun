@@ -43,7 +43,7 @@ export default function ImageUploader({
 			setProfileImageUrl(`/resources/images/${profileImageId}/profile`);
 			setShowPreview(false);
 		} else {
-			setProfileImageUrl(null); // reset to null if no profile image is availble
+			setProfileImageUrl(null);
 		}
 	}, [profileImageId]);
 
@@ -116,7 +116,7 @@ function ImageInput({
 	);
 }
 
-export function CurrentProfileImage({ profileImageUrl }: { profileImageUrl: string }) {
+export function CurrentProfileImage({ profileImageUrl }: { profileImageUrl: string | null }) {
 	return (
 		<div className="h-full w-full overflow-hidden rounded-full">
 			{profileImageUrl ? (
