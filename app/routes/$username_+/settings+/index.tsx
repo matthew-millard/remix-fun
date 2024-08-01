@@ -22,6 +22,7 @@ import {
 	ErrorList,
 	ImageUploader,
 	InputField,
+	LinkWithPrefetch,
 	SrOnlyLabel,
 	SubmitButton,
 	TextareaInput,
@@ -46,7 +47,7 @@ import { redirectWithToast } from '~/utils/toast.server';
 import { z } from 'zod';
 import { useIsPending } from '~/hooks/useIsPending';
 import { twoFAVerificationType } from './two-factor-authentication+/_layout';
-import { CameraIcon, IdentificationIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, EnvelopeIcon, IdentificationIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { InputErrors } from '~/components/InputField';
 import { DeleteButton } from '~/components/ImageUploader';
 
@@ -899,6 +900,37 @@ export default function SettingsRoute() {
 						</div>
 					</Form>
 				)}
+			</section>
+
+			{/* Update email */}
+			<section className="pt-16">
+				<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+					<EnvelopeIcon height={32} strokeWidth={1} color="#a9adc1" />
+					<h2 className="ml-4">Email address</h2>
+				</div>
+				<p className="mt-3 text-sm leading-6 text-text-secondary">
+					Your email address is used to log in and receive notifications.
+				</p>
+
+				<div className="mt-8">
+					<InputField
+						fieldAttributes={{ ...getInputProps(personalInfoFields.email, { type: 'email' }) }}
+						label="Email"
+						htmlFor={personalInfoFields.email.id}
+						additionalClasses={{
+							backgroundColor: 'bg-bg-secondary',
+							textColor: 'text-text-primary',
+						}}
+						disabled={true}
+					/>
+				</div>
+				<div className="mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+					<LinkWithPrefetch
+						to={`/${user.username.username}/settings/change-email`}
+						text="Change email →"
+						className="inline-flex items-center rounded-md bg-indigo-400/10 px-3 py-2 text-xs font-medium text-indigo-400 ring-1 ring-inset ring-indigo-400/30"
+					/>
+				</div>
 			</section>
 
 			{/* Personal information */}

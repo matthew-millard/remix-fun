@@ -9,11 +9,12 @@ type InputProps = {
 	autoFocus?: boolean;
 	fieldAttributes: React.InputHTMLAttributes<HTMLInputElement>;
 	additionalClasses?: AdditionalClasses;
+	disabled?: boolean;
 };
 
 export type InputErrorsProps = {
 	errors?: string[] | null;
-	errorId: string;
+	errorId?: string;
 };
 
 type InputErrorProps = {
@@ -35,12 +36,18 @@ export default function InputField({
 	errors,
 	errorId,
 	additionalClasses = {},
+	disabled,
 }: InputFieldProps) {
 	return (
 		<div>
 			<Label htmlFor={htmlFor} label={label} />
 			<div className="mt-1">
-				<Input fieldAttributes={fieldAttributes} autoFocus={autoFocus} additionalClasses={additionalClasses} />
+				<Input
+					fieldAttributes={fieldAttributes}
+					autoFocus={autoFocus}
+					additionalClasses={additionalClasses}
+					disabled={disabled}
+				/>
 			</div>
 			<div className="mt-1">
 				<InputErrors errors={errors} errorId={errorId} />
@@ -57,14 +64,14 @@ export function Label({ label, htmlFor }: LabelProps) {
 	);
 }
 
-function Input({ fieldAttributes, autoFocus = false, additionalClasses }: InputProps) {
+function Input({ fieldAttributes, autoFocus = false, additionalClasses, disabled }: InputProps) {
 	const combinedClasses = classNames(
 		additionalClasses.backgroundColor,
 		additionalClasses.textColor,
-		'block w-full rounded-md  px-2 py-1.5  shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 aria-[invalid]:ring-red-500 sm:text-sm sm:leading-6',
+		'block w-full rounded-md  px-2 py-1.5  shadow-sm ring-1 ring-inset ring-border-tertiary  placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 aria-[invalid]:ring-red-500 sm:text-sm sm:leading-6 disabled:opacity-50 disabled:cursor-not-allowed',
 	);
 
-	return <input {...fieldAttributes} className={combinedClasses} autoFocus={autoFocus} />;
+	return <input {...fieldAttributes} className={combinedClasses} autoFocus={autoFocus} disabled={disabled} />;
 }
 
 export function InputErrors({ errors, errorId }: InputErrorsProps) {
