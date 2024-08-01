@@ -4,35 +4,61 @@ import { ACCEPTED_FILE_TYPES, MAX_UPLOAD_SIZE } from '~/utils/validation-schemas
 type CoverImageUploaderProps = {
 	coverImageUrl: string | null;
 	fieldAttributes: React.InputHTMLAttributes<HTMLInputElement>;
+	showCoverPreview: boolean;
+	setShowCoverPreview: (showPreview: boolean) => void;
+	htmlFor: string;
+	isSubmitting: boolean;
 };
 
-type CoverImageInputProps = Pick<CoverImageUploaderProps, 'fieldAttributes'> & {
-	setPreviewCoverImageUrl: (url: string | null) => void;
-	// setShowPreview: (showPreview: boolean) => void;
+type CoverImageInputProps = Pick<
+	CoverImageUploaderProps,
+	'fieldAttributes' | 'setShowCoverPreview' | 'htmlFor' | 'isSubmitting'
+> & {
+	setPreviewCoverImage: (url: string | null) => void;
 };
 
-export default function CoverImageUploader({ coverImageUrl, fieldAttributes }: CoverImageUploaderProps) {
-	const [previewCoverImageUrl, setPreviewCoverImageUrl] = useState<string | null>(null);
+export default function CoverImageUploader({
+	coverImageUrl,
+	fieldAttributes,
+	showCoverPreview,
+	setShowCoverPreview,
+	htmlFor,
+	isSubmitting,
+}: CoverImageUploaderProps) {
+	const [previewCoverImage, setPreviewCoverImage] = useState<string | null>(null);
 
 	return (
 		<div className="relative mt-8 flex h-48 flex-col justify-center gap-y-2 overflow-hidden rounded-lg border border-dashed border-gray-300 bg-transparent">
-			{previewCoverImageUrl ? (
-				<PreviewCoverImage previewCoverImageUrl={previewCoverImageUrl} />
+			{showCoverPreview ? (
+				<PreviewCoverImage previewCoverImage={previewCoverImage} />
 			) : (
 				<CurrentCoverImage coverImageUrl={coverImageUrl} />
 			)}
-			<CoverImageInput fieldAttributes={fieldAttributes} setPreviewCoverImageUrl={setPreviewCoverImageUrl} />
+			<CoverImageInput
+				fieldAttributes={fieldAttributes}
+				setPreviewCoverImage={setPreviewCoverImage}
+				setShowCoverPreview={setShowCoverPreview}
+				htmlFor={htmlFor}
+				isSubmitting={isSubmitting}
+			/>
 		</div>
 	);
 }
 
-function CoverImageInput({ fieldAttributes, setPreviewCoverImageUrl }: CoverImageInputProps) {
+function CoverImageInput({
+	fieldAttributes,
+	setPreviewCoverImage,
+	setShowCoverPreview,
+	htmlFor,
+	isSubmitting,
+}: CoverImageInputProps) {
 	function handleFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
 		const file = event.currentTarget.files?.[0];
 		if (file) {
 			const reader = new FileReader();
 			reader.onload = event => {
-				setPreviewCoverImageUrl(event.target?.result?.toString() ?? null);
+				setShowCoverPreview(true);
+				setPreviewCoverImage(event.target?.result?.toString() ?? null);
 			};
 			reader.readAsDataURL(file);
 		}
@@ -47,11 +73,12 @@ function CoverImageInput({ fieldAttributes, setPreviewCoverImageUrl }: CoverImag
 			</label>
 			<input
 				{...fieldAttributes}
-				size={MAX_UPLOAD_SIZE}
 				accept={ACCEPTED_FILE_TYPES}
+				size={MAX_UPLOAD_SIZE}
+				disabled={isSubmitting}
+				onChange={e => handleFileSelection(e)}
+				id={htmlFor}
 				className="sr-only"
-				onChange={handleFileSelection}
-				id={fieldAttributes.id}
 			/>
 		</div>
 	);
@@ -90,8 +117,8 @@ function FallBackCoverImage() {
 	);
 }
 
-function PreviewCoverImage({ previewCoverImageUrl }: { previewCoverImageUrl: string }) {
+function PreviewCoverImage({ previewCoverImage }: { previewCoverImage: string }) {
 	return (
-		<img src={previewCoverImageUrl} alt={'Cover preview'} className="absolute top-0 -z-10 h-full w-full object-cover" />
+		<img src={previewCoverImage} alt={'Cover preview'} className="absolute top-0 -z-10 h-full w-full object-cover" />
 	);
 }

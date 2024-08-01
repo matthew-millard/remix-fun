@@ -328,7 +328,7 @@ export async function deleteCoverImageUpdateAction({ userId }: ProfileActionArgs
 
 	return redirectWithToast(`/${user.username.username}/settings`, {
 		title: 'Cover image deleted',
-		type: 'info',
+		type: 'success',
 		description: 'Your Cover image has been deleted.',
 	});
 }
@@ -540,7 +540,7 @@ export default function SettingsRoute() {
 	const data = useLoaderData<typeof loader>();
 
 	const aboutFetcher = useFetcher();
-	const coverFetcher = useFetcher();
+
 	// const personalInformationFetcher = useFetcher();
 	const logOutOtherSessionsFetcher = useFetcher();
 
@@ -551,10 +551,13 @@ export default function SettingsRoute() {
 		formIntent: usernameUpdateActionIntent,
 	});
 	const isAboutSubmitting = aboutFetcher.state === 'submitting';
+
 	const isProfileSubmitting = useIsPending({
 		formIntent: profileUpdateActionIntent || deleteProfileActionIntent,
 	});
-	const isCoverSubmitting = coverFetcher.state === 'submitting';
+	const isCoverSubmitting = useIsPending({
+		formIntent: coverImageUpdateActionIntent || deleteCoverImageActionIntent,
+	});
 
 	const [usernameForm, usernameFields] = useForm({
 		id: 'username-form',
@@ -628,12 +631,11 @@ export default function SettingsRoute() {
 
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+	const [showPreview, setShowPreview] = useState(false);
 	const profileImageId = data.user?.profileImage?.id;
 	const [profileImageUrl, setProfileImageUrl] = useState<string | null>(() => {
 		return profileImageId ? `/resources/images/${profileImageId}/profile` : null;
 	});
-
-	const [showPreview, setShowPreview] = useState(false);
 
 	useEffect(() => {
 		if (profileImageId) {
@@ -644,17 +646,20 @@ export default function SettingsRoute() {
 		}
 	}, [profileImageId]);
 
+	const [showCoverPreview, setShowCoverPreview] = useState(false);
+	const coverImageId = data.user?.coverImage?.id;
 	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(() => {
-		return data.user.coverImage?.id ? `/resources/images/${data.user.coverImage.id}/cover` : null;
+		return coverImageId ? `/resources/images/${coverImageId}/cover` : null;
 	});
 
 	useEffect(() => {
-		if (data.user?.coverImage?.id) {
-			setCoverImageUrl(`/resources/images/${data.user.coverImage.id}/cover`);
+		if (coverImageId) {
+			setCoverImageUrl(`/resources/images/${coverImageId}/cover`);
+			setShowCoverPreview(false);
 		} else {
-			setCoverImageUrl(null); // reset to null if no profile image is availble
+			setCoverImageUrl(null);
 		}
-	}, [data.user?.coverImage?.id]);
+	}, [coverImageId]);
 
 	const dialogProps = {
 		actionUrl: '/delete-account',
@@ -686,10 +691,24 @@ export default function SettingsRoute() {
 				fieldAttributes={{ ...getInputProps(profileFields.profile, { type: 'file' }) }}
 				isSubmitting={isProfileSubmitting}
 				htmlFor={profileFields.profile.id}
-				profileImageId={profileImageId}
 				showPreview={showPreview}
 				setShowPreview={setShowPreview}
 				profileImageUrl={profileImageUrl}
+			/>
+		</>
+	);
+
+	const commonCoverFormElements = (
+		<>
+			<AuthenticityTokenInput />
+			<HoneypotInputs />
+			<CoverImageUploader
+				coverImageUrl={coverImageUrl}
+				fieldAttributes={{ ...getInputProps(coverFields.cover, { type: 'file' }) }}
+				showCoverPreview={showCoverPreview}
+				setShowCoverPreview={setShowCoverPreview}
+				htmlFor={coverFields.cover.id}
+				isSubmitting={isCoverSubmitting}
 			/>
 		</>
 	);
@@ -823,7 +842,6 @@ export default function SettingsRoute() {
 						<div className="mt-4">
 							<DeleteButton
 								text="Remove"
-								isSubmitting={isProfileSubmitting}
 								name="intent"
 								value={deleteProfileActionIntent}
 								width="w-auto"
@@ -844,33 +862,43 @@ export default function SettingsRoute() {
 					<p className="mt-3 text-sm leading-6 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
 				</div>
 
-				<coverFetcher.Form
-					{...getFormProps(coverForm)}
-					className="col-span-full"
-					method="POST"
-					encType="multipart/form-data"
-					preventScrollReset={true}
-				>
-					<AuthenticityTokenInput />
-					<HoneypotInputs />
-					<CoverImageUploader
-						coverImageUrl={coverImageUrl}
-						fieldAttributes={{ ...getInputProps(coverFields.cover, { type: 'file' }) }}
-					/>
-					<div className="relative mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
-						<SubmitButton
-							text={coverImageUrl ? 'Remove' : 'Upload'}
-							name="intent"
-							value={coverImageUrl ? deleteCoverImageActionIntent : coverImageUpdateActionIntent}
-							isSubmitting={isCoverSubmitting}
-							width="w-auto"
-							backgroundColor={coverImageUrl ? 'bg-red-500 hover:bg-red-400' : null}
-						/>
-						<div className="absolute -bottom-6">
-							<InputErrors errors={coverFields.cover.errors} errorId={coverFields.cover.errorId} />
+				{showCoverPreview || !coverImageId ? (
+					<Form
+						{...getFormProps(coverForm)}
+						className="col-span-full"
+						method="POST"
+						encType="multipart/form-data"
+						preventScrollReset={true}
+					>
+						{commonCoverFormElements}
+						<div className="relative mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+							<SubmitButton
+								text={'Upload'}
+								name="intent"
+								value={coverImageUpdateActionIntent}
+								isSubmitting={isCoverSubmitting}
+								width="w-auto"
+								errors={coverFields.cover.errors}
+							/>
+							<div className="absolute -bottom-6">
+								<InputErrors errors={coverFields.cover.errors} errorId={coverFields.cover.errorId} />
+							</div>
 						</div>
-					</div>
-				</coverFetcher.Form>
+					</Form>
+				) : (
+					<Form method="POST" encType="multipart/form-data" preventScrollReset={true} className="mt-6">
+						{commonCoverFormElements}
+						<div className="mt-4">
+							<DeleteButton
+								text="Remove"
+								name="intent"
+								value={deleteCoverImageActionIntent}
+								width="w-auto"
+								backgroundColor="bg-red-600 hover:bg-red-500"
+							/>
+						</div>
+					</Form>
+				)}
 			</section>
 
 			{/* Personal information */}

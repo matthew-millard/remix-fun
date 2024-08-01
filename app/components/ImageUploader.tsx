@@ -1,6 +1,6 @@
 // Give the user the ability to select and preview an image file that they want to upload.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ACCEPTED_FILE_TYPES, MAX_UPLOAD_SIZE } from '~/utils/validation-schemas';
 import SubmitButton from './SubmitButton';
 import { CameraIcon } from '@heroicons/react/24/outline';
@@ -17,7 +17,6 @@ type ImagePickerProps = { htmlFor: string };
 
 type ImageUploaderProps = Pick<ImageInputProps, 'fieldAttributes' | 'isSubmitting'> &
 	Pick<ImagePickerProps, 'htmlFor'> & {
-		profileImageId: string | null;
 		showPreview: boolean;
 		setShowPreview: (showPreview: boolean) => void;
 		profileImageUrl: string | null;
@@ -35,22 +34,20 @@ export default function ImageUploader({
 }: ImageUploaderProps) {
 	const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
 	return (
-		<div>
-			<div className="relative h-48 w-48">
-				{showPreview ? (
-					<PreviewProfileImage profileImagePreview={profileImagePreview} />
-				) : (
-					<CurrentProfileImage profileImageUrl={profileImageUrl} />
-				)}
+		<div className="relative h-48 w-48">
+			{showPreview ? (
+				<PreviewProfileImage profileImagePreview={profileImagePreview} />
+			) : (
+				<CurrentProfileImage profileImageUrl={profileImageUrl} />
+			)}
 
-				<ImageInput
-					fieldAttributes={fieldAttributes}
-					isSubmitting={isSubmitting}
-					htmlFor={htmlFor}
-					setProfileImagePreview={setProfileImagePreview}
-					setShowPreview={setShowPreview}
-				/>
-			</div>
+			<ImageInput
+				fieldAttributes={fieldAttributes}
+				isSubmitting={isSubmitting}
+				htmlFor={htmlFor}
+				setProfileImagePreview={setProfileImagePreview}
+				setShowPreview={setShowPreview}
+			/>
 		</div>
 	);
 }
@@ -105,7 +102,7 @@ export function PreviewProfileImage({ profileImagePreview }: { profileImagePrevi
 	return (
 		<div className="h-full w-full overflow-hidden rounded-full">
 			<img alt="Profile preview" src={profileImagePreview} className="h-full w-full object-cover" />
-			<span className="absolute left-0 top-4 inline-flex items-center rounded-md bg-indigo-400/80 px-2 py-1 text-xs font-medium text-indigo-50 ring-1 ring-inset ring-indigo-400/10 ring-indigo-400/10 dark:bg-indigo-400/30 dark:text-indigo-400">
+			<span className="absolute left-0 top-4 inline-flex items-center rounded-md bg-indigo-400/80 px-2 py-1 text-xs font-medium text-indigo-50 ring-1 ring-inset ring-indigo-400/10  dark:bg-indigo-400/30 dark:text-indigo-400">
 				Preview
 			</span>
 		</div>

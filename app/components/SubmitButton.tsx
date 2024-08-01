@@ -3,7 +3,7 @@ import classNames from '~/utils/classNames';
 
 type SubmitButtonProps = {
 	text: string;
-	isSubmitting: boolean;
+	isSubmitting?: boolean;
 	errors?: string[] | null;
 	name?: string;
 	value?: string;
