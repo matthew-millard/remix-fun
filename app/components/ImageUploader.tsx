@@ -105,6 +105,9 @@ export function PreviewProfileImage({ profileImagePreview }: { profileImagePrevi
 	return (
 		<div className="h-full w-full overflow-hidden rounded-full">
 			<img alt="Profile preview" src={profileImagePreview} className="h-full w-full object-cover" />
+			<span className="absolute left-0 top-4 inline-flex items-center rounded-md bg-indigo-400/80 px-2 py-1 text-xs font-medium text-indigo-50 ring-1 ring-inset ring-indigo-400/10 ring-indigo-400/10 dark:bg-indigo-400/30 dark:text-indigo-400">
+				Preview
+			</span>
 		</div>
 	);
 }
