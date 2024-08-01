@@ -3,12 +3,10 @@
 import { useEffect, useState } from 'react';
 import { ACCEPTED_FILE_TYPES, MAX_UPLOAD_SIZE } from '~/utils/validation-schemas';
 import SubmitButton from './SubmitButton';
-import { deleteProfileActionIntent, profileUpdateActionIntent } from '~/routes/$username_+/settings+';
 import { CameraIcon } from '@heroicons/react/24/outline';
-import { InputErrors, InputErrorsProps } from './InputField';
 
 type ImageInputProps = {
-	fieldAttributes: React.TextareaHTMLAttributes<HTMLInputElement>;
+	fieldAttributes: React.InputHTMLAttributes<HTMLInputElement>;
 	setProfileImagePreview: (url: string | null) => void;
 	setShowPreview: (showPreview: boolean) => void;
 	isSubmitting: boolean;
@@ -18,35 +16,24 @@ type ImageInputProps = {
 type ImagePickerProps = { htmlFor: string };
 
 type ImageUploaderProps = Pick<ImageInputProps, 'fieldAttributes' | 'isSubmitting'> &
-	InputErrorsProps &
 	Pick<ImagePickerProps, 'htmlFor'> & {
 		profileImageId: string | null;
+		showPreview: boolean;
+		setShowPreview: (showPreview: boolean) => void;
+		profileImageUrl: string | null;
 	};
+
+export const DeleteButton = SubmitButton;
 
 export default function ImageUploader({
 	fieldAttributes,
-	isSubmitting,
 	htmlFor,
-	profileImageId,
-	errors,
-	errorId,
+	isSubmitting,
+	showPreview,
+	setShowPreview,
+	profileImageUrl,
 }: ImageUploaderProps) {
 	const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
-	const [showPreview, setShowPreview] = useState(false);
-
-	const [profileImageUrl, setProfileImageUrl] = useState<string | null>(() => {
-		return profileImageId ? `/resources/images/${profileImageId}/profile` : null;
-	});
-
-	useEffect(() => {
-		if (profileImageId) {
-			setProfileImageUrl(`/resources/images/${profileImageId}/profile`);
-			setShowPreview(false);
-		} else {
-			setProfileImageUrl(null);
-		}
-	}, [profileImageId]);
-
 	return (
 		<div>
 			<div className="relative h-48 w-48">
@@ -63,19 +50,6 @@ export default function ImageUploader({
 					setProfileImagePreview={setProfileImagePreview}
 					setShowPreview={setShowPreview}
 				/>
-			</div>
-			<div className="relative mt-8 ">
-				<SubmitButton
-					text={profileImageId && !showPreview ? 'Remove' : 'Upload'}
-					isSubmitting={isSubmitting}
-					name="intent"
-					value={profileImageId && !showPreview ? deleteProfileActionIntent : profileUpdateActionIntent}
-					width="w-auto"
-					backgroundColor={profileImageId && !showPreview ? 'bg-red-500 hover:bg-red-400' : null}
-				/>
-				<div className="absolute -bottom-6">
-					<InputErrors errors={errors} errorId={errorId} />
-				</div>
 			</div>
 		</div>
 	);

@@ -24,6 +24,8 @@ import SrOnlyLabel from './SrOnlyLabel';
 import RememberMe from './RememberMe';
 import TextareaInput from './TextareaInput';
 import ImageUploader from './ImageUploader';
+import CoverImageUploader from './CoverImageUploader';
+
 export {
 	ErrorList,
 	Avatar,
@@ -51,4 +53,5 @@ export {
 	RememberMe,
 	TextareaInput,
 	ImageUploader,
+	CoverImageUploader,
 };
