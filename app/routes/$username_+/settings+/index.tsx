@@ -17,6 +17,7 @@ import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
 import {
 	Button,
+	CoverImageUploader,
 	DialogBox,
 	ErrorList,
 	ImageUploader,
@@ -27,7 +28,6 @@ import {
 } from '~/components';
 import {
 	PersonalInfoSchema,
-	ACCEPTED_FILE_TYPES,
 	MAX_UPLOAD_SIZE,
 	UploadImageSchema,
 	UsernameSchema,
@@ -47,6 +47,8 @@ import { z } from 'zod';
 import { useIsPending } from '~/hooks/useIsPending';
 import { twoFAVerificationType } from './two-factor-authentication+/_layout';
 import { CameraIcon, IdentificationIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { InputErrors } from '~/components/InputField';
+import { DeleteButton } from '~/components/ImageUploader';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -58,6 +60,7 @@ const signOutOfOtherDevicesActionIntent = 'sign-out-other-devices';
 export const profileUpdateActionIntent = 'update-profile';
 export const deleteProfileActionIntent = 'delete-profile';
 export const coverImageUpdateActionIntent = 'update-cover-image';
+const deleteCoverImageActionIntent = 'delete-cover-image';
 const usernameUpdateActionIntent = 'update-username';
 const aboutUpdateActionIntent = 'update-about';
 const perosnalInfoUpdateActionIntent = 'update-personal-info';
@@ -96,6 +99,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		}
 		case coverImageUpdateActionIntent: {
 			return coverImageUpdateAction({ request, userId, formData });
+		}
+		case deleteCoverImageActionIntent: {
+			return deleteCoverImageUpdateAction({ request, userId, formData });
 		}
 		case perosnalInfoUpdateActionIntent: {
 			return personalInfoUpdateAction({ request, userId, formData });
@@ -297,6 +303,33 @@ async function deleteProfileUpdateAction({ userId }: ProfileActionArgs) {
 		title: 'Profile image deleted',
 		type: 'success',
 		description: 'Your profile image has been deleted.',
+	});
+}
+
+export async function deleteCoverImageUpdateAction({ userId }: ProfileActionArgs) {
+	const user = await prisma.$transaction(async prisma => {
+		// Delete the user's profile image
+		await prisma.userCoverImage.delete({
+			where: { userId },
+		});
+
+		// Retrieve the user's username
+		const user = await prisma.user.findUnique({
+			where: { id: userId },
+			select: { username: true },
+		});
+
+		if (!user) {
+			throw new Error('User not found');
+		}
+
+		return user;
+	});
+
+	return redirectWithToast(`/${user.username.username}/settings`, {
+		title: 'Cover image deleted',
+		type: 'info',
+		description: 'Your Cover image has been deleted.',
 	});
 }
 
@@ -505,7 +538,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function SettingsRoute() {
 	const data = useLoaderData<typeof loader>();
-	console.log('Client side render', data.user?.profileImage?.id);
+
 	const aboutFetcher = useFetcher();
 	const coverFetcher = useFetcher();
 	// const personalInformationFetcher = useFetcher();
@@ -517,11 +550,11 @@ export default function SettingsRoute() {
 	const isUsernameSubmitting = useIsPending({
 		formIntent: usernameUpdateActionIntent,
 	});
-
 	const isAboutSubmitting = aboutFetcher.state === 'submitting';
 	const isProfileSubmitting = useIsPending({
-		formIntent: profileUpdateActionIntent,
+		formIntent: profileUpdateActionIntent || deleteProfileActionIntent,
 	});
+	const isCoverSubmitting = coverFetcher.state === 'submitting';
 
 	const [usernameForm, usernameFields] = useForm({
 		id: 'username-form',
@@ -551,18 +584,18 @@ export default function SettingsRoute() {
 
 	const [profileForm, profileFields] = useForm({
 		id: 'profile-form',
-		shouldValidate: 'onSubmit',
-		// shouldRevalidate: 'onSubmit',
+		shouldValidate: 'onInput',
+		shouldRevalidate: 'onInput',
 		lastResult: useActionData(),
-		// onValidate({ formData }) {
-		// 	return parseWithZod(formData, { schema: z.object({ profile: UploadImageSchema }) });
-		// },
+		onValidate({ formData }) {
+			return parseWithZod(formData, { schema: z.object({ profile: UploadImageSchema }) });
+		},
 	});
 
 	const [coverForm, coverFields] = useForm({
 		id: 'cover-form',
-		shouldValidate: 'onInput',
 		lastResult: useActionData(),
+		shouldValidate: 'onSubmit',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: z.object({ cover: UploadImageSchema }) });
@@ -595,8 +628,33 @@ export default function SettingsRoute() {
 
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
-	const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<string | null>(null);
+	const profileImageId = data.user?.profileImage?.id;
+	const [profileImageUrl, setProfileImageUrl] = useState<string | null>(() => {
+		return profileImageId ? `/resources/images/${profileImageId}/profile` : null;
+	});
+
+	const [showPreview, setShowPreview] = useState(false);
+
+	useEffect(() => {
+		if (profileImageId) {
+			setProfileImageUrl(`/resources/images/${profileImageId}/profile`);
+			setShowPreview(false);
+		} else {
+			setProfileImageUrl(null);
+		}
+	}, [profileImageId]);
+
+	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(() => {
+		return data.user.coverImage?.id ? `/resources/images/${data.user.coverImage.id}/cover` : null;
+	});
+
+	useEffect(() => {
+		if (data.user?.coverImage?.id) {
+			setCoverImageUrl(`/resources/images/${data.user.coverImage.id}/cover`);
+		} else {
+			setCoverImageUrl(null); // reset to null if no profile image is availble
+		}
+	}, [data.user?.coverImage?.id]);
 
 	const dialogProps = {
 		actionUrl: '/delete-account',
@@ -606,14 +664,6 @@ export default function SettingsRoute() {
 		description: `Are you sure you want to delete your account? All of your data will be permanently removed.
 		This action cannot be undone.`,
 	};
-
-	useEffect(() => {
-		if (data.user?.coverImage?.id) {
-			setCoverImageUrl(`/resources/images/${data.user.coverImage.id}/cover`);
-		} else {
-			setCoverImageUrl(null); // reset to null if no profile image is availble
-		}
-	}, [data.user?.coverImage?.id]);
 
 	function handleProvinceChange(province: string) {
 		setSelectedProvince(province);
@@ -628,12 +678,24 @@ export default function SettingsRoute() {
 		setIsDialogOpen(bool);
 	}
 
+	const commonFormElements = (
+		<>
+			<AuthenticityTokenInput />
+			<HoneypotInputs />
+			<ImageUploader
+				fieldAttributes={{ ...getInputProps(profileFields.profile, { type: 'file' }) }}
+				isSubmitting={isProfileSubmitting}
+				htmlFor={profileFields.profile.id}
+				profileImageId={profileImageId}
+				showPreview={showPreview}
+				setShowPreview={setShowPreview}
+				profileImageUrl={profileImageUrl}
+			/>
+		</>
+	);
+
 	return (
-		// <h2 className="text-base font-semibold leading-7 text-text-primary">Profile</h2>
-		// <p className="mt-1 text-sm leading-6 text-text-secondary">
-		// 	This information will be displayed publicly so be careful what you share.
-		// </p>
-		<div className="relative mx-auto mt-8 max-w-[40rem] space-y-16 divide-y divide-border-tertiary">
+		<main className="relative mx-auto mt-8 max-w-[40rem] space-y-16 divide-y divide-border-tertiary">
 			{/* Username */}
 			<section>
 				<Form {...getFormProps(usernameForm)} method="POST" encType="multipart/form-data" preventScrollReset={true}>
@@ -719,487 +781,370 @@ export default function SettingsRoute() {
 				</aboutFetcher.Form>
 			</section>
 
-			{/* Profile Picture Upload */}
+			{/* Profile image upload */}
 			<section className="pt-16">
 				<div>
 					<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
 						<CameraIcon height={32} strokeWidth={1} color="#a9adc1" />
-						<h2 className="ml-4">Profile Picture</h2>
+						<h2 className="ml-4">Profile Image</h2>
 					</div>
 					<p className="mt-3 text-sm leading-6 text-text-secondary">
-						Upload a picture of yourself to use as your profile picture.
+						Upload a image of yourself to use as your profile photo.
 						<br /> PNG, JPG, GIF up to 3MB
 					</p>
 				</div>
-				<Form
-					{...getFormProps(profileForm)}
+
+				{showPreview || !profileImageId ? (
+					<Form
+						{...getFormProps(profileForm)}
+						method="POST"
+						encType="multipart/form-data"
+						preventScrollReset={true}
+						className="mt-6"
+					>
+						{commonFormElements}
+						<div className="relative mt-4 ">
+							<SubmitButton
+								text="Upload"
+								isSubmitting={isProfileSubmitting}
+								errors={profileFields.profile.errors}
+								name="intent"
+								value={profileUpdateActionIntent}
+								width="w-auto"
+							/>
+							<div className="absolute -bottom-6">
+								<InputErrors errors={profileFields.profile.errors} errorId={profileFields.profile.errorId} />
+							</div>
+						</div>
+					</Form>
+				) : (
+					<Form method="POST" encType="multipart/form-data" preventScrollReset={true} className="mt-6">
+						{commonFormElements}
+						<div className="mt-4">
+							<DeleteButton
+								text="Remove"
+								isSubmitting={isProfileSubmitting}
+								name="intent"
+								value={deleteProfileActionIntent}
+								width="w-auto"
+								backgroundColor="bg-red-600 hover:bg-red-500"
+							/>
+						</div>
+					</Form>
+				)}
+			</section>
+
+			{/* Cover photo upload */}
+			<section className="pt-16">
+				<div>
+					<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+						<PhotoIcon height={32} strokeWidth={1} color="#a9adc1" />
+						<h2 className="ml-4">Cover Image</h2>
+					</div>
+					<p className="mt-3 text-sm leading-6 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
+				</div>
+
+				<coverFetcher.Form
+					{...getFormProps(coverForm)}
+					className="col-span-full"
 					method="POST"
 					encType="multipart/form-data"
 					preventScrollReset={true}
-					className="mt-6"
 				>
 					<AuthenticityTokenInput />
 					<HoneypotInputs />
-
-					<ImageUploader
-						fieldAttributes={{ ...getInputProps(profileFields.profile, { type: 'file' }) }}
-						isSubmitting={isProfileSubmitting}
-						htmlFor={profileFields.profile.id}
-						profileImageId={data.user?.profileImage?.id}
-						errors={profileFields.profile.errors}
-						errorId={profileFields.profile.errorId}
+					<CoverImageUploader
+						coverImageUrl={coverImageUrl}
+						fieldAttributes={{ ...getInputProps(coverFields.cover, { type: 'file' }) }}
 					/>
+					<div className="relative mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+						<SubmitButton
+							text={coverImageUrl ? 'Remove' : 'Upload'}
+							name="intent"
+							value={coverImageUrl ? deleteCoverImageActionIntent : coverImageUpdateActionIntent}
+							isSubmitting={isCoverSubmitting}
+							width="w-auto"
+							backgroundColor={coverImageUrl ? 'bg-red-500 hover:bg-red-400' : null}
+						/>
+						<div className="absolute -bottom-6">
+							<InputErrors errors={coverFields.cover.errors} errorId={coverFields.cover.errorId} />
+						</div>
+					</div>
+				</coverFetcher.Form>
+			</section>
+
+			{/* Personal information */}
+			<section className="pt-16">
+				<Form
+					{...getFormProps(personalInfoForm)}
+					method="POST"
+					encType="multipart/form-data"
+					className="border-b border-border-tertiary pb-12"
+				>
+					<AuthenticityTokenInput />
+					<HoneypotInputs />
+					<h2 className="text-base font-semibold leading-7 text-text-primary">Personal Information</h2>
+					<p className="mt-1 text-sm leading-6 text-text-secondary">
+						Use a permanent address where you can receive mail.
+					</p>
+					<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+						<div className="sm:col-span-3">
+							<label
+								htmlFor={personalInfoFields.firstName.id}
+								className="block text-sm font-medium leading-6 text-text-primary"
+							>
+								First name
+							</label>
+							<div className="mt-2">
+								<input
+									{...getInputProps(personalInfoFields.firstName, { type: 'text' })}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
+								/>
+								<div
+									className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={personalInfoFields.firstName.errors} id={personalInfoFields.firstName.errorId} />
+								</div>
+							</div>
+						</div>
+						<div className="sm:col-span-3">
+							<label
+								htmlFor={personalInfoFields.lastName.id}
+								className="block text-sm font-medium leading-6 text-text-primary"
+							>
+								Last name
+							</label>
+							<div className="mt-2">
+								<input
+									{...getInputProps(personalInfoFields.lastName, { type: 'text' })}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
+								/>
+								<div
+									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${personalInfoFields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={personalInfoFields.lastName.errors} id={personalInfoFields.lastName.errorId} />
+								</div>
+							</div>
+						</div>
+						<div className="sm:col-span-3">
+							<label
+								htmlFor={personalInfoFields.email.id}
+								className="block text-sm font-medium leading-6 text-text-primary"
+							>
+								Email address
+							</label>
+							<div className="mt-2 self-end">
+								<input
+									{...getInputProps(personalInfoFields.email, { type: 'email' })}
+									disabled
+									className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6"
+								></input>
+							</div>
+						</div>
+						<div className="flex sm:col-span-3">
+							<Link to={`/${data.user.username.username}/settings/change-email`} className="self-end text-text-notify">
+								<button
+									type="button"
+									className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+								>
+									Change Email
+								</button>
+							</Link>
+						</div>
+						<div className="sm:col-span-2 sm:col-start-1">
+							<label
+								htmlFor={personalInfoFields.country.id}
+								className="block text-sm font-medium leading-6 text-text-primary"
+							>
+								Country
+							</label>
+							<div className="mt-2">
+								<select
+									{...getSelectProps(personalInfoFields.country)}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
+								>
+									<option value={'Canada'}>Canada</option>
+								</select>
+								<div
+									className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.country.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={personalInfoFields.country.errors} id={personalInfoFields.country.errorId} />
+								</div>
+							</div>
+						</div>
+						<div className="sm:col-span-2">
+							<label
+								htmlFor={personalInfoFields.province.id}
+								className="block text-sm font-medium leading-6 text-text-primary"
+							>
+								Province
+							</label>
+							<div className="mt-2">
+								<select
+									{...getSelectProps(personalInfoFields.province)}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
+									value={selectedProvince}
+									onChange={e => handleProvinceChange(e.target.value)}
+								>
+									<option value="">-- Select Province --</option>
+									{Object.keys(canadaData).map(province => (
+										<option key={province} value={province}>
+											{province.replace(/([A-Z])/g, ' $1').trim()}
+										</option>
+									))}
+								</select>
+								<div
+									className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${personalInfoFields.province.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={personalInfoFields.province.errors} id={personalInfoFields.province.errorId} />
+								</div>
+							</div>
+						</div>
+						<div className="sm:col-span-2 sm:col-start-1">
+							<label
+								htmlFor={personalInfoFields.city.id}
+								className="block text-sm font-medium leading-6 text-text-primary"
+							>
+								City
+							</label>
+							<div className="mt-2">
+								<select
+									{...getSelectProps(personalInfoFields.city)}
+									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
+									value={selectedCity}
+									onChange={e => handleCityChange(e.target.value)}
+								>
+									<option value="">-- Select City --</option>
+									{selectedProvince &&
+										(canadaData[selectedProvince as keyof typeof canadaData] as string[]).map(city => (
+											<option key={city} value={city}>
+												{city}
+											</option>
+										))}
+								</select>
+								<div
+									className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.city.errors ? 'max-h-56' : 'max-h-0'}`}
+								>
+									<ErrorList errors={personalInfoFields.city.errors} id={personalInfoFields.city.errorId} />
+								</div>
+							</div>
+						</div>
+					</div>
+					<div className="mt-6 flex items-center justify-end gap-x-6">
+						<button type="button" className="text-sm font-semibold leading-6 text-text-primary">
+							Cancel
+						</button>
+						<Button type="submit" name="intent" label="Save Changes" value={perosnalInfoUpdateActionIntent} />
+					</div>
 				</Form>
 			</section>
 
-			<coverFetcher.Form
-				{...getFormProps(coverForm)}
-				className="col-span-full"
-				method="POST"
-				encType="multipart/form-data"
-				preventScrollReset={true}
-			>
-				<AuthenticityTokenInput />
-				<HoneypotInputs />
-
-				<label htmlFor="cover-photo" className="block  text-sm font-medium leading-6 text-text-primary">
-					Cover photo
-				</label>
-				<div className="relative mt-2 flex justify-center overflow-hidden rounded-lg border border-dashed border-border-tertiary bg-transparent px-6 py-10">
-					{coverImagePreviewUrl ? (
-						<img
-							src={coverImagePreviewUrl}
-							alt={'Cover preview'}
-							className="absolute top-0 -z-10 h-full w-full object-cover "
-						/>
-					) : coverImageUrl ? (
-						<img
-							src={coverImageUrl}
-							alt={'Cover preview'}
-							className="absolute top-0 -z-10 h-full w-full object-cover "
-						/>
-					) : null}
-
-					<div className="text-center ">
-						<PhotoIcon className="mx-auto h-12 w-12 text-text-secondary" aria-hidden="true" />
-						<div className="mt-4 flex text-sm leading-6 text-gray-600">
-							<label
-								htmlFor={coverFields.cover.id}
-								className="relative cursor-pointer rounded-md px-1 font-semibold text-indigo-600 focus-within:outline-1 focus-within:ring-1 focus-within:ring-indigo-600 focus-within:ring-offset-1 hover:text-indigo-500"
-							>
-								<span>Upload a file</span>
-								<input
-									{...getInputProps(coverFields.cover, { type: 'file' })}
-									accept={ACCEPTED_FILE_TYPES}
-									size={MAX_UPLOAD_SIZE}
-									onChange={e => {
-										const file = e.currentTarget.files?.[0];
-										if (file) {
-											const reader = new FileReader();
-											reader.onload = event => {
-												setCoverImagePreviewUrl(event.target?.result?.toString() ?? null);
-											};
-											reader.readAsDataURL(file);
-										}
-									}}
-									className="sr-only"
-								/>
-							</label>
-							<p className="pl-1">or drag and drop</p>
-						</div>
-						<p className="text-xs leading-5 text-text-secondary">PNG, JPG, GIF up to 3MB</p>
-					</div>
-				</div>
-				<div
-					className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${coverFields.cover.errors ? 'max-h-56' : 'max-h-0'}`}
-				>
-					<ErrorList errors={coverFields.cover.errors} id={coverFields.cover.errorId} />
-				</div>
-				<div className="mt-2 flex w-full justify-start">
-					<Button
-						label="Save"
-						type="submit"
-						name="intent"
-						value={coverImageUpdateActionIntent}
-						isPending={coverFetcher.state !== 'idle'}
-						disabled={!coverImagePreviewUrl || Boolean(coverFields.cover.errors) || coverFetcher.state !== 'idle'}
-					/>
-				</div>
-			</coverFetcher.Form>
-
-			<Form
-				{...getFormProps(personalInfoForm)}
-				method="POST"
-				encType="multipart/form-data"
-				className="border-b border-border-tertiary pb-12"
-			>
-				<AuthenticityTokenInput />
-				<HoneypotInputs />
-				<h2 className="text-base font-semibold leading-7 text-text-primary">Personal Information</h2>
-				<p className="mt-1 text-sm leading-6 text-text-secondary">
-					Use a permanent address where you can receive mail.
-				</p>
-
-				<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-					<div className="sm:col-span-3">
-						<label
-							htmlFor={personalInfoFields.firstName.id}
-							className="block text-sm font-medium leading-6 text-text-primary"
-						>
-							First name
-						</label>
-						<div className="mt-2">
-							<input
-								{...getInputProps(personalInfoFields.firstName, { type: 'text' })}
-								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-							/>
-							<div
-								className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
-							>
-								<ErrorList errors={personalInfoFields.firstName.errors} id={personalInfoFields.firstName.errorId} />
+			<section className="pt-16">
+				<div className=" flex flex-col py-8">
+					{data.is2FAEnabled ? (
+						<div className=" flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
+							<div>
+								<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
+								<p className="mt-1 text-sm leading-6 text-text-secondary">
+									Disabling two-factor authentication will make your account less secure.
+								</p>
 							</div>
-						</div>
-					</div>
-
-					<div className="sm:col-span-3">
-						<label
-							htmlFor={personalInfoFields.lastName.id}
-							className="block text-sm font-medium leading-6 text-text-primary"
-						>
-							Last name
-						</label>
-						<div className="mt-2">
-							<input
-								{...getInputProps(personalInfoFields.lastName, { type: 'text' })}
-								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-							/>
-							<div
-								className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${personalInfoFields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
+							<Link
+								to={`/${data.user.username.username}/settings/two-factor-authentication`}
+								className=" flex self-end"
 							>
-								<ErrorList errors={personalInfoFields.lastName.errors} id={personalInfoFields.lastName.errorId} />
+								<button
+									type="submit"
+									className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+								>
+									Disable 2FA
+								</button>
+							</Link>
+						</div>
+					) : (
+						<div className=" flex  flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
+							<div>
+								<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
+								<p className="mt-1 text-sm leading-6 text-text-secondary">
+									Add additional security to your account using two-factor authentication
+								</p>
 							</div>
+							<Link
+								to={`/${data.user.username.username}/settings/two-factor-authentication`}
+								className=" flex self-end"
+							>
+								<button
+									type="submit"
+									className=" flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+								>
+									Enable Two-Factor Authentication
+								</button>
+							</Link>
 						</div>
-					</div>
-
-					<div className="sm:col-span-3">
-						<label
-							htmlFor={personalInfoFields.email.id}
-							className="block text-sm font-medium leading-6 text-text-primary"
+					)}
+					<logOutOtherSessionsFetcher.Form
+						method="POST"
+						encType="multipart/form-data"
+						className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between"
+						preventScrollReset={true}
+					>
+						<AuthenticityTokenInput />
+						<div>
+							<h2 className="text-base font-semibold leading-7 text-text-primary">Log Out Other Sessions</h2>
+							{sessionCount ? (
+								<p className="mt-1 text-sm leading-6 text-text-secondary">
+									You are currently logged in on {sessionCount} other {sessionCount === 1 ? 'session' : 'sessions'}{' '}
+									across all of your devices
+								</p>
+							) : (
+								<p className="mt-1 text-sm leading-6 text-text-secondary">
+									You are not logged in on any other sessions across all of your devices.
+								</p>
+							)}
+						</div>
+						<button
+							type="submit"
+							className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-600"
+							disabled={sessionCount === 0}
+							name="intent"
+							value={signOutOfOtherDevicesActionIntent}
 						>
-							Email address
-						</label>
-
-						<div className="mt-2 self-end">
-							<input
-								{...getInputProps(personalInfoFields.email, { type: 'email' })}
-								disabled
-								className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6"
-							></input>
+							Log Out Other Sessions
+						</button>
+					</logOutOtherSessionsFetcher.Form>
+					<div className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
+						<div>
+							<h2 className="text-base font-semibold leading-7 text-text-primary">Password</h2>
+							<p className="mt-1 text-sm leading-6 text-text-secondary">
+								Update your password associated with your Barfly account
+							</p>
 						</div>
-					</div>
-					<div className="flex sm:col-span-3">
-						<Link to={`/${data.user.username.username}/settings/change-email`} className="self-end text-text-notify">
+						<Link to={`/${data.user.username.username}/settings/change-password`} className="self-end">
 							<button
 								type="button"
-								className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-							>
-								Change Email
-							</button>
-						</Link>
-					</div>
-
-					<div className="sm:col-span-2 sm:col-start-1">
-						<label
-							htmlFor={personalInfoFields.country.id}
-							className="block text-sm font-medium leading-6 text-text-primary"
-						>
-							Country
-						</label>
-						<div className="mt-2">
-							<select
-								{...getSelectProps(personalInfoFields.country)}
-								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-							>
-								<option value={'Canada'}>Canada</option>
-							</select>
-							<div
-								className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.country.errors ? 'max-h-56' : 'max-h-0'}`}
-							>
-								<ErrorList errors={personalInfoFields.country.errors} id={personalInfoFields.country.errorId} />
-							</div>
-						</div>
-					</div>
-
-					<div className="sm:col-span-2">
-						<label
-							htmlFor={personalInfoFields.province.id}
-							className="block text-sm font-medium leading-6 text-text-primary"
-						>
-							Province
-						</label>
-						<div className="mt-2">
-							<select
-								{...getSelectProps(personalInfoFields.province)}
-								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-								value={selectedProvince}
-								onChange={e => handleProvinceChange(e.target.value)}
-							>
-								<option value="">-- Select Province --</option>
-								{Object.keys(canadaData).map(province => (
-									<option key={province} value={province}>
-										{province.replace(/([A-Z])/g, ' $1').trim()}
-									</option>
-								))}
-							</select>
-							<div
-								className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${personalInfoFields.province.errors ? 'max-h-56' : 'max-h-0'}`}
-							>
-								<ErrorList errors={personalInfoFields.province.errors} id={personalInfoFields.province.errorId} />
-							</div>
-						</div>
-					</div>
-
-					<div className="sm:col-span-2 sm:col-start-1">
-						<label
-							htmlFor={personalInfoFields.city.id}
-							className="block text-sm font-medium leading-6 text-text-primary"
-						>
-							City
-						</label>
-						<div className="mt-2">
-							<select
-								{...getSelectProps(personalInfoFields.city)}
-								className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-								value={selectedCity}
-								onChange={e => handleCityChange(e.target.value)}
-							>
-								<option value="">-- Select City --</option>
-								{selectedProvince &&
-									(canadaData[selectedProvince as keyof typeof canadaData] as string[]).map(city => (
-										<option key={city} value={city}>
-											{city}
-										</option>
-									))}
-							</select>
-							<div
-								className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.city.errors ? 'max-h-56' : 'max-h-0'}`}
-							>
-								<ErrorList errors={personalInfoFields.city.errors} id={personalInfoFields.city.errorId} />
-							</div>
-						</div>
-					</div>
-				</div>
-				<div className="mt-6 flex items-center justify-end gap-x-6">
-					<button type="button" className="text-sm font-semibold leading-6 text-text-primary">
-						Cancel
-					</button>
-					<Button type="submit" name="intent" label="Save Changes" value={perosnalInfoUpdateActionIntent} />
-				</div>
-			</Form>
-
-			<div className="border-b border-border-tertiary pb-12">
-				<h2 className="text-base font-semibold leading-7 text-text-primary">Notifications</h2>
-				<p className="mt-1 text-sm leading-6 text-text-secondary">
-					We&apos;ll always let you know about important changes, but you pick what else you want to hear about.
-				</p>
-
-				<div className="mt-10 space-y-10">
-					<fieldset>
-						<legend className="text-sm font-semibold leading-6 text-text-primary">By Email</legend>
-						<div className="mt-6 space-y-6">
-							<div className="relative flex gap-x-3">
-								<div className="flex h-6 items-center">
-									<input
-										id="comments"
-										name="comments"
-										type="checkbox"
-										className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-									/>
-								</div>
-								<div className="text-sm leading-6">
-									<label htmlFor="comments" className="font-medium text-text-primary">
-										Comments
-									</label>
-									<p className="text-text-secondary">Get notified when someones posts a comment on a posting.</p>
-								</div>
-							</div>
-							<div className="relative flex gap-x-3">
-								<div className="flex h-6 items-center">
-									<input
-										id="candidates"
-										name="candidates"
-										type="checkbox"
-										className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-									/>
-								</div>
-								<div className="text-sm leading-6">
-									<label htmlFor="candidates" className="font-medium text-text-primary">
-										Candidates
-									</label>
-									<p className="text-text-secondary">Get notified when a candidate applies for a job.</p>
-								</div>
-							</div>
-							<div className="relative flex gap-x-3">
-								<div className="flex h-6 items-center">
-									<input
-										id="offers"
-										name="offers"
-										type="checkbox"
-										className="h-4 w-4 rounded border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-									/>
-								</div>
-								<div className="text-sm leading-6">
-									<label htmlFor="offers" className="font-medium text-text-primary">
-										Offers
-									</label>
-									<p className="text-text-secondary">Get notified when a candidate accepts or rejects an offer.</p>
-								</div>
-							</div>
-						</div>
-					</fieldset>
-					<fieldset>
-						<legend className="text-sm font-semibold leading-6 text-text-primary">Push Notifications</legend>
-						<p className="mt-1 text-sm leading-6 text-text-secondary">
-							These are delivered via SMS to your mobile phone.
-						</p>
-						<div className="mt-6 space-y-6">
-							<div className="flex items-center gap-x-3">
-								<input
-									id="push-everything"
-									name="push-notifications"
-									type="radio"
-									className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-								/>
-								<label htmlFor="push-everything" className="block text-sm font-medium leading-6 text-text-primary">
-									Everything
-								</label>
-							</div>
-							<div className="flex items-center gap-x-3">
-								<input
-									id="push-email"
-									name="push-notifications"
-									type="radio"
-									className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-								/>
-								<label htmlFor="push-email" className="block text-sm font-medium leading-6 text-text-primary">
-									Same as email
-								</label>
-							</div>
-							<div className="flex items-center gap-x-3">
-								<input
-									id="push-nothing"
-									name="push-notifications"
-									type="radio"
-									className="h-4 w-4 border-border-tertiary bg-bg-secondary text-indigo-600 focus:ring-indigo-600 focus:ring-offset-gray-900"
-								/>
-								<label htmlFor="push-nothing" className="block text-sm font-medium leading-6 text-text-primary">
-									No push notifications
-								</label>
-							</div>
-						</div>
-					</fieldset>
-				</div>
-			</div>
-
-			<div className=" flex flex-col border-b border-border-tertiary py-8">
-				{data.is2FAEnabled ? (
-					<div className=" flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
-						<div>
-							<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
-							<p className="mt-1 text-sm leading-6 text-text-secondary">
-								Disabling two-factor authentication will make your account less secure.
-							</p>
-						</div>
-						<Link to={`/${data.user.username.username}/settings/two-factor-authentication`} className=" flex self-end">
-							<button
-								type="submit"
 								className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
 							>
-								Disable 2FA
+								Change Password
 							</button>
 						</Link>
 					</div>
-				) : (
-					<div className=" flex  flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
+					<div className=" flex  flex-col gap-x-6 gap-y-2 sm:flex-row sm:justify-between">
 						<div>
-							<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
-							<p className="mt-1 text-sm leading-6 text-text-secondary">
-								Add additional security to your account using two-factor authentication
-							</p>
+							<h2 className="text-base font-semibold leading-7 text-text-primary">Delete Account</h2>
+							<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently delete your Barfly account</p>
 						</div>
-						<Link to={`/${data.user.username.username}/settings/two-factor-authentication`} className=" flex self-end">
-							<button
-								type="submit"
-								className=" flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-							>
-								Enable Two-Factor Authentication
-							</button>
-						</Link>
-					</div>
-				)}
-
-				<logOutOtherSessionsFetcher.Form
-					method="POST"
-					encType="multipart/form-data"
-					className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between"
-					preventScrollReset={true}
-				>
-					<AuthenticityTokenInput />
-					<div>
-						<h2 className="text-base font-semibold leading-7 text-text-primary">Log Out Other Sessions</h2>
-						{sessionCount ? (
-							<p className="mt-1 text-sm leading-6 text-text-secondary">
-								You are currently logged in on {sessionCount} other {sessionCount === 1 ? 'session' : 'sessions'} across
-								all of your devices
-							</p>
-						) : (
-							<p className="mt-1 text-sm leading-6 text-text-secondary">
-								You are not logged in on any other sessions across all of your devices.
-							</p>
-						)}
-					</div>
-					<button
-						type="submit"
-						className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-600"
-						disabled={sessionCount === 0}
-						name="intent"
-						value={signOutOfOtherDevicesActionIntent}
-					>
-						Log Out Other Sessions
-					</button>
-				</logOutOtherSessionsFetcher.Form>
-				<div className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
-					<div>
-						<h2 className="text-base font-semibold leading-7 text-text-primary">Password</h2>
-						<p className="mt-1 text-sm leading-6 text-text-secondary">
-							Update your password associated with your Barfly account
-						</p>
-					</div>
-					<Link to={`/${data.user.username.username}/settings/change-password`} className="self-end">
 						<button
 							type="button"
-							className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+							className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 "
+							onClick={() => showDialog(true)}
 						>
-							Change Password
+							Delete Account
 						</button>
-					</Link>
-				</div>
-				<div className=" flex  flex-col gap-x-6 gap-y-2 sm:flex-row sm:justify-between">
-					<div>
-						<h2 className="text-base font-semibold leading-7 text-text-primary">Delete Account</h2>
-						<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently delete your Barfly account</p>
 					</div>
-					<button
-						type="button"
-						className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 "
-						onClick={() => showDialog(true)}
-					>
-						Delete Account
-					</button>
 				</div>
-			</div>
+			</section>
 			<DialogBox {...dialogProps} />
-		</div>
+		</main>
 	);
 }
 

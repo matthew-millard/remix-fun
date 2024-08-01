@@ -4,6 +4,7 @@ import classNames from '~/utils/classNames';
 type SubmitButtonProps = {
 	text: string;
 	isSubmitting: boolean;
+	errors?: string[] | null;
 	name?: string;
 	value?: string;
 	width?: string;
@@ -12,7 +13,7 @@ type SubmitButtonProps = {
 };
 
 const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(function SubmitButton(
-	{ text, isSubmitting, name, value, width, backgroundColor },
+	{ text, isSubmitting, name, value, width, backgroundColor, errors },
 	ref,
 ) {
 	return (
@@ -21,9 +22,9 @@ const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(function S
 			className={classNames(
 				width ? width : 'w-full',
 				backgroundColor ? backgroundColor : 'bg-indigo-500 hover:bg-indigo-400',
-				'flex justify-center rounded-md  px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
+				'flex justify-center rounded-md  px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50',
 			)}
-			disabled={isSubmitting}
+			disabled={isSubmitting || errors?.length > 0}
 			name={name}
 			value={value}
 			ref={ref}
