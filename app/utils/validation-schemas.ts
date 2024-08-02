@@ -84,7 +84,6 @@ export const AboutSchema = z
 export const PersonalInfoSchema = z.object({
 	firstName: FirstNameSchema.optional(),
 	lastName: LastNameSchema.optional(),
-	email: EmailSchema.optional(),
 	country: z.literal('Canada').optional(),
 	province: z.string().optional(),
 	city: z.string().optional(),

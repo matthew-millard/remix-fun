@@ -617,7 +617,6 @@ export default function SettingsRoute() {
 		defaultValue: {
 			firstName: data.user.firstName,
 			lastName: data.user.lastName,
-			email: data.user.email,
 		},
 	});
 
@@ -909,19 +908,19 @@ export default function SettingsRoute() {
 					<h2 className="ml-4">Email address</h2>
 				</div>
 				<p className="mt-3 text-sm leading-6 text-text-secondary">
-					Your email address is used to log in and receive notifications.
+					Your email address that is used to log in and receive notifications.
 				</p>
 
 				<div className="mt-8">
 					<InputField
-						fieldAttributes={{ ...getInputProps(personalInfoFields.email, { type: 'email' }) }}
-						label="Email"
-						htmlFor={personalInfoFields.email.id}
+						fieldAttributes={{ id: 'email-address', type: 'email', value: data?.user?.email, readOnly: true }}
+						label="Current Email"
+						htmlFor="email-address"
 						additionalClasses={{
 							backgroundColor: 'bg-bg-secondary',
 							textColor: 'text-text-primary',
 						}}
-						disabled={true}
+						disabled
 					/>
 				</div>
 				<div className="mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
@@ -986,31 +985,7 @@ export default function SettingsRoute() {
 								</div>
 							</div>
 						</div>
-						<div className="sm:col-span-3">
-							<label
-								htmlFor={personalInfoFields.email.id}
-								className="block text-sm font-medium leading-6 text-text-primary"
-							>
-								Email address
-							</label>
-							<div className="mt-2 self-end">
-								<input
-									{...getInputProps(personalInfoFields.email, { type: 'email' })}
-									disabled
-									className=" block w-full cursor-not-allowed rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-gray-500 shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 sm:text-sm sm:leading-6"
-								></input>
-							</div>
-						</div>
-						<div className="flex sm:col-span-3">
-							<Link to={`/${data.user.username.username}/settings/change-email`} className="self-end text-text-notify">
-								<button
-									type="button"
-									className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-								>
-									Change Email
-								</button>
-							</Link>
-						</div>
+
 						<div className="sm:col-span-2 sm:col-start-1">
 							<label
 								htmlFor={personalInfoFields.country.id}
