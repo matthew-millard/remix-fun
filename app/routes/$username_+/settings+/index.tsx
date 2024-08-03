@@ -1,4 +1,3 @@
-import { PhotoIcon } from '@heroicons/react/24/solid';
 import { Form, Link, useActionData, useFetcher, useLoaderData } from '@remix-run/react';
 import {
 	ActionFunctionArgs,
@@ -51,7 +50,9 @@ import {
 	EnvelopeIcon,
 	IdentificationIcon,
 	InformationCircleIcon,
+	ShieldCheckIcon,
 	UserCircleIcon,
+	PhotoIcon,
 } from '@heroicons/react/24/outline';
 import { InputErrors } from '~/components/InputField';
 import { DeleteButton } from '~/components/ImageUploader';
@@ -1047,49 +1048,30 @@ export default function SettingsRoute() {
 				</Form>
 			</section>
 
+			{/* Two-factor Authentication */}
+			<section className="pt-16">
+				<div>
+					<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+						<ShieldCheckIcon height={32} strokeWidth={1} color="#a9adc1" />
+						<h2 className="ml-4">Two-Factor Authentication</h2>
+					</div>
+					<p className="mt-3 text-sm leading-6 text-text-secondary">
+						{data.is2FAEnabled
+							? 'Disabling two-factor authentication will make your account less secure.'
+							: 'Add additional security to your account using two-factor authentication.'}
+					</p>
+					<div className="mt-8 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+						<LinkWithPrefetch
+							to={`/${data.user.username.username}/settings/two-factor-authentication`}
+							text={data.is2FAEnabled ? 'Disable 2FA →' : 'Enable 2FA →'}
+							className="inline-flex items-center rounded-md bg-indigo-400/10 px-3 py-2 text-xs font-medium text-indigo-400 ring-1 ring-inset ring-indigo-400/30"
+						/>
+					</div>
+				</div>
+			</section>
+
 			<section className="pt-16">
 				<div className=" flex flex-col py-8">
-					{data.is2FAEnabled ? (
-						<div className=" flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
-							<div>
-								<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
-								<p className="mt-1 text-sm leading-6 text-text-secondary">
-									Disabling two-factor authentication will make your account less secure.
-								</p>
-							</div>
-							<Link
-								to={`/${data.user.username.username}/settings/two-factor-authentication`}
-								className=" flex self-end"
-							>
-								<button
-									type="submit"
-									className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-								>
-									Disable 2FA
-								</button>
-							</Link>
-						</div>
-					) : (
-						<div className=" flex  flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
-							<div>
-								<h2 className="text-base font-semibold leading-7 text-text-primary">Two-Factor Authentication</h2>
-								<p className="mt-1 text-sm leading-6 text-text-secondary">
-									Add additional security to your account using two-factor authentication
-								</p>
-							</div>
-							<Link
-								to={`/${data.user.username.username}/settings/two-factor-authentication`}
-								className=" flex self-end"
-							>
-								<button
-									type="submit"
-									className=" flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-								>
-									Enable Two-Factor Authentication
-								</button>
-							</Link>
-						</div>
-					)}
 					<logOutOtherSessionsFetcher.Form
 						method="POST"
 						encType="multipart/form-data"
