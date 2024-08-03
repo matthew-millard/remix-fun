@@ -37,7 +37,7 @@ import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm 
 
 import { convertFileToBuffer } from '~/utils/file-utils';
 import { findUniqueUser, updateUserProfile } from '~/utils/prisma-user-helpers';
-import { requireUser, requireUserId } from '~/utils/auth.server';
+import { bcrypt, requireUser, requireUserId } from '~/utils/auth.server';
 import { invariantResponse } from '~/utils/misc';
 import { getSession } from '~/utils/session.server';
 import { prisma } from '~/utils/db.server';
@@ -53,6 +53,7 @@ import {
 	ShieldCheckIcon,
 	UserCircleIcon,
 	PhotoIcon,
+	ArrowRightEndOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import { InputErrors } from '~/components/InputField';
 import { DeleteButton } from '~/components/ImageUploader';
@@ -471,7 +472,55 @@ async function personalInfoUpdateAction({ userId, formData }: ProfileActionArgs)
 	});
 }
 
-async function signOutOfOtherDevicesAction({ request, userId }: ProfileActionArgs) {
+async function signOutOfOtherDevicesAction({ request, userId, formData }: ProfileActionArgs) {
+	const submission = await parseWithZod(formData, {
+		async: true,
+		schema: z
+			.object({
+				password: z.string(),
+			})
+			.transform(async (data, ctx) => {
+				// get the user's password for database
+				const user = await prisma.user.findUnique({
+					where: {
+						id: userId,
+					},
+					select: {
+						password: {
+							select: {
+								hash: true,
+							},
+						},
+						username: true,
+					},
+				});
+
+				// check if the password is correct
+				const isValidPassword = await bcrypt.compare(data.password, user.password.hash);
+
+				if (!isValidPassword) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: 'Invalid password',
+						path: ['password'],
+					});
+					return z.NEVER;
+				}
+
+				return { ...data, username: user.username };
+			}),
+	});
+
+	// If the submission is not successful, return the submission without the password
+	if (submission.status !== 'success') {
+		return json(submission.reply({ hideFields: ['password'] }), {
+			status: submission.status === 'error' ? 400 : 200,
+		});
+	}
+
+	// Remove password from the submission
+	delete submission.value.password;
+	const { username } = submission.value;
 	const cookieSession = await getSession(request);
 	const sessionId = cookieSession.get('sessionId');
 
@@ -484,7 +533,11 @@ async function signOutOfOtherDevicesAction({ request, userId }: ProfileActionArg
 		},
 	});
 
-	return json({ status: 'success' } as const);
+	return redirectWithToast(`/${username.username}/settings`, {
+		title: 'Signed out of other devices',
+		type: 'success',
+		description: 'You have been signed out of other devices.',
+	});
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -549,7 +602,9 @@ export default function SettingsRoute() {
 
 	const aboutFetcher = useFetcher();
 
-	const logOutOtherSessionsFetcher = useFetcher();
+	const isLogOutOtherSessionsSubmitting = useIsPending({
+		formIntent: signOutOfOtherDevicesActionIntent,
+	});
 
 	const sessionCount = data.user._count.sessions - 1;
 
@@ -625,6 +680,16 @@ export default function SettingsRoute() {
 		defaultValue: {
 			firstName: data.user?.firstName,
 			lastName: data.user?.lastName,
+		},
+	});
+
+	const [loggingOutOtherSessionsForm, loggingOutOtherSessionsFields] = useForm({
+		id: 'log-out-other-sessions-form',
+		lastResult: useActionData(),
+		shouldValidate: 'onSubmit',
+		shouldRevalidate: 'onSubmit',
+		onValidate({ formData }) {
+			return parseWithZod(formData, { schema: z.object({ password: z.string() }) });
 		},
 	});
 
@@ -1050,58 +1115,72 @@ export default function SettingsRoute() {
 
 			{/* Two-factor Authentication */}
 			<section className="pt-16">
-				<div>
-					<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
-						<ShieldCheckIcon height={32} strokeWidth={1} color="#a9adc1" />
-						<h2 className="ml-4">Two-Factor Authentication</h2>
-					</div>
-					<p className="mt-3 text-sm leading-6 text-text-secondary">
-						{data.is2FAEnabled
-							? 'Disabling two-factor authentication will make your account less secure.'
-							: 'Add additional security to your account using two-factor authentication.'}
-					</p>
-					<div className="mt-8 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
-						<LinkWithPrefetch
-							to={`/${data.user.username.username}/settings/two-factor-authentication`}
-							text={data.is2FAEnabled ? 'Disable 2FA →' : 'Enable 2FA →'}
-							className="inline-flex items-center rounded-md bg-indigo-400/10 px-3 py-2 text-xs font-medium text-indigo-400 ring-1 ring-inset ring-indigo-400/30"
+				<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+					<ShieldCheckIcon height={32} strokeWidth={1} color="#a9adc1" />
+					<h2 className="ml-4">Two-Factor Authentication</h2>
+				</div>
+				<p className="mt-3 text-sm leading-6 text-text-secondary">
+					{data.is2FAEnabled
+						? 'Disabling two-factor authentication will make your account less secure.'
+						: 'Add additional security to your account using two-factor authentication.'}
+				</p>
+				<div className="mt-8 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+					<LinkWithPrefetch
+						to={`/${data.user.username.username}/settings/two-factor-authentication`}
+						text={data.is2FAEnabled ? 'Disable 2FA →' : 'Enable 2FA →'}
+						className="inline-flex items-center rounded-md bg-indigo-400/10 px-3 py-2 text-xs font-medium text-indigo-400 ring-1 ring-inset ring-indigo-400/30"
+					/>
+				</div>
+			</section>
+
+			{/* Log out other sessions */}
+			<section className="pt-16">
+				<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+					<ArrowRightEndOnRectangleIcon height={32} strokeWidth={1} color="#a9adc1" />
+					<h2 className="ml-4">Log Out Other Sessions</h2>
+				</div>
+				<p className="mt-3 text-sm leading-6 text-text-secondary">
+					{sessionCount
+						? `You are currently logged in on ${sessionCount} other ${sessionCount === 1 ? 'session' : 'sessions'} across all of your devices`
+						: 'You are not logged in on any other sessions across all of your devices.'}
+				</p>
+				<Form
+					method="POST"
+					encType="multipart/form-data"
+					preventScrollReset={true}
+					{...getFormProps(loggingOutOtherSessionsForm)}
+				>
+					<AuthenticityTokenInput />
+					<div className="mt-8">
+						<InputField
+							fieldAttributes={{ ...getInputProps(loggingOutOtherSessionsFields.password, { type: 'password' }) }}
+							label="Your password"
+							htmlFor={loggingOutOtherSessionsFields.password.id}
+							errors={loggingOutOtherSessionsFields.password.errors}
+							errorId={loggingOutOtherSessionsFields.password.errorId}
+							additionalClasses={{
+								backgroundColor: 'bg-bg-secondary',
+								textColor: 'text-text-primary',
+							}}
 						/>
 					</div>
-				</div>
+					<div className="relative mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+						<SubmitButton
+							text={'Log out other sessions'}
+							name="intent"
+							value={signOutOfOtherDevicesActionIntent}
+							isSubmitting={isLogOutOtherSessionsSubmitting}
+							disabled={sessionCount === 0}
+							backgroundColor="bg-red-600 hover:bg-red-500"
+							width="w-auto"
+							stateText="Logging out other sessions..."
+						/>
+					</div>
+				</Form>
 			</section>
 
 			<section className="pt-16">
 				<div className=" flex flex-col py-8">
-					<logOutOtherSessionsFetcher.Form
-						method="POST"
-						encType="multipart/form-data"
-						className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between"
-						preventScrollReset={true}
-					>
-						<AuthenticityTokenInput />
-						<div>
-							<h2 className="text-base font-semibold leading-7 text-text-primary">Log Out Other Sessions</h2>
-							{sessionCount ? (
-								<p className="mt-1 text-sm leading-6 text-text-secondary">
-									You are currently logged in on {sessionCount} other {sessionCount === 1 ? 'session' : 'sessions'}{' '}
-									across all of your devices
-								</p>
-							) : (
-								<p className="mt-1 text-sm leading-6 text-text-secondary">
-									You are not logged in on any other sessions across all of your devices.
-								</p>
-							)}
-						</div>
-						<button
-							type="submit"
-							className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-red-600"
-							disabled={sessionCount === 0}
-							name="intent"
-							value={signOutOfOtherDevicesActionIntent}
-						>
-							Log Out Other Sessions
-						</button>
-					</logOutOtherSessionsFetcher.Form>
 					<div className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
 						<div>
 							<h2 className="text-base font-semibold leading-7 text-text-primary">Password</h2>
