@@ -18,6 +18,7 @@ import Tooltip from './Tooltip';
 import MeasurementToggle from './MeasurementToggle';
 import LinkWithPrefetch from './LinkWithPrefetch';
 import InputField from './InputField';
+import InputSelectField from './InputSelectField';
 import SubmitButton from './SubmitButton';
 import OTP from './OTP';
 import SrOnlyLabel from './SrOnlyLabel';
@@ -46,6 +47,7 @@ export {
 	Tooltip,
 	MeasurementToggle,
 	InputField,
+	InputSelectField,
 	LinkWithPrefetch,
 	SubmitButton,
 	OTP,

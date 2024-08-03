@@ -16,12 +16,11 @@ import { checkHoneypot } from '~/utils/honeypot.server';
 import { canadaData } from '~/utils/canada-data';
 import { useEffect, useState } from 'react';
 import {
-	Button,
 	CoverImageUploader,
 	DialogBox,
-	ErrorList,
 	ImageUploader,
 	InputField,
+	InputSelectField,
 	LinkWithPrefetch,
 	SrOnlyLabel,
 	SubmitButton,
@@ -47,7 +46,13 @@ import { redirectWithToast } from '~/utils/toast.server';
 import { z } from 'zod';
 import { useIsPending } from '~/hooks/useIsPending';
 import { twoFAVerificationType } from './two-factor-authentication+/_layout';
-import { CameraIcon, EnvelopeIcon, IdentificationIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import {
+	CameraIcon,
+	EnvelopeIcon,
+	IdentificationIcon,
+	InformationCircleIcon,
+	UserCircleIcon,
+} from '@heroicons/react/24/outline';
 import { InputErrors } from '~/components/InputField';
 import { DeleteButton } from '~/components/ImageUploader';
 
@@ -539,17 +544,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function SettingsRoute() {
 	const data = useLoaderData<typeof loader>();
+	const { user } = data;
 
 	const aboutFetcher = useFetcher();
 
-	// const personalInformationFetcher = useFetcher();
 	const logOutOtherSessionsFetcher = useFetcher();
 
 	const sessionCount = data.user._count.sessions - 1;
-	const { user } = data;
 
 	const isUsernameSubmitting = useIsPending({
 		formIntent: usernameUpdateActionIntent,
+	});
+	const isPersonalInfoSubmitting = useIsPending({
+		formIntent: perosnalInfoUpdateActionIntent,
 	});
 	const isAboutSubmitting = aboutFetcher.state === 'submitting';
 
@@ -615,8 +622,8 @@ export default function SettingsRoute() {
 			return parseWithZod(formData, { schema: PersonalInfoSchema });
 		},
 		defaultValue: {
-			firstName: data.user.firstName,
-			lastName: data.user.lastName,
+			firstName: data.user?.firstName,
+			lastName: data.user?.lastName,
 		},
 	});
 
@@ -750,6 +757,7 @@ export default function SettingsRoute() {
 							text="Update"
 							isSubmitting={isUsernameSubmitting}
 							width="w-auto"
+							stateText="Updating..."
 						/>
 					</div>
 				</Form>
@@ -795,6 +803,7 @@ export default function SettingsRoute() {
 							text="Update"
 							isSubmitting={isAboutSubmitting}
 							width="w-auto"
+							stateText="Updating..."
 						/>
 					</div>
 				</aboutFetcher.Form>
@@ -830,6 +839,7 @@ export default function SettingsRoute() {
 								name="intent"
 								value={profileUpdateActionIntent}
 								width="w-auto"
+								stateText="Updating..."
 							/>
 							<div className="absolute -bottom-6">
 								<InputErrors errors={profileFields.profile.errors} errorId={profileFields.profile.errorId} />
@@ -879,6 +889,7 @@ export default function SettingsRoute() {
 								isSubmitting={isCoverSubmitting}
 								width="w-auto"
 								errors={coverFields.cover.errors}
+								stateText="Updating..."
 							/>
 							<div className="absolute -bottom-6">
 								<InputErrors errors={coverFields.cover.errors} errorId={coverFields.cover.errorId} />
@@ -895,6 +906,7 @@ export default function SettingsRoute() {
 								value={deleteCoverImageActionIntent}
 								width="w-auto"
 								backgroundColor="bg-red-600 hover:bg-red-500"
+								stateText="Deleting..."
 							/>
 						</div>
 					</Form>
@@ -934,142 +946,103 @@ export default function SettingsRoute() {
 
 			{/* Personal information */}
 			<section className="pt-16">
-				<Form
-					{...getFormProps(personalInfoForm)}
-					method="POST"
-					encType="multipart/form-data"
-					className="border-b border-border-tertiary pb-12"
-				>
+				<div>
+					<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+						<InformationCircleIcon height={32} strokeWidth={1} color="#a9adc1" />
+						<h2 className="ml-4">Personal Information</h2>
+					</div>
+					<p className="mt-3 text-sm leading-6 text-text-secondary">
+						Your personal information will be shared with other users on the platform.
+					</p>
+				</div>
+				<Form {...getFormProps(personalInfoForm)} method="POST" encType="multipart/form-data" preventScrollReset={true}>
 					<AuthenticityTokenInput />
 					<HoneypotInputs />
-					<h2 className="text-base font-semibold leading-7 text-text-primary">Personal Information</h2>
-					<p className="mt-1 text-sm leading-6 text-text-secondary">
-						Use a permanent address where you can receive mail.
-					</p>
-					<div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+					<div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
 						<div className="sm:col-span-3">
-							<label
+							<InputField
+								fieldAttributes={{ ...getInputProps(personalInfoFields.firstName, { type: 'text' }) }}
+								label="First name"
 								htmlFor={personalInfoFields.firstName.id}
-								className="block text-sm font-medium leading-6 text-text-primary"
-							>
-								First name
-							</label>
-							<div className="mt-2">
-								<input
-									{...getInputProps(personalInfoFields.firstName, { type: 'text' })}
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-								/>
-								<div
-									className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.firstName.errors ? 'max-h-56' : 'max-h-0'}`}
-								>
-									<ErrorList errors={personalInfoFields.firstName.errors} id={personalInfoFields.firstName.errorId} />
-								</div>
-							</div>
+								errors={personalInfoFields.firstName.errors}
+								errorId={personalInfoFields.firstName.errorId}
+								additionalClasses={{
+									backgroundColor: 'bg-bg-secondary',
+									textColor: 'text-text-primary',
+								}}
+							/>
 						</div>
 						<div className="sm:col-span-3">
-							<label
+							<InputField
+								fieldAttributes={{ ...getInputProps(personalInfoFields.lastName, { type: 'text' }) }}
+								label="Last name"
 								htmlFor={personalInfoFields.lastName.id}
-								className="block text-sm font-medium leading-6 text-text-primary"
-							>
-								Last name
-							</label>
-							<div className="mt-2">
-								<input
-									{...getInputProps(personalInfoFields.lastName, { type: 'text' })}
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 aria-[invalid]:ring-red-600 sm:text-sm sm:leading-6"
-								/>
-								<div
-									className={`transition-height overflow-hidden px-2 py-1 duration-500 ease-in-out ${personalInfoFields.lastName.errors ? 'max-h-56' : 'max-h-0'}`}
-								>
-									<ErrorList errors={personalInfoFields.lastName.errors} id={personalInfoFields.lastName.errorId} />
-								</div>
-							</div>
+								errors={personalInfoFields.lastName.errors}
+								errorId={personalInfoFields.lastName.errorId}
+								additionalClasses={{
+									backgroundColor: 'bg-bg-secondary',
+									textColor: 'text-text-primary',
+								}}
+							/>
 						</div>
 
 						<div className="sm:col-span-2 sm:col-start-1">
-							<label
+							<InputSelectField
+								fieldAttributes={{ ...getSelectProps(personalInfoFields.country) }}
+								defaultValue="Canada"
+								defaultOption={<option value="Canada">Canada</option>}
+								label="Country"
 								htmlFor={personalInfoFields.country.id}
-								className="block text-sm font-medium leading-6 text-text-primary"
-							>
-								Country
-							</label>
-							<div className="mt-2">
-								<select
-									{...getSelectProps(personalInfoFields.country)}
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-								>
-									<option value={'Canada'}>Canada</option>
-								</select>
-								<div
-									className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.country.errors ? 'max-h-56' : 'max-h-0'}`}
-								>
-									<ErrorList errors={personalInfoFields.country.errors} id={personalInfoFields.country.errorId} />
-								</div>
-							</div>
+								errors={personalInfoFields.country.errors}
+								errorId={personalInfoFields.country.errorId}
+							/>
 						</div>
 						<div className="sm:col-span-2">
-							<label
+							<InputSelectField
+								fieldAttributes={{ ...getSelectProps(personalInfoFields.province) }}
+								value={selectedProvince}
+								defaultOption={<option value="">-- Select Province --</option>}
+								options={Object.keys(canadaData).map(province => ({
+									value: province,
+									label: province.replace(/([A-Z])/g, ' $1').trim(),
+								}))}
+								label="Province"
 								htmlFor={personalInfoFields.province.id}
-								className="block text-sm font-medium leading-6 text-text-primary"
-							>
-								Province
-							</label>
-							<div className="mt-2">
-								<select
-									{...getSelectProps(personalInfoFields.province)}
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-									value={selectedProvince}
-									onChange={e => handleProvinceChange(e.target.value)}
-								>
-									<option value="">-- Select Province --</option>
-									{Object.keys(canadaData).map(province => (
-										<option key={province} value={province}>
-											{province.replace(/([A-Z])/g, ' $1').trim()}
-										</option>
-									))}
-								</select>
-								<div
-									className={`transition-height overflow-hidden py-1 duration-500 ease-in-out ${personalInfoFields.province.errors ? 'max-h-56' : 'max-h-0'}`}
-								>
-									<ErrorList errors={personalInfoFields.province.errors} id={personalInfoFields.province.errorId} />
-								</div>
-							</div>
+								errors={personalInfoFields.province.errors}
+								errorId={personalInfoFields.province.errorId}
+								onChange={e => handleProvinceChange(e.target.value)}
+							/>
 						</div>
 						<div className="sm:col-span-2 sm:col-start-1">
-							<label
+							<InputSelectField
+								fieldAttributes={{ ...getSelectProps(personalInfoFields.city) }}
+								value={selectedCity}
+								defaultOption={<option value="">-- Select City --</option>}
+								options={
+									selectedProvince
+										? canadaData[selectedProvince as keyof typeof canadaData].map(city => ({
+												value: city,
+												label: city,
+											}))
+										: []
+								}
+								label="City"
 								htmlFor={personalInfoFields.city.id}
-								className="block text-sm font-medium leading-6 text-text-primary"
-							>
-								City
-							</label>
-							<div className="mt-2">
-								<select
-									{...getSelectProps(personalInfoFields.city)}
-									className="block w-full rounded-md border-0 bg-bg-secondary px-2 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
-									value={selectedCity}
-									onChange={e => handleCityChange(e.target.value)}
-								>
-									<option value="">-- Select City --</option>
-									{selectedProvince &&
-										(canadaData[selectedProvince as keyof typeof canadaData] as string[]).map(city => (
-											<option key={city} value={city}>
-												{city}
-											</option>
-										))}
-								</select>
-								<div
-									className={`transition-height overflow-hidden  py-1 duration-500 ease-in-out ${personalInfoFields.city.errors ? 'max-h-56' : 'max-h-0'}`}
-								>
-									<ErrorList errors={personalInfoFields.city.errors} id={personalInfoFields.city.errorId} />
-								</div>
-							</div>
+								errors={personalInfoFields.city.errors}
+								errorId={personalInfoFields.city.errorId}
+								onChange={e => handleCityChange(e.target.value)}
+							/>
 						</div>
 					</div>
-					<div className="mt-6 flex items-center justify-end gap-x-6">
-						<button type="button" className="text-sm font-semibold leading-6 text-text-primary">
-							Cancel
-						</button>
-						<Button type="submit" name="intent" label="Save Changes" value={perosnalInfoUpdateActionIntent} />
+					<div className="relative mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+						<SubmitButton
+							text={'Update'}
+							name="intent"
+							value={perosnalInfoUpdateActionIntent}
+							isSubmitting={isPersonalInfoSubmitting}
+							width="w-auto"
+							stateText="Updating..."
+						/>
 					</div>
 				</Form>
 			</section>
