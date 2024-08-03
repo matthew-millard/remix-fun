@@ -9,6 +9,7 @@ type SubmitButtonProps = {
 	value?: string;
 	width?: string;
 	backgroundColor?: string;
+	disabled?: boolean;
 	ref?: React.Ref<HTMLButtonElement>;
 } & Pick<SubmittingStateProps, 'stateText'>;
 
@@ -20,11 +21,18 @@ type SubmittingStateProps = {
 		| 'Loading...'
 		| 'Creating...'
 		| 'Updating...'
-		| 'Deleting...';
+		| 'Deleting...'
+		| 'Uploading...'
+		| 'Downloading...'
+		| 'Authenticating...'
+		| 'Logging in...'
+		| 'Logging out...'
+		| 'Signing in...'
+		| 'Logging out other sessions...';
 };
 
 const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(function SubmitButton(
-	{ text, isSubmitting, name, value, width, backgroundColor, errors, stateText },
+	{ text, isSubmitting, name, value, width, backgroundColor, errors, stateText, disabled },
 	ref,
 ) {
 	return (
@@ -35,7 +43,7 @@ const SubmitButton = forwardRef<HTMLButtonElement, SubmitButtonProps>(function S
 				backgroundColor ? backgroundColor : 'bg-indigo-500 hover:bg-indigo-400',
 				'flex justify-center rounded-md  px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50',
 			)}
-			disabled={isSubmitting || errors?.length > 0}
+			disabled={isSubmitting || errors?.length > 0 || disabled}
 			name={name}
 			value={value}
 			ref={ref}
