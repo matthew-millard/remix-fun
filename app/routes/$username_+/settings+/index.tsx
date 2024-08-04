@@ -32,12 +32,12 @@ import {
 	UsernameSchema,
 	AboutSchema,
 } from '~/utils/validation-schemas';
-import { parseWithZod } from '@conform-to/zod';
+import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { getFormProps, getInputProps, getSelectProps, getTextareaProps, useForm } from '@conform-to/react';
 
 import { convertFileToBuffer } from '~/utils/file-utils';
 import { findUniqueUser, updateUserProfile } from '~/utils/prisma-user-helpers';
-import { bcrypt, requireUser, requireUserId } from '~/utils/auth.server';
+import { bcrypt, getPasswordHash, requireUser, requireUserId, verifyUserPassword } from '~/utils/auth.server';
 import { invariantResponse } from '~/utils/misc';
 import { getSession } from '~/utils/session.server';
 import { prisma } from '~/utils/db.server';
@@ -54,9 +54,11 @@ import {
 	UserCircleIcon,
 	PhotoIcon,
 	ArrowRightEndOnRectangleIcon,
+	LockClosedIcon,
 } from '@heroicons/react/24/outline';
 import { InputErrors } from '~/components/InputField';
 import { DeleteButton } from '~/components/ImageUploader';
+import { changePasswordSchema } from './change-password';
 
 type ProfileActionArgs = {
 	request: Request;
@@ -72,6 +74,7 @@ const deleteCoverImageActionIntent = 'delete-cover-image';
 const usernameUpdateActionIntent = 'update-username';
 const aboutUpdateActionIntent = 'update-about';
 const perosnalInfoUpdateActionIntent = 'update-personal-info';
+const changePasswordActionIntent = 'change-password';
 
 export async function action({ request, params }: ActionFunctionArgs) {
 	const user = await requireUser(request);
@@ -113,6 +116,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		}
 		case perosnalInfoUpdateActionIntent: {
 			return personalInfoUpdateAction({ request, userId, formData });
+		}
+		case changePasswordActionIntent: {
+			return changePasswordAction({ request, userId, formData });
 		}
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
@@ -532,6 +538,55 @@ async function signOutOfOtherDevicesAction({ request, userId, formData }: Profil
 	return json(submission.reply({ resetForm: true, hideFields: ['password'] }));
 }
 
+async function changePasswordAction({ userId, formData }: ProfileActionArgs) {
+	const submission = await parseWithZod(formData, {
+		async: true,
+		schema: changePasswordSchema.superRefine(async ({ currentPassword, newPassword }, ctx) => {
+			if (currentPassword && newPassword) {
+				const user = await verifyUserPassword({ id: userId }, currentPassword);
+				if (!user) {
+					ctx.addIssue({
+						path: ['currentPassword'],
+						code: 'custom',
+						message: 'Incorrect password.',
+					});
+				}
+			}
+		}),
+	});
+
+	// clear the payload so we don't send the password back to the client
+	submission.payload = {};
+
+	if (submission.status !== 'success') {
+		return json(submission.reply({ formErrors: ['Submission failded'] }), {
+			status: submission.status === 'error' ? 400 : 200,
+		});
+	}
+
+	const { newPassword } = submission.value;
+
+	const user = await prisma.user.update({
+		select: { username: true },
+		where: { id: userId },
+		data: {
+			password: {
+				update: {
+					hash: await getPasswordHash(newPassword),
+				},
+			},
+		},
+	});
+
+	return json(submission.reply({ resetForm: true }));
+
+	// return redirectWithToast(`/${user.username.username}/settings`, {
+	// 	title: 'Password Changed',
+	// 	type: 'success',
+	// 	description: 'Your password has been successfully changed.',
+	// });
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
 	const userId = await requireUserId(request);
 
@@ -590,6 +645,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function SettingsRoute() {
 	const data = useLoaderData<typeof loader>();
+	const lastResult = useActionData();
 	const { user } = data;
 
 	const aboutFetcher = useFetcher();
@@ -620,9 +676,14 @@ export default function SettingsRoute() {
 		state: 'submitting',
 	});
 
+	const isChangePasswordSubmitting = useIsPending({
+		formIntent: changePasswordActionIntent,
+		state: 'submitting',
+	});
+
 	const [usernameForm, usernameFields] = useForm({
 		id: 'username-form',
-		lastResult: useActionData(),
+		lastResult,
 		shouldValidate: 'onInput',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
@@ -638,7 +699,7 @@ export default function SettingsRoute() {
 		defaultValue: {
 			about: data.user.about?.about || '',
 		},
-		lastResult: useActionData(),
+		lastResult,
 		shouldValidate: 'onInput',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
@@ -650,7 +711,7 @@ export default function SettingsRoute() {
 		id: 'profile-form',
 		shouldValidate: 'onInput',
 		shouldRevalidate: 'onInput',
-		lastResult: useActionData(),
+		lastResult,
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: z.object({ profile: UploadImageSchema }) });
 		},
@@ -658,7 +719,7 @@ export default function SettingsRoute() {
 
 	const [coverForm, coverFields] = useForm({
 		id: 'cover-form',
-		lastResult: useActionData(),
+		lastResult,
 		shouldValidate: 'onSubmit',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
@@ -669,7 +730,7 @@ export default function SettingsRoute() {
 	const [personalInfoForm, personalInfoFields] = useForm({
 		id: 'personal-info-form',
 		shouldValidate: 'onInput',
-		lastResult: useActionData(),
+		lastResult,
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: PersonalInfoSchema });
@@ -682,7 +743,7 @@ export default function SettingsRoute() {
 
 	const [loggingOutOtherSessionsForm, loggingOutOtherSessionsFields] = useForm({
 		id: 'log-out-other-sessions-form',
-		lastResult: useActionData(),
+		lastResult,
 		shouldValidate: 'onSubmit',
 		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
@@ -690,6 +751,17 @@ export default function SettingsRoute() {
 		},
 		defaultValue: {
 			password: '',
+		},
+	});
+
+	const [changePasswordform, changePasswordfields] = useForm({
+		id: 'change-password-form',
+		shouldValidate: 'onSubmit',
+		shouldRevalidate: 'onInput',
+		constraint: getZodConstraint(changePasswordSchema),
+		lastResult,
+		onValidate({ formData }) {
+			return parseWithZod(formData, { schema: changePasswordSchema });
 		},
 	});
 
@@ -992,7 +1064,7 @@ export default function SettingsRoute() {
 				<div className="mt-8">
 					<InputField
 						fieldAttributes={{ id: 'email-address', type: 'email', value: data?.user?.email, readOnly: true }}
-						label="Current Email"
+						label="Current email"
 						htmlFor="email-address"
 						additionalClasses={{
 							backgroundColor: 'bg-bg-secondary',
@@ -1174,6 +1246,69 @@ export default function SettingsRoute() {
 							backgroundColor="bg-red-600 hover:bg-red-500"
 							width="w-auto"
 							stateText="Logging out other sessions..."
+						/>
+					</div>
+				</Form>
+			</section>
+
+			{/* Change Password */}
+			<section className="pt-16">
+				<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+					<LockClosedIcon height={32} strokeWidth={1} color="#a9adc1" />
+					<h2 className="ml-4">Password</h2>
+				</div>
+				<p className="mt-3 text-sm leading-6 text-text-secondary">Update your password associated with your account.</p>
+				<Form
+					{...getFormProps(changePasswordform)}
+					method="POST"
+					encType="multipart/form-data"
+					preventScrollReset
+					className="mt-8 grid grid-cols-1 gap-y-8"
+				>
+					<AuthenticityTokenInput />
+					<HoneypotInputs />
+					<InputField
+						fieldAttributes={{ ...getInputProps(changePasswordfields.currentPassword, { type: 'password' }) }}
+						htmlFor={changePasswordfields.currentPassword.id}
+						errors={changePasswordfields.currentPassword.errors}
+						errorId={changePasswordfields.currentPassword.errorId}
+						label="Current password"
+						additionalClasses={{
+							backgroundColor: 'bg-bg-secondary',
+							textColor: 'text-text-primary',
+						}}
+					/>
+					<InputField
+						fieldAttributes={{ ...getInputProps(changePasswordfields.newPassword, { type: 'password' }) }}
+						htmlFor={changePasswordfields.newPassword.id}
+						errors={changePasswordfields.newPassword.errors}
+						errorId={changePasswordfields.newPassword.errorId}
+						label="New password"
+						additionalClasses={{
+							backgroundColor: 'bg-bg-secondary',
+							textColor: 'text-text-primary',
+						}}
+					/>
+					<InputField
+						fieldAttributes={{ ...getInputProps(changePasswordfields.confirmNewPassword, { type: 'password' }) }}
+						htmlFor={changePasswordfields.confirmNewPassword.id}
+						errors={changePasswordfields.confirmNewPassword.errors}
+						errorId={changePasswordfields.confirmNewPassword.errorId}
+						label="Confirm new password"
+						additionalClasses={{
+							backgroundColor: 'bg-bg-secondary',
+							textColor: 'text-text-primary',
+						}}
+					/>
+
+					<div className="relative mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+						<SubmitButton
+							text={'Change Password'}
+							isSubmitting={isChangePasswordSubmitting}
+							name="intent"
+							value={changePasswordActionIntent}
+							width="w-auto"
+							stateText="Updating..."
 						/>
 					</div>
 				</Form>

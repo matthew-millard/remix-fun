@@ -14,9 +14,9 @@ import { redirectWithToast } from '~/utils/toast.server';
 import { PasswordSchema } from '~/utils/validation-schemas';
 
 // Zod validation schema
-const changePasswordSchema = z
+export const changePasswordSchema = z
 	.object({
-		currentPassword: PasswordSchema,
+		currentPassword: z.string(),
 		newPassword: PasswordSchema,
 		confirmNewPassword: PasswordSchema,
 		redirectTo: z.string().optional(),
@@ -89,7 +89,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function Password() {
-	const lastResult = useActionData<typeof action>();
+	const lastResult = useActionData();
 	const [searchParams] = useSearchParams();
 	const redirectTo = searchParams.get('redirectTo');
 
@@ -97,12 +97,11 @@ export default function Password() {
 		id: 'change-password-form',
 		shouldRevalidate: 'onInput',
 		constraint: getZodConstraint(changePasswordSchema),
-		// @ts-expect-error - ignore lastResult ts error
 		lastResult,
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: changePasswordSchema });
 		},
-		defaultValues: {
+		defaultValue: {
 			redirectTo: redirectTo,
 		},
 	});
