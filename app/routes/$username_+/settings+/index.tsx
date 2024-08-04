@@ -506,7 +506,7 @@ async function signOutOfOtherDevicesAction({ request, userId, formData }: Profil
 					return z.NEVER;
 				}
 
-				return { ...data, username: user.username };
+				return data;
 			}),
 	});
 
