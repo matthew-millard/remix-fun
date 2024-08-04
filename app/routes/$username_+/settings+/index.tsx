@@ -491,7 +491,6 @@ async function signOutOfOtherDevicesAction({ request, userId, formData }: Profil
 								hash: true,
 							},
 						},
-						username: true,
 					},
 				});
 
@@ -501,7 +500,7 @@ async function signOutOfOtherDevicesAction({ request, userId, formData }: Profil
 				if (!isValidPassword) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: 'Invalid password',
+						message: 'Incorrect password',
 						path: ['password'],
 					});
 					return z.NEVER;
@@ -518,9 +517,6 @@ async function signOutOfOtherDevicesAction({ request, userId, formData }: Profil
 		});
 	}
 
-	// Remove password from the submission
-	delete submission.value.password;
-	const { username } = submission.value;
 	const cookieSession = await getSession(request);
 	const sessionId = cookieSession.get('sessionId');
 
@@ -533,11 +529,7 @@ async function signOutOfOtherDevicesAction({ request, userId, formData }: Profil
 		},
 	});
 
-	return redirectWithToast(`/${username.username}/settings`, {
-		title: 'Signed out of other devices',
-		type: 'success',
-		description: 'You have been signed out of other devices.',
-	});
+	return json(submission.reply({ resetForm: true, hideFields: ['password'] }));
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -604,23 +596,28 @@ export default function SettingsRoute() {
 
 	const isLogOutOtherSessionsSubmitting = useIsPending({
 		formIntent: signOutOfOtherDevicesActionIntent,
+		state: 'submitting',
 	});
 
 	const sessionCount = data.user._count.sessions - 1;
 
 	const isUsernameSubmitting = useIsPending({
 		formIntent: usernameUpdateActionIntent,
+		state: 'submitting',
 	});
 	const isPersonalInfoSubmitting = useIsPending({
 		formIntent: perosnalInfoUpdateActionIntent,
+		state: 'submitting',
 	});
 	const isAboutSubmitting = aboutFetcher.state === 'submitting';
 
 	const isProfileSubmitting = useIsPending({
 		formIntent: profileUpdateActionIntent || deleteProfileActionIntent,
+		state: 'submitting',
 	});
 	const isCoverSubmitting = useIsPending({
 		formIntent: coverImageUpdateActionIntent || deleteCoverImageActionIntent,
+		state: 'submitting',
 	});
 
 	const [usernameForm, usernameFields] = useForm({
@@ -687,9 +684,12 @@ export default function SettingsRoute() {
 		id: 'log-out-other-sessions-form',
 		lastResult: useActionData(),
 		shouldValidate: 'onSubmit',
-		shouldRevalidate: 'onSubmit',
+		shouldRevalidate: 'onInput',
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: z.object({ password: z.string() }) });
+		},
+		defaultValue: {
+			password: '',
 		},
 	});
 
