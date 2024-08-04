@@ -1,4 +1,4 @@
-import { Form, Link, useActionData, useFetcher, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useFetcher, useLoaderData } from '@remix-run/react';
 import {
 	ActionFunctionArgs,
 	json,
@@ -55,6 +55,7 @@ import {
 	PhotoIcon,
 	ArrowRightEndOnRectangleIcon,
 	LockClosedIcon,
+	XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { InputErrors } from '~/components/InputField';
 import { DeleteButton } from '~/components/ImageUploader';
@@ -566,7 +567,7 @@ async function changePasswordAction({ userId, formData }: ProfileActionArgs) {
 
 	const { newPassword } = submission.value;
 
-	const user = await prisma.user.update({
+	await prisma.user.update({
 		select: { username: true },
 		where: { id: userId },
 		data: {
@@ -1314,37 +1315,22 @@ export default function SettingsRoute() {
 				</Form>
 			</section>
 
-			<section className="pt-16">
-				<div className=" flex flex-col py-8">
-					<div className="flex flex-col gap-x-6 gap-y-2 pb-6 sm:flex-row sm:justify-between">
-						<div>
-							<h2 className="text-base font-semibold leading-7 text-text-primary">Password</h2>
-							<p className="mt-1 text-sm leading-6 text-text-secondary">
-								Update your password associated with your Barfly account
-							</p>
-						</div>
-						<Link to={`/${data.user.username.username}/settings/change-password`} className="self-end">
-							<button
-								type="button"
-								className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-							>
-								Change Password
-							</button>
-						</Link>
-					</div>
-					<div className=" flex  flex-col gap-x-6 gap-y-2 sm:flex-row sm:justify-between">
-						<div>
-							<h2 className="text-base font-semibold leading-7 text-text-primary">Delete Account</h2>
-							<p className="mt-1 text-sm leading-6 text-text-secondary">Permanently delete your Barfly account</p>
-						</div>
-						<button
-							type="button"
-							className="flex flex-shrink-0 items-center justify-center self-end rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 "
-							onClick={() => showDialog(true)}
-						>
-							Delete Account
-						</button>
-					</div>
+			<section className="py-16">
+				<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
+					<XCircleIcon height={32} strokeWidth={1} color="rgb(239 68 68)" />
+					<h2 className="ml-4 text-red-500">Delete Account</h2>
+				</div>
+				<p className="mt-3 text-sm leading-6 text-text-secondary">
+					Once you delete your account, there is no going back. Please be certain.
+				</p>
+				<div className="relative mt-8 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+					<button
+						type="button"
+						className="inline-flex items-center rounded-md bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-600 ring-1 ring-inset ring-red-500/30 hover:text-red-500"
+						onClick={() => showDialog(true)}
+					>
+						Delete Account
+					</button>
 				</div>
 			</section>
 			<DialogBox {...dialogProps} />
