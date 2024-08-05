@@ -9,11 +9,9 @@ import {
 	MetaFunction,
 } from '@remix-run/node';
 import { AuthenticityTokenInput } from 'remix-utils/csrf/react';
-import { HoneypotInputs } from 'remix-utils/honeypot/react';
 import { checkCSRF } from '~/utils/csrf.server';
-import { checkHoneypot } from '~/utils/honeypot.server';
 import { canadaData } from '~/utils/canada-data';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
 	CoverImageUploader,
 	DialogBox,
@@ -88,7 +86,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		status: 403,
 	});
 	await checkCSRF(formData, request.headers);
-	checkHoneypot(formData);
 	const intent = formData.get('intent');
 
 	switch (intent) {
@@ -567,7 +564,7 @@ async function changePasswordAction({ userId, formData }: ProfileActionArgs) {
 
 	const { newPassword } = submission.value;
 
-	await prisma.user.update({
+	const user = await prisma.user.update({
 		select: { username: true },
 		where: { id: userId },
 		data: {
@@ -579,13 +576,13 @@ async function changePasswordAction({ userId, formData }: ProfileActionArgs) {
 		},
 	});
 
-	return json(submission.reply({ resetForm: true }));
+	// return json(submission.reply({ resetForm: true }));
 
-	// return redirectWithToast(`/${user.username.username}/settings`, {
-	// 	title: 'Password Changed',
-	// 	type: 'success',
-	// 	description: 'Your password has been successfully changed.',
-	// });
+	return redirectWithToast(`/${user.username.username}/settings`, {
+		title: 'Password Changed',
+		type: 'success',
+		description: 'Your password has been successfully changed.',
+	});
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -679,7 +676,6 @@ export default function SettingsRoute() {
 
 	const isChangePasswordSubmitting = useIsPending({
 		formIntent: changePasswordActionIntent,
-		state: 'submitting',
 	});
 
 	const [usernameForm, usernameFields] = useForm({
@@ -832,7 +828,7 @@ export default function SettingsRoute() {
 	const commonFormElements = (
 		<>
 			<AuthenticityTokenInput />
-			<HoneypotInputs />
+
 			<ImageUploader
 				fieldAttributes={{ ...getInputProps(profileFields.profile, { type: 'file' }) }}
 				isSubmitting={isProfileSubmitting}
@@ -847,7 +843,7 @@ export default function SettingsRoute() {
 	const commonCoverFormElements = (
 		<>
 			<AuthenticityTokenInput />
-			<HoneypotInputs />
+
 			<CoverImageUploader
 				coverImageUrl={coverImageUrl}
 				fieldAttributes={{ ...getInputProps(coverFields.cover, { type: 'file' }) }}
@@ -859,13 +855,20 @@ export default function SettingsRoute() {
 		</>
 	);
 
+	const changePasswordFormRef = useRef<HTMLFormElement>(null);
+	useEffect(() => {
+		if (isChangePasswordSubmitting) {
+			changePasswordFormRef.current?.reset();
+		}
+	}, [isChangePasswordSubmitting]);
+
 	return (
 		<main className="relative mx-auto mt-8 max-w-[40rem] space-y-16 divide-y divide-border-tertiary">
 			{/* Username */}
 			<section>
 				<Form {...getFormProps(usernameForm)} method="POST" encType="multipart/form-data" preventScrollReset={true}>
 					<AuthenticityTokenInput />
-					<HoneypotInputs />
+
 					<div>
 						<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
 							<UserCircleIcon height={32} strokeWidth={1} color="#a9adc1" />
@@ -911,7 +914,7 @@ export default function SettingsRoute() {
 					preventScrollReset={true}
 				>
 					<AuthenticityTokenInput />
-					<HoneypotInputs />
+
 					<div>
 						<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
 							<IdentificationIcon height={32} strokeWidth={1} color="#a9adc1" />
@@ -1096,7 +1099,7 @@ export default function SettingsRoute() {
 				</div>
 				<Form {...getFormProps(personalInfoForm)} method="POST" encType="multipart/form-data" preventScrollReset={true}>
 					<AuthenticityTokenInput />
-					<HoneypotInputs />
+
 					<div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
 						<div className="sm:col-span-3">
 							<InputField
@@ -1186,7 +1189,7 @@ export default function SettingsRoute() {
 				</Form>
 			</section>
 
-			{/* Two-factor Authentication */}
+			{/* Two-factor authentication */}
 			<section className="pt-16">
 				<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
 					<ShieldCheckIcon height={32} strokeWidth={1} color="#a9adc1" />
@@ -1252,7 +1255,7 @@ export default function SettingsRoute() {
 				</Form>
 			</section>
 
-			{/* Change Password */}
+			{/* Change password */}
 			<section className="pt-16">
 				<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
 					<LockClosedIcon height={32} strokeWidth={1} color="#a9adc1" />
@@ -1260,6 +1263,7 @@ export default function SettingsRoute() {
 				</div>
 				<p className="mt-3 text-sm leading-6 text-text-secondary">Update your password associated with your account.</p>
 				<Form
+					ref={changePasswordFormRef}
 					{...getFormProps(changePasswordform)}
 					method="POST"
 					encType="multipart/form-data"
@@ -1267,7 +1271,7 @@ export default function SettingsRoute() {
 					className="mt-8 grid grid-cols-1 gap-y-8"
 				>
 					<AuthenticityTokenInput />
-					<HoneypotInputs />
+
 					<InputField
 						fieldAttributes={{ ...getInputProps(changePasswordfields.currentPassword, { type: 'password' }) }}
 						htmlFor={changePasswordfields.currentPassword.id}
@@ -1315,6 +1319,7 @@ export default function SettingsRoute() {
 				</Form>
 			</section>
 
+			{/* Delete account */}
 			<section className="py-16">
 				<div className="flex items-center text-base font-semibold leading-7 text-text-primary">
 					<XCircleIcon height={32} strokeWidth={1} color="rgb(239 68 68)" />
