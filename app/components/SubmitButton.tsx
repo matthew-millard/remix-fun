@@ -28,6 +28,7 @@ type SubmittingStateProps = {
 		| 'Logging in...'
 		| 'Logging out...'
 		| 'Signing in...'
+		| 'Changing email...'
 		| 'Logging out other sessions...';
 };
 
