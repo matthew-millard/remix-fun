@@ -26,6 +26,7 @@ import RememberMe from './RememberMe';
 import TextareaInput from './TextareaInput';
 import ImageUploader from './ImageUploader';
 import CoverImageUploader from './CoverImageUploader';
+import ProfileOptionsMenu from './ProfileOptionsMenu';
 
 export {
 	ErrorList,
@@ -56,4 +57,5 @@ export {
 	TextareaInput,
 	ImageUploader,
 	CoverImageUploader,
+	ProfileOptionsMenu,
 };

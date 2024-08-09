@@ -1,19 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { EnvelopeIcon } from '@heroicons/react/20/solid';
 import { Link, Outlet, useLoaderData } from '@remix-run/react';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { requireUser } from '~/utils/auth.server';
 import { prisma } from '~/utils/db.server';
-import { ImageChooser } from '~/components';
-
-function classNames(...classes: string[]) {
-	return classes.filter(Boolean).join(' ');
-}
+import { ImageChooser, ProfileOptionsMenu } from '~/components';
+import classNames from '~/utils/classNames';
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-	await requireUser(request);
-	const user = await prisma.user.findFirst({
+	const currentUser = await requireUser(request);
+	const userProfile = await prisma.user.findFirst({
 		select: {
+			id: true,
 			firstName: true,
 			lastName: true,
 			createdAt: true,
@@ -31,49 +28,59 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 		},
 	});
 
-	if (!user) {
+	if (!userProfile) {
 		throw new Response('User not found', { status: 404 });
 	}
 
 	return {
-		user,
+		userProfile,
+		currentUser,
 	};
 }
 
 export default function ProfileLayoutRoute() {
-	const data = useLoaderData<typeof loader>();
+	const { userProfile, currentUser } = useLoaderData<typeof loader>();
+	const [isViewAsPublic, setIsViewAsPublic] = useState(false);
 
-	const fullName = data.user.firstName + ' ' + data.user.lastName;
+	const [isCurrentUserProfile, setIsCurrentUserProfile] = useState((): boolean => {
+		return currentUser?.id === userProfile.id;
+	});
+
+	useEffect(() => {
+		setIsCurrentUserProfile(currentUser?.id === userProfile.id);
+	}, [userProfile, currentUser]);
+
+	const fullName = userProfile?.firstName + ' ' + userProfile?.lastName;
 	const activeTab = useRef('Profile');
 
 	const tabs = [
 		{
 			name: 'Profile',
-			href: `/${data.user.username.username}`,
+			href: `/${userProfile.username.username}`,
 			current: true,
 		},
-		{ name: 'Favourite Bars', href: `/${data.user.username.username}/favourite-bars`, current: false },
-		{ name: 'Reviews', href: `/${data.user.username.username}/reviews`, current: false },
+		{ name: 'Favourite Bars', href: `/${userProfile.username.username}/favourite-bars`, current: false },
+		{ name: 'Reviews', href: `/${userProfile.username.username}/reviews`, current: false },
 	];
 
 	const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 	const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (data.user?.profileImage?.id) {
-			setProfileImageUrl(`/resources/images/${data.user.profileImage.id}/profile`);
+		if (userProfile?.profileImage?.id) {
+			setProfileImageUrl(`/resources/images/${userProfile.profileImage.id}/profile`);
 		} else {
 			setProfileImageUrl(null); // reset to null if no profile image is availble
 		}
-	}, [data.user?.profileImage?.id]);
+	}, [userProfile?.profileImage?.id]);
 
 	useEffect(() => {
-		if (data.user?.coverImage?.id) {
-			setCoverImageUrl(`/resources/images/${data.user.coverImage.id}/cover`);
+		if (userProfile?.coverImage?.id) {
+			setCoverImageUrl(`/resources/images/${userProfile.coverImage.id}/cover`);
 		} else {
 			setCoverImageUrl(null); // reset to null if no profile image is availble
 		}
-	}, [data.user?.coverImage?.id]);
+	}, [userProfile?.coverImage?.id]);
 
 	return (
 		<>
@@ -98,14 +105,13 @@ export default function ProfileLayoutRoute() {
 											<div className="mt-6 min-w-0 flex-1 sm:hidden 2xl:block">
 												<h1 className="truncate text-2xl font-bold text-text-primary">{fullName}</h1>
 											</div>
+
 											<div className="mt-6 flex flex-col justify-stretch space-y-3 sm:flex-row sm:space-x-4 sm:space-y-0">
-												<button
-													type="button"
-													className="inline-flex justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-black shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-												>
-													<EnvelopeIcon className="-ml-0.5 h-5 w-5 text-gray-400" aria-hidden="true" />
-													Message
-												</button>
+												<ProfileOptionsMenu
+													isViewAsPublic={isViewAsPublic}
+													setIsViewAsPublic={setIsViewAsPublic}
+													isDisabled={!isCurrentUserProfile}
+												/>
 											</div>
 										</div>
 									</div>
@@ -141,7 +147,7 @@ export default function ProfileLayoutRoute() {
 									</div>
 								</div>
 							</div>
-							<Outlet />
+							<Outlet context={{ isCurrentUserProfile, isViewAsPublic }} />
 						</article>
 					</main>
 				</div>
