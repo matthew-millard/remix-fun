@@ -30,6 +30,7 @@
     "chalk": "^5.3.0",
     "clsx": "^2.1.0",
     "crypto-js": "^4.2.0",
+    "dayjs": "^1.11.12",
     "execa": "^9.2.0",
     "express": "^4.18.2",
     "express-rate-limit": "^7.2.0",
@@ -38,12 +39,13 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-email": "2.1.1",
+    "react-tailwindcss-datepicker": "^1.6.6",
     "react-tooltip": "^5.27.1",
     "remix-utils": "^7.5.0",
     "resend": "^3.2.0",
     "sonner": "^1.4.41",
     "spin-delay": "^2.0.0",
-    "zod": "^3.22.4"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
