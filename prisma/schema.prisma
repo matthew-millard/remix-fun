@@ -11,26 +11,36 @@ datasource db {
 }
 
 model User {
-  id             String            @id @default(cuid())
-  email          String            @unique
-  firstName      String
-  lastName       String
-  profileImage   UserProfileImage?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  password       Password?
-  username       Username?
-  about          About?
-  userLocation   UserLocation?
-  sessions       Session[]
-  coverImage     UserCoverImage?
-  roles          Role[]
-  cocktails      Cocktail[]
-  reviews        Review[]
-  likes          Like[]
-  dislikes       Dislike[]
-  flaggedReviews FlagReview[]
-  ratings        Rating[]
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  firstName          String
+  lastName           String
+  profileImage       UserProfileImage?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  password           Password?
+  username           Username?
+  about              About?
+  userLocation       UserLocation?
+  sessions           Session[]
+  coverImage         UserCoverImage?
+  roles              Role[]
+  cocktails          Cocktail[]
+  reviews            Review[]
+  likes              Like[]
+  dislikes           Dislike[]
+  flaggedReviews     FlagReview[]
+  ratings            Rating[]
+  CurrentPlaceOfWork CurrentPlaceOfWork?
+}
+
+model CurrentPlaceOfWork {
+  id        String   @id @default(cuid())
+  name      String
+  position  String
+  startDate DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    String   @unique
 }
 
 model Username {

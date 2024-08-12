@@ -59,7 +59,7 @@ import { InputErrors } from '~/components/InputField';
 import { DeleteButton } from '~/components/ImageUploader';
 import { changePasswordSchema } from './change-password';
 
-type ProfileActionArgs = {
+export type ProfileActionArgs = {
 	request: Request;
 	userId?: string;
 	formData: FormData;
