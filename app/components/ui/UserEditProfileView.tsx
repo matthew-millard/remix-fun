@@ -28,7 +28,7 @@ const positions = [
 	'Support',
 ] as const;
 
-const CurrentPlaceOfWorkSchema = z.object({
+export const CurrentPlaceOfWorkSchema = z.object({
 	name: z.string().trim().min(2).max(50),
 	positions: z.enum(positions),
 	startDate: z.string().date(),
