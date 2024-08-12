@@ -27,6 +27,8 @@ import TextareaInput from './TextareaInput';
 import ImageUploader from './ImageUploader';
 import CoverImageUploader from './CoverImageUploader';
 import ProfileOptionsMenu from './ProfileOptionsMenu';
+import UserEditProfileView from './ui/UserEditProfileView';
+import DatePicker from './DatePicker';
 
 export {
 	ErrorList,
@@ -58,4 +60,6 @@ export {
 	ImageUploader,
 	CoverImageUploader,
 	ProfileOptionsMenu,
+	UserEditProfileView,
+	DatePicker,
 };
