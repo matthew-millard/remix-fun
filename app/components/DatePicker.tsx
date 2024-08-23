@@ -12,7 +12,7 @@ type ReactDatePickerProps = {
 	errors: string[] | null;
 	errorId: string;
 	primaryColor?: DatepickerType['primaryColor'];
-	isSubmitting: boolean;
+	startDate?: DatepickerType['value'];
 };
 
 export default function DatePicker({
@@ -22,11 +22,10 @@ export default function DatePicker({
 	errors,
 	errorId,
 	primaryColor,
-	isSubmitting,
+	startDate,
 }: ReactDatePickerProps) {
-	const [dateRange, setDateRange] = useState({
-		startDate: null,
-		endDate: null,
+	const [value, setValue] = useState(() => {
+		return startDate ?? { startDate: null, endDate: null };
 	});
 
 	return (
@@ -41,9 +40,8 @@ export default function DatePicker({
 					placeholder={'Select start date'}
 					asSingle
 					useRange={false}
-					value={dateRange}
-					onChange={value => setDateRange(value)}
-					disabled={isSubmitting}
+					value={value}
+					onChange={newValue => setValue(newValue)}
 					inputName={inputName}
 					inputId={inputId}
 				/>

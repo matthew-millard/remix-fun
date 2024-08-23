@@ -19,6 +19,7 @@ import MeasurementToggle from './MeasurementToggle';
 import LinkWithPrefetch from './LinkWithPrefetch';
 import InputField from './InputField';
 import InputSelectField from './InputSelectField';
+import InputDomainField from './InputDomainField';
 import SubmitButton from './SubmitButton';
 import OTP from './OTP';
 import SrOnlyLabel from './SrOnlyLabel';
@@ -51,6 +52,7 @@ export {
 	MeasurementToggle,
 	InputField,
 	InputSelectField,
+	InputDomainField,
 	LinkWithPrefetch,
 	SubmitButton,
 	OTP,

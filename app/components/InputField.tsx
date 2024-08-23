@@ -1,11 +1,11 @@
 import classNames from '~/utils/classNames';
 
-type LabelProps = {
+export type LabelProps = {
 	label: string;
 	htmlFor: string;
 };
 
-type InputProps = {
+export type InputProps = {
 	autoFocus?: boolean;
 	fieldAttributes: React.InputHTMLAttributes<HTMLInputElement>;
 	additionalClasses?: AdditionalClasses;
@@ -39,7 +39,7 @@ export default function InputField({
 	disabled,
 }: InputFieldProps) {
 	return (
-		<div>
+		<>
 			<Label htmlFor={htmlFor} label={label} />
 			<div className="mt-1">
 				<Input
@@ -52,7 +52,7 @@ export default function InputField({
 			<div className="mt-1">
 				<InputErrors errors={errors} errorId={errorId} />
 			</div>
-		</div>
+		</>
 	);
 }
 
@@ -64,10 +64,10 @@ export function Label({ label, htmlFor }: LabelProps) {
 	);
 }
 
-function Input({ fieldAttributes, autoFocus = false, additionalClasses, disabled }: InputProps) {
+export function Input({ fieldAttributes, autoFocus = false, additionalClasses, disabled }: InputProps) {
 	const combinedClasses = classNames(
-		additionalClasses.backgroundColor,
-		additionalClasses.textColor,
+		additionalClasses?.backgroundColor,
+		additionalClasses?.textColor,
 		'block w-full rounded-md  px-2 py-1.5  shadow-sm ring-1 ring-inset ring-border-tertiary  placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 aria-[invalid]:ring-red-500 sm:text-sm sm:leading-6 disabled:opacity-50 disabled:cursor-not-allowed',
 	);
 

@@ -31,16 +31,18 @@ model User {
   dislikes           Dislike[]
   flaggedReviews     FlagReview[]
   ratings            Rating[]
-  CurrentPlaceOfWork CurrentPlaceOfWork?
+  currentPlaceOfWork CurrentPlaceOfWork?
 }
 
 model CurrentPlaceOfWork {
-  id        String   @id @default(cuid())
-  name      String
-  position  String
-  startDate DateTime
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId    String   @unique
+  id         String   @id @default(cuid())
+  name       String
+  position   String
+  startDate  DateTime
+  city       String
+  websiteUrl String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId     String   @unique
 }
 
 model Username {

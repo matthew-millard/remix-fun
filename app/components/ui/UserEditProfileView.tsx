@@ -7,7 +7,15 @@ import { getFormProps, getInputProps, getSelectProps, useForm } from '@conform-t
 import { z } from 'zod';
 import { parseWithZod } from '@conform-to/zod';
 import DatePicker from '../DatePicker';
-import { updateCurrentPlaceOfWorkActionIntent } from '~/routes/$username+';
+import {
+	deleteCurrentPlaceOfWorkActionIntent,
+	updateCurrentPlaceOfWorkActionIntent,
+	UserProfileProps,
+} from '~/routes/$username+';
+import dayjs from 'dayjs';
+import InputDomainField from '../InputDomainField';
+import { canadaMajorCities } from '~/utils/canada-data';
+import { useIsPending } from '~/hooks/useIsPending';
 
 const positions = [
 	'Assistant Manager',
@@ -32,9 +40,14 @@ export const CurrentPlaceOfWorkSchema = z.object({
 	name: z.string().trim().min(2).max(50),
 	positions: z.enum(positions),
 	startDate: z.string().date(),
+	city: z.enum(canadaMajorCities),
+	websiteUrl: z.string().url().or(z.literal('http://')), // An empty input will still contain 'http://' in the value
 });
 
-export default function UserEditProfileView() {
+export default function UserEditProfileView({ currentPlaceOfWork }: UserProfileProps) {
+	const isCurrentPlaceOfWorkSubmitting = useIsPending({ formIntent: updateCurrentPlaceOfWorkActionIntent });
+	const isCurrentPlaceOfWorkDeleting = useIsPending({ formIntent: deleteCurrentPlaceOfWorkActionIntent });
+
 	const [currentPlaceOfWorkForm, currentPlaceOfWorkFields] = useForm({
 		id: 'current-place-of-work',
 		lastResult: useActionData(),
@@ -43,13 +56,19 @@ export default function UserEditProfileView() {
 		onValidate({ formData }) {
 			return parseWithZod(formData, { schema: CurrentPlaceOfWorkSchema });
 		},
+		defaultValue: {
+			name: currentPlaceOfWork?.name,
+			positions: currentPlaceOfWork?.position,
+			city: currentPlaceOfWork?.city,
+			websiteUrl: currentPlaceOfWork?.websiteUrl,
+		},
 	});
 
 	return (
-		<section className="mt-6 text-text-primary">
+		<section className="mt-8 text-text-primary">
 			<div>
-				<div className="flex items-center text-lg font-semibold leading-7 text-text-primary">
-					<h2>Industry Experience</h2>
+				<div className="flex items-center text-lg font-semibold leading-7 text-text-primary lg:text-xl">
+					<h1>Industry Experience</h1>
 				</div>
 				<p className="mt-3 text-sm leading-6 text-text-secondary">Share you hospitality journey with the community.</p>
 			</div>
@@ -57,8 +76,8 @@ export default function UserEditProfileView() {
 			<h3 className="mt-8 text-base font-semibold leading-7 text-text-primary">Current place of work</h3>
 			<Form {...getFormProps(currentPlaceOfWorkForm)} method="POST" preventScrollReset={true}>
 				<AuthenticityTokenInput />
-				<div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-					<div className="sm:col-span-2">
+				<div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-12">
+					<div className="sm:col-span-3">
 						<InputField
 							label="Name"
 							fieldAttributes={{ ...getInputProps(currentPlaceOfWorkFields.name, { type: 'text' }) }}
@@ -72,7 +91,7 @@ export default function UserEditProfileView() {
 						/>
 					</div>
 
-					<div className="sm:col-span-2">
+					<div className="sm:col-span-3">
 						<InputSelectField
 							label="Position"
 							fieldAttributes={{ ...getSelectProps(currentPlaceOfWorkFields.positions) }}
@@ -86,25 +105,61 @@ export default function UserEditProfileView() {
 							}))}
 						/>
 					</div>
-					<div className="sm:col-span-2">
+					<div className="sm:col-span-3">
 						<DatePicker
 							label="Start date"
 							inputId={currentPlaceOfWorkFields.startDate.id}
 							inputName={currentPlaceOfWorkFields.startDate.name}
-							isSubmitting={false}
 							errors={currentPlaceOfWorkFields.startDate.errors}
 							errorId={currentPlaceOfWorkFields.startDate.errorId}
 							primaryColor="indigo"
+							startDate={{
+								startDate: dayjs(currentPlaceOfWork?.startDate).format('YYYY-MM-DD'),
+								endDate: dayjs(currentPlaceOfWork?.startDate).format('YYYY-MM-DD'),
+							}}
+						/>
+					</div>
+					<div className="sm:col-span-3">
+						<InputSelectField
+							fieldAttributes={{ ...getSelectProps(currentPlaceOfWorkFields.city) }}
+							defaultOption={<option value="">-- Select City --</option>}
+							options={canadaMajorCities.map(city => ({
+								value: city,
+								label: city,
+							}))}
+							label="City"
+							htmlFor={currentPlaceOfWorkFields.city.id}
+							errors={currentPlaceOfWorkFields.city.errors}
+							errorId={currentPlaceOfWorkFields.city.errorId}
+						/>
+					</div>
+					<div className="sm:col-span-3">
+						<InputDomainField
+							fieldAttributes={{ ...getInputProps(currentPlaceOfWorkFields.websiteUrl, { type: 'url' }) }}
+							htmlFor={currentPlaceOfWorkFields.websiteUrl.id}
+							label="Website URL"
+							errors={currentPlaceOfWorkFields.websiteUrl.errors}
+							errorId={currentPlaceOfWorkFields.websiteUrl.errorId}
 						/>
 					</div>
 				</div>
-				<div className="relative mt-6 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+				<div className="mt-6 flex gap-x-2">
 					<SubmitButton
-						text={'Update'}
+						text="Update"
 						name="intent"
 						value={updateCurrentPlaceOfWorkActionIntent}
-						width="w-auto"
+						width="min-w-20"
 						stateText="Updating..."
+						isSubmitting={isCurrentPlaceOfWorkSubmitting}
+					/>
+					<SubmitButton
+						text="Delete"
+						name="intent"
+						value={deleteCurrentPlaceOfWorkActionIntent}
+						width="min-w-20"
+						stateText="Deleting..."
+						isSubmitting={isCurrentPlaceOfWorkDeleting}
+						backgroundColor="bg-red-600 hover:bg-red-500"
 					/>
 				</div>
 			</Form>

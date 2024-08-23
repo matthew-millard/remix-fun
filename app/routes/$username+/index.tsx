@@ -1,5 +1,5 @@
 import { ActionFunctionArgs, json, LoaderFunctionArgs } from '@remix-run/node';
-import { Link, useOutletContext } from '@remix-run/react';
+import { Link, useLoaderData, useOutletContext } from '@remix-run/react';
 import { UserEditProfileView } from '~/components';
 import { requireUser } from '~/utils/auth.server';
 import { checkCSRF } from '~/utils/csrf.server';
@@ -7,16 +7,32 @@ import { ProfileActionArgs } from '../$username_+/settings+';
 import { parseWithZod } from '@conform-to/zod';
 import { CurrentPlaceOfWorkSchema } from '~/components/ui/UserEditProfileView';
 import { prisma } from '~/utils/db.server';
+import { canadaMajorCities } from '~/utils/canada-data';
+import { z } from 'zod';
 
 export const updateCurrentPlaceOfWorkActionIntent = 'updateCurrentPlaceOfWork';
+export const deleteCurrentPlaceOfWorkActionIntent = 'deleteCurrentPlaceOfWork';
 
-// import { loader } from './_layout';
+type Outlet = {
+	isCurrentUserProfile: boolean;
+	isViewAsPublic: boolean;
+};
+
+export type UserProfileProps = {
+	currentPlaceOfWork: {
+		name: string;
+		position: string;
+		startDate: string;
+		city: string;
+		websiteUrl?: string;
+	};
+};
 
 export async function action({ request }: ActionFunctionArgs) {
 	const user = await requireUser(request);
 	const userId = user.id;
 	const formData = await request.formData();
-	console.log('formData', formData);
+
 	await checkCSRF(formData, request.headers);
 
 	const intent = formData.get('intent');
@@ -25,15 +41,30 @@ export async function action({ request }: ActionFunctionArgs) {
 		case updateCurrentPlaceOfWorkActionIntent: {
 			return currentPlaceOfWorkUpdateAction({ formData, userId, request });
 		}
+		case deleteCurrentPlaceOfWorkActionIntent: {
+			return currentPlaceOfWorkDeleteAction({ formData, userId, request });
+		}
 		default: {
 			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
 		}
 	}
 
-	async function currentPlaceOfWorkUpdateAction({ formData, userId, request }: ProfileActionArgs) {
-		console.log('currentPlaceOfWorkUpdateAction');
+	async function currentPlaceOfWorkUpdateAction({ formData, userId }: ProfileActionArgs) {
+		const submission = await parseWithZod(formData, {
+			async: true,
+			schema: CurrentPlaceOfWorkSchema.transform((data, ctx) => {
+				const cityName = data.city;
 
-		const submission = parseWithZod(formData, { schema: CurrentPlaceOfWorkSchema });
+				if (!canadaMajorCities.includes(cityName)) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: 'Invalid city',
+						path: ['city'],
+					});
+				}
+				return data;
+			}),
+		});
 
 		if (submission.status !== 'success') {
 			return json(submission.reply(), {
@@ -46,6 +77,8 @@ export async function action({ request }: ActionFunctionArgs) {
 			name: submission.value.name,
 			position: submission.value.positions,
 			startDate: new Date(submission.value.startDate), // Convert to DateTime type for Prisma
+			city: submission.value.city,
+			websiteUrl: submission.value.websiteUrl,
 		};
 
 		await prisma.currentPlaceOfWork.upsert({
@@ -54,61 +87,75 @@ export async function action({ request }: ActionFunctionArgs) {
 			update: currentPlaceOfWorkData,
 		});
 
-		return json({ status: 'success' });
+		return json(submission.reply(), { status: 200 });
+	}
+
+	async function currentPlaceOfWorkDeleteAction({ userId }: ProfileActionArgs) {
+		const submission = parseWithZod(formData, {
+			schema: z.object({ intent: z.literal(deleteCurrentPlaceOfWorkActionIntent) }),
+		});
+
+		if (submission.status !== 'success') {
+			return json(submission.reply(), {
+				status: submission.status === 'error' ? 400 : 200,
+			});
+		}
+
+		await prisma.currentPlaceOfWork.delete({
+			where: { userId },
+		});
+
+		return json(submission.reply(), { status: 200 });
 	}
 }
 
-type Outlet = {
-	isCurrentUserProfile: boolean;
-	isViewAsPublic: boolean;
-};
+export async function loader({ request, params }: LoaderFunctionArgs) {
+	await requireUser(request);
 
-// const user = {
-// 	name: 'Matt Millard',
-// 	bio: 'I am a bartender at Giulia Pizza. I have worked at Swift Soho and Panda & Sons. I am a cocktail enthusiast and I love to travel.',
-// 	currentBar: {
-// 		name: 'Giulia Pizza',
-// 		position: 'Bartender',
-// 		url: 'https://giuliapizza.com/',
-// 	},
-// 	pastBars: [
-// 		{
-// 			name: 'Swift Soho',
-// 			position: 'Bartender',
-// 			url: 'https://moonroom.ca/',
-// 		},
-// 		{
-// 			name: 'Panda & Sons',
-// 			position: 'Barback',
-// 			url: 'https://pandaandsons.com',
-// 		},
-// 	],
-// 	findMe: {
-// 		instagram: 'https://www.instagram.com/giuliapizza/',
-// 		x: 'https://twitter.com/giuliapizza',
-// 		facebook: 'https://www.facebook.com/giuliapizza',
-// 	},
-// 	location: {
-// 		city: 'Ottawa',
-// 		province: 'Ontario',
-// 		country: 'Canada',
-// 	},
-// 	availableForFreelance: true,
-// };
+	const userProfile = await prisma.user.findFirst({
+		where: {
+			username: {
+				username: params.username,
+			},
+		},
+		include: {
+			currentPlaceOfWork: true,
+		},
+	});
+
+	if (!userProfile) {
+		throw new Response('User not found', { status: 404 });
+	}
+
+	// // Remove http:// from websiteUrl
+	if (userProfile.currentPlaceOfWork?.websiteUrl) {
+		userProfile.currentPlaceOfWork.websiteUrl = userProfile.currentPlaceOfWork?.websiteUrl?.replace('http://', '');
+	}
+
+	return { userProfile };
+}
 
 export default function Profile() {
+	const { userProfile } = useLoaderData<typeof loader>();
 	const { isCurrentUserProfile, isViewAsPublic } = useOutletContext<Outlet>();
-	// const { userProfile } = useRouteLoaderData<typeof loader>('routes/$username+/_layout');
 
 	return (
 		<main className="mx-auto mt-6 h-screen max-w-5xl px-4 sm:px-6 lg:px-8">
-			{!isCurrentUserProfile || isViewAsPublic ? <UserPublicProfileView /> : <UserEditProfileView />}
+			{!isCurrentUserProfile || isViewAsPublic ? (
+				<UserPublicProfileView currentPlaceOfWork={userProfile.currentPlaceOfWork} />
+			) : (
+				<UserEditProfileView currentPlaceOfWork={userProfile.currentPlaceOfWork} />
+			)}
 		</main>
 	);
 }
 
-function UserPublicProfileView() {
-	return <></>;
+function UserPublicProfileView({ currentPlaceOfWork }: UserProfileProps) {
+	return (
+		<>
+			<h1 className=" text-lg text-text-primary">{currentPlaceOfWork?.name}</h1>
+		</>
+	);
 }
 
 export const handle = {
