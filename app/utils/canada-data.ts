@@ -221,3 +221,17 @@ export const canadaData: { [key: string]: string[] } = {
 	],
 	Yukon: ['Dawson', 'Watson Lake', 'Whitehorse'],
 };
+
+export const canadaMajorCities = [
+	'Calgary',
+	'Edmonton',
+	'Halifax',
+	'Hamilton',
+	'Montreal',
+	'Ottawa',
+	'Quebec',
+	'Toronto',
+	'Vancouver',
+	'Victoria',
+	'Winnipeg',
+] as const;

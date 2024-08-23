@@ -1100,7 +1100,7 @@ export default function SettingsRoute() {
 				<Form {...getFormProps(personalInfoForm)} method="POST" encType="multipart/form-data" preventScrollReset={true}>
 					<AuthenticityTokenInput />
 
-					<div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+					<div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-6">
 						<div className="sm:col-span-3">
 							<InputField
 								fieldAttributes={{ ...getInputProps(personalInfoFields.firstName, { type: 'text' }) }}
@@ -1268,45 +1268,51 @@ export default function SettingsRoute() {
 					method="POST"
 					encType="multipart/form-data"
 					preventScrollReset
-					className="mt-8 grid grid-cols-1 gap-y-8"
+					className="mt-8 grid grid-cols-1 gap-y-3"
 				>
 					<AuthenticityTokenInput />
 
-					<InputField
-						fieldAttributes={{ ...getInputProps(changePasswordfields.currentPassword, { type: 'password' }) }}
-						htmlFor={changePasswordfields.currentPassword.id}
-						errors={changePasswordfields.currentPassword.errors}
-						errorId={changePasswordfields.currentPassword.errorId}
-						label="Current password"
-						additionalClasses={{
-							backgroundColor: 'bg-bg-secondary',
-							textColor: 'text-text-primary',
-						}}
-					/>
-					<InputField
-						fieldAttributes={{ ...getInputProps(changePasswordfields.newPassword, { type: 'password' }) }}
-						htmlFor={changePasswordfields.newPassword.id}
-						errors={changePasswordfields.newPassword.errors}
-						errorId={changePasswordfields.newPassword.errorId}
-						label="New password"
-						additionalClasses={{
-							backgroundColor: 'bg-bg-secondary',
-							textColor: 'text-text-primary',
-						}}
-					/>
-					<InputField
-						fieldAttributes={{ ...getInputProps(changePasswordfields.confirmNewPassword, { type: 'password' }) }}
-						htmlFor={changePasswordfields.confirmNewPassword.id}
-						errors={changePasswordfields.confirmNewPassword.errors}
-						errorId={changePasswordfields.confirmNewPassword.errorId}
-						label="Confirm new password"
-						additionalClasses={{
-							backgroundColor: 'bg-bg-secondary',
-							textColor: 'text-text-primary',
-						}}
-					/>
+					<div>
+						<InputField
+							fieldAttributes={{ ...getInputProps(changePasswordfields.currentPassword, { type: 'password' }) }}
+							htmlFor={changePasswordfields.currentPassword.id}
+							errors={changePasswordfields.currentPassword.errors}
+							errorId={changePasswordfields.currentPassword.errorId}
+							label="Current password"
+							additionalClasses={{
+								backgroundColor: 'bg-bg-secondary',
+								textColor: 'text-text-primary',
+							}}
+						/>
+					</div>
+					<div>
+						<InputField
+							fieldAttributes={{ ...getInputProps(changePasswordfields.newPassword, { type: 'password' }) }}
+							htmlFor={changePasswordfields.newPassword.id}
+							errors={changePasswordfields.newPassword.errors}
+							errorId={changePasswordfields.newPassword.errorId}
+							label="New password"
+							additionalClasses={{
+								backgroundColor: 'bg-bg-secondary',
+								textColor: 'text-text-primary',
+							}}
+						/>
+					</div>
+					<div>
+						<InputField
+							fieldAttributes={{ ...getInputProps(changePasswordfields.confirmNewPassword, { type: 'password' }) }}
+							htmlFor={changePasswordfields.confirmNewPassword.id}
+							errors={changePasswordfields.confirmNewPassword.errors}
+							errorId={changePasswordfields.confirmNewPassword.errorId}
+							label="Confirm new password"
+							additionalClasses={{
+								backgroundColor: 'bg-bg-secondary',
+								textColor: 'text-text-primary',
+							}}
+						/>
+					</div>
 
-					<div className="relative mt-4 sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
+					<div className="relative sm:flex sm:items-center sm:space-x-4 sm:space-x-reverse">
 						<SubmitButton
 							text={'Change Password'}
 							isSubmitting={isChangePasswordSubmitting}

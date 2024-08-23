@@ -20,7 +20,6 @@ type InputSelectFieldProps = LabelProps & InputSelectProps & InputErrorsProps;
 export default function InputSelectField({
 	fieldAttributes,
 	value,
-	defaultValue,
 	htmlFor,
 	label,
 	defaultOption,
@@ -36,7 +35,6 @@ export default function InputSelectField({
 				<InputSelect
 					fieldAttributes={fieldAttributes}
 					value={value}
-					defaultValue={defaultValue}
 					onChange={onChange}
 					defaultOption={defaultOption}
 					options={options}
@@ -49,14 +47,13 @@ export default function InputSelectField({
 	);
 }
 
-function InputSelect({ fieldAttributes, value, defaultValue, defaultOption, options, onChange }: InputSelectProps) {
+function InputSelect({ fieldAttributes, value, defaultOption, options, onChange }: InputSelectProps) {
 	return (
 		<div className="relative">
 			<select
 				{...fieldAttributes}
 				onChange={onChange}
 				value={value}
-				defaultValue={defaultValue}
 				className="block w-full appearance-none rounded-md border-0 bg-bg-secondary px-2 py-1.5 pr-10 text-text-primary shadow-sm ring-1 ring-inset ring-border-tertiary focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 [&_*]:text-black"
 			>
 				{defaultOption}
@@ -66,7 +63,7 @@ function InputSelect({ fieldAttributes, value, defaultValue, defaultOption, opti
 					</option>
 				))}
 			</select>
-			<ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-5 w-5 -translate-y-1/2 transform text-text-primary" />
+			<ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
 		</div>
 	);
 }
